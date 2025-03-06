@@ -69,13 +69,13 @@ cd mon-projet
 
    ```bash
    cp .env.example .env
-   php artisan key:generate
+   php forge key:generate
    ```
 
 4. **Lancer le serveur**:
 
    ```bash
-   php artisan serve
+   php forge serve
    ```
 
    Votre application est maintenant accessible à l'adresse [http://localhost:8000](http://localhost:8000)
@@ -113,26 +113,28 @@ MAIL_FROM_ADDRESS=hello@example.com
 
 ```php
 // routes/web.php
-Route::get('/accueil', 'HomeController@index');
-Route::post('/articles', 'ArticleController@store');
+Route::get('/accueil', [HomeController::class, 'index']);
+Route::post('/articles', [ArticleController::class, 'store']);
 Route::resource('users', 'UserController');
 ```
 
 ### Créer un contrôleur
 
 ```bash
-php artisan make:controller HomeController
+php forge generate:controller HomeController
 ```
 
 ```php
 // app/Controllers/HomeController.php
 namespace App\Controllers;
 
-class HomeController extends Controller
+use Forge\Http\Controllers\BaseController;
+
+class HomeController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('home.index', [
+        return $this->view($request, 'home.index', [
             'title' => 'Accueil'
         ]);
     }
@@ -142,7 +144,7 @@ class HomeController extends Controller
 ### Créer un modèle
 
 ```bash
-php artisan make:model Article
+php artisan generate:model Article
 ```
 
 ```php
