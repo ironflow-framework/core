@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur - Mode Debug | IronFlow</title>
+    {{vite_assets('app.js')}}
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card debug-card">
+            <div class="error-card-header">
+                <div>
+                    <svg class="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
+                    </svg>
+                </div>
+                <h1 class="error-title">Erreur</h1>
+            </div>
+            
+            <h2 class="error-subtitle">Mode Debug</h2>
+            <p class="error-message">Une erreur s'est produite. Voici les détails pour le débogage.</p>
+
+            <div class="debug-info">
+                <div class="debug-section">
+                    <h3 class="debug-section-title">Message d'Erreur</h3>
+                    <pre class="debug-content">{{ message }}</pre>
+                </div>
+
+                <div class="debug-section">
+                    <h3 class="debug-section-title">Fichier</h3>
+                    <pre class="debug-content">{{ file }}:{{ line }}</pre>
+                </div>
+
+                <div class="debug-section">
+                    <h3 class="debug-section-title">Trace d'Appel</h3>
+                    <pre class="debug-content">{{ trace }}</pre>
+                </div>
+            </div>
+            
+            <div class="error-actions">
+                <a href="/" class="error-button error-button-primary">Retour à l'Accueil</a>
+                <button onclick="window.location.reload()" class="error-button error-button-secondary">Recharger la Page</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

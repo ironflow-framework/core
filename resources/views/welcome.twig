@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronFlow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .forge-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .forge-card {
+            background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 1px solid rgba(255, 77, 0, 0.2);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 
+                0 4px 6px rgba(0, 0, 0, 0.3),
+                0 0 20px rgba(255, 77, 0, 0.1),
+                inset 0 0 20px rgba(255, 77, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .forge-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 77, 0, 0.5), transparent);
+        }
+
+        .forge-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 77, 0, 0.3);
+            position: relative;
+        }
+
+        .forge-subtitle {
+            font-size: 1.25rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .forge-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+
+        @media (min-width: 640px) {
+            .forge-actions {
+                flex-direction: row;
+            }
+        }
+
+        .forge-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 1.75rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .forge-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+
+        .forge-button:hover::before {
+            left: 100%;
+        }
+
+        .forge-button-primary {
+            background: linear-gradient(145deg, #ff4d00 0%, #ff6b00 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 77, 0, 0.3);
+        }
+
+        .forge-button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 77, 0, 0.4);
+        }
+
+        .forge-button-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 77, 0, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .forge-button-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 77, 0, 0.3);
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 77, 0, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(255, 77, 0, 0.2); }
+        }
+
+        .forge-card {
+            animation: glow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <main class="forge-container">
+        <div class="forge-card">
+            <h1 class="forge-title">
+                IronFlow v.{{ APP_VERSION }}
+            </h1>
+            
+            <p class="forge-subtitle">
+                Tout marche. Commencez à forger vos pages
+            </p>
+
+            <div class="forge-actions">
+                <a href="#" class="forge-button forge-button-primary">
+                    Documentation
+                </a>
+                <a href="#" class="forge-button forge-button-secondary">
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+    

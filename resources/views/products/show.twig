@@ -1,0 +1,41 @@
+{% extends "layouts/app.twig" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">{{ title }}</h1>
+            <div class="space-x-3">
+                <a href="{{ route('products.edit', {id: id}) }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    Modifier
+                </a>
+                <a href="/products" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    Retour
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">ID</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ id }}</p>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">Nom</h2>
+                <p class="mt-1 text-sm text-gray-500">Produit exemple</p>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">Prix</h2>
+                <p class="mt-1 text-sm text-gray-500">99.99 €</p>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">Description</h2>
+                <p class="mt-1 text-sm text-gray-500">Description du produit...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="{{ APP_LANG }}" data-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>
+            {% block title %}
+                IronFlow
+            {% endblock %}
+        </title>
+        <link rel="icon" href="{{ asset('images/ironflow.ico') }}" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+        {{ vite_assets('app.js') }}
+    </head>
+    <body class="bg-white dark:bg-gray-900 transition-colors duration-200">
+        {% block content %}{% endblock %}
+        <footer class="absolute bottom-0 w-full py-6 flex items-center justify-center text-gray-600 dark:text-gray-400">
+            <p>
+                Forgé avec passion - (c)
+                {{ "now"|date("Y") }}
+            </p>
+        </footer>
+        {% block javascript %}{% endblock %}
+    </body>
+</html>
