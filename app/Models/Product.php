@@ -4,10 +4,12 @@ namespace App\Models;
 
 use IronFlow\Database\Factories\HasFactory;
 use IronFlow\Database\Model;
+use IronFlow\Forms\HasForm;
 
 class Product extends Model
 {
     use HasFactory;
+    use HasForm;
     protected $table = 'products';
 
     protected $fillable = [];

@@ -1,5 +1,17 @@
 # Historique des Changements
 
+## [26/03/25]
+
+### Database et Iron ORM
+
+- Amélioration de la sécurité et du typage dans la classe Model :
+  - Correction des propriétés statiques ($table, $primaryKey)
+  - Protection contre les injections SQL avec l'utilisation systématique des requêtes préparées
+  - Typage strict des retours de méthodes
+  - Utilisation cohérente de la classe Collection pour les résultats multiples
+  - Meilleure gestion des erreurs et des cas null
+  - Utilisation systématique des principes PDO
+
 ## [24/03/25]
 
 ### Database et Iron ORM

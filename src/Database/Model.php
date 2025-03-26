@@ -7,13 +7,14 @@ namespace IronFlow\Database;
 use DateTime;
 use Exception;
 use IronFlow\Database\Iron\Builder;
+use IronFlow\Database\Iron\Collection;
 use PDO;
 use PDOException;
 
 abstract class Model
 {
-   protected string $table;
-   protected string $primaryKey = 'id';
+   protected static string $table;
+   protected static string $primaryKey = 'id';
    protected array $fillable = [];
    protected array $hidden = [];
    protected array $casts = [];
@@ -75,7 +76,7 @@ abstract class Model
 
    public function getTable(): string
    {
-      return $this->table;
+      return static::$table;
    }
 
    protected function hasGetMutator(string $key): bool
@@ -204,17 +205,17 @@ abstract class Model
       return $stmt->execute();
    }
 
-   public static function all(): Builder|null
+   public static function all(): Collection
    {
       return static::query()->get();
    }
 
-   public static function find($id): Builder|null
+   public static function find($id): ?static
    {
-      return static::query()->where((new static())->primaryKey, $id)->first();
+      return static::query()->where(static::$primaryKey, $id)->first();
    }
 
-   public static function findOrFail($id): Builder
+   public static function findOrFail($id): static
    {
       $result = self::find($id);
       if (!$result) {
@@ -224,16 +225,16 @@ abstract class Model
    }
 
    // ----- Filtering and Counting -----
-   public static function count(): mixed
+   public static function count(): int
    {
-      $query = "SELECT COUNT(*) FROM " . static::$table;
-      $stmt =
-         $stmt = (new static())->getConnection()->query($query);
-      return $stmt->fetchColumn();
+      $sql = "SELECT COUNT(*) FROM " . static::$table;
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->execute();
+      return (int) $stmt->fetchColumn();
    }
 
    // Pagination
-   public static function paginate(int $page = 1, int $perPage = 10): array
+   public static function paginate(int $page = 1, int $perPage = 10): Collection
    {
       $offset = ($page - 1) * $perPage;
       $sql = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
@@ -241,43 +242,57 @@ abstract class Model
       $stmt->bindParam(':limit', $perPage, PDO::PARAM_INT);
       $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
       $stmt->execute();
-      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
    }
 
-   public static function first(): mixed
+   public static function first(): ?static
    {
-      $sql = "SELECT * FROM " . static::$table . " LIMIT 1";
-      $stmt = (new static())->getConnection()->query($sql);
-      return $stmt->fetchObject(static::class);
+      return static::query()->first();
    }
 
    public static function exists(array $conditions): bool
    {
-      $whereClause = implode(" AND ", array_map(fn($col) => "$col = :$col", array_keys($conditions)));
-      $sql = "SELECT COUNT(*) FROM " . static::$table . " WHERE $whereClause";
+      $whereClause = [];
+      $params = [];
+      foreach ($conditions as $column => $value) {
+         $whereClause[] = "$column = :$column";
+         $params[":$column"] = $value;
+      }
+      
+      $sql = "SELECT COUNT(*) FROM " . static::$table;
+      if (!empty($whereClause)) {
+         $sql .= " WHERE " . implode(" AND ", $whereClause);
+      }
+      
       $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->execute($conditions);
+      $stmt->execute($params);
       return (bool)$stmt->fetchColumn();
    }
 
-   public static function latest(string $column = 'created_at'): mixed
+   public static function latest(string $column = 'created_at'): ?static
    {
-      $sql = "SELECT * FROM " . static::$table . " ORDER BY $column DESC LIMIT 1";
-      $stmt = (new static())->getConnection()->query($sql);
+      $sql = "SELECT * FROM " . static::$table . " ORDER BY :column DESC LIMIT 1";
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
+      $stmt->execute();
       return $stmt->fetchObject(static::class);
    }
 
-   public static function oldest(string $column = 'created_at'): mixed
+   public static function oldest(string $column = 'created_at'): ?static
    {
-      $sql = "SELECT * FROM " . static::$table . " ORDER BY $column ASC LIMIT 1";
-      $stmt = (new static())->getConnection()->query($sql);
+      $sql = "SELECT * FROM " . static::$table . " ORDER BY :column ASC LIMIT 1";
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
+      $stmt->execute();
       return $stmt->fetchObject(static::class);
    }
 
    public static function pluck(string $column): array
    {
-      $sql = "SELECT $column FROM " . static::$table;
-      $stmt = (new static())->getConnection()->query($sql);
+      $sql = "SELECT :column FROM " . static::$table;
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
+      $stmt->execute();
       return $stmt->fetchAll(PDO::FETCH_COLUMN);
    }
 
@@ -285,8 +300,11 @@ abstract class Model
    {
       $offset = 0;
       do {
-         $sql = "SELECT * FROM " . static::$table . " LIMIT $size OFFSET $offset";
-         $stmt = (new static())->getConnection()->query($sql);
+         $sql = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
+         $stmt = (new static())->getConnection()->prepare($sql);
+         $stmt->bindValue(':limit', $size, PDO::PARAM_INT);
+         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+         $stmt->execute();
          $results = $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
 
          if (empty($results)) {
@@ -300,47 +318,66 @@ abstract class Model
 
    public static function increment($id, string $column, int $amount = 1): bool
    {
-      $sql = "UPDATE " . static::$table . " SET $column = $column + :amount WHERE id = :id";
+      $sql = "UPDATE " . static::$table . " SET :column = :column + :amount WHERE " . static::$primaryKey . " = :id";
       $stmt = (new static())->getConnection()->prepare($sql);
-      return $stmt->execute(['amount' => $amount, 'id' => $id]);
+      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
+      $stmt->bindParam(':amount', $amount, PDO::PARAM_INT);
+      $stmt->bindParam(':id', $id);
+      return $stmt->execute();
    }
 
    public static function decrement($id, string $column, int $amount = 1): bool
    {
-      $sql = "UPDATE " . static::$table . " SET $column = $column - :amount WHERE id = :id";
+      $sql = "UPDATE " . static::$table . " SET :column = :column - :amount WHERE " . static::$primaryKey . " = :id";
       $stmt = (new static())->getConnection()->prepare($sql);
-      return $stmt->execute(['amount' => $amount, 'id' => $id]);
+      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
+      $stmt->bindParam(':amount', $amount, PDO::PARAM_INT);
+      $stmt->bindParam(':id', $id);
+      return $stmt->execute();
    }
 
-   public static function withTrashed(): array
+   public static function withTrashed(): Collection
    {
       $sql = "SELECT * FROM " . static::$table;
-      $stmt = (new static())->getConnection()->query($sql);
-      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->execute();
+      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
    }
 
-   public static function onlyTrashed(): array
+   public static function onlyTrashed(): Collection
    {
       $sql = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NOT NULL";
-      $stmt = (new static())->getConnection()->query($sql);
-      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+      $stmt = (new static())->getConnection()->prepare($sql);
+      $stmt->execute();
+      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
    }
 
    public static function restore($id): bool
    {
-      $sql = "UPDATE " . static::$table . " SET deleted_at = NULL WHERE id = :id";
+      $sql = "UPDATE " . static::$table . " SET deleted_at = NULL WHERE " . static::$primaryKey . " = :id";
       $stmt = (new static())->getConnection()->prepare($sql);
-      return $stmt->execute(['id' => $id]);
+      $stmt->bindValue(':id', $id);
+      return $stmt->execute();
    }
 
    // Filtrer les enregistrements
-   public static function filter(array $conditions): mixed
+   public static function filter(array $conditions): Collection
    {
-      $whereClause = implode(" AND ", array_map(fn($col) => "$col = :$col", array_keys($conditions)));
-      $sql = "SELECT * FROM " . static::$table . " WHERE $whereClause";
+      $whereClause = [];
+      $params = [];
+      foreach ($conditions as $column => $value) {
+         $whereClause[] = "$column = :$column";
+         $params[":$column"] = $value;
+      }
+      
+      $sql = "SELECT * FROM " . static::$table;
+      if (!empty($whereClause)) {
+         $sql .= " WHERE " . implode(" AND ", $whereClause);
+      }
+      
       $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->execute($conditions);
-      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+      $stmt->execute($params);
+      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
    }
 
    public static function query(): Builder
