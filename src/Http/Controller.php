@@ -44,17 +44,24 @@ abstract class Controller
       return $this;
    }
 
-   protected function route(string $name, array $parameters = []): string
+   public function route(string $name, array $parameters = []): self
    {
-      return url($name, $parameters);
+      // TODO
+      return $this;
    }
 
-   protected function with(string $key, mixed $value): self
+   public function with(string $key, mixed $value): self
    {
       $this->response->with($key, $value);
       return $this;
    }
-   
+
+   protected function abort(int $status, string $message)
+    {
+      $this->response->setStatusCode($status)->setContent($message);
+      $this->response->send();
+      exit;
+   }   
 
    protected function response(): Response
    {

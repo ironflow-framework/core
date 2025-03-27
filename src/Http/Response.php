@@ -12,6 +12,7 @@ class Response
    private string $content;
    private int $statusCode;
    private array $headers;
+   private array $data;
 
    public function __construct(string $content = '', int $statusCode = 200, array $headers = [])
    {
@@ -79,5 +80,16 @@ class Response
       }
 
       echo $this->content;
+   }
+
+   public function with(string $key, $value): self
+   {
+      $this->data[$key] = $value;
+      return $this;
+   }
+
+   public function url()
+   {
+      return $_SERVER['REQUEST_URI'];
    }
 }

@@ -1,0 +1,152 @@
+{% extends "layouts/app.twig" %}
+
+{% block content %}
+<div class="bg-gray-800 border border-gray-700 rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-700">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-orange-500">{{ config.displayName }}</h1>
+            
+            <div class="flex items-center space-x-4">
+                {% if actions.create %}
+                <a href="{{ route('craftpanel.create', {model: model_name}) }}" 
+                   class="inline-flex items-center px-4 py-2 bg-orange-600 border border-orange-700 rounded-md text-white hover:bg-orange-700 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Nouveau
+                </a>
+                {% endif %}
+
+                {% if config.exportable %}
+                <a href="{{ route('craftpanel.export', {model: model_name}) }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-600 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Exporter
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filtres et recherche -->
+        <div class="mt-4 flex flex-wrap gap-4">
+            <div class="flex-1">
+                <input type="text" name="search" placeholder="Rechercher..." 
+                       class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-300 placeholder-gray-400 focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50">
+            </div>
+
+            {% if config.filterable|length > 0 %}
+            <div class="flex items-center space-x-4">
+                {% for field in config.filterable %}
+                <select name="filters[{{ field }}]" 
+                        class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-300 focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50">
+                    <option value="">{{ fields[field].label }}</option>
+                    {% for option in fields[field].options|default([]) %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-900">
+                    {% for field_name, field in fields %}
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        {% if field.sortable %}
+                        <a href="?orderBy={{ field_name }}&orderDirection={{ orderDirection == 'asc' ? 'desc' : 'asc' }}"
+                           class="flex items-center space-x-1 hover:text-orange-500">
+                            <span>{{ field.label }}</span>
+                            {% if orderBy == field_name %}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="{{ orderDirection == 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
+                            </svg>
+                            {% endif %}
+                        </a>
+                        {% else %}
+                        {{ field.label }}
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for item in items %}
+                <tr class="hover:bg-gray-700">
+                    {% for field_name, field in fields %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {% if field.type == 'datetime' %}
+                            {{ item[field_name]|date('Y-m-d H:i') }}
+                        {% elseif field.type == 'boolean' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                       {{ item[field_name] ? 'bg-green-800 text-green-100' : 'bg-red-800 text-red-100' }}">
+                                {{ item[field_name] ? 'Oui' : 'Non' }}
+                            </span>
+                        {% elseif field.relation %}
+                            {{ attribute(item, field.relation)[field.display] }}
+                        {% else %}
+                            {{ item[field_name] }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            {% if actions.edit %}
+                            <a href="{{ route('craftpanel.edit', {model: model_name, id: item.id}) }}"
+                               class="text-gray-300 hover:text-orange-500">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </a>
+                            {% endif %}
+
+                            {% if actions.delete %}
+                            <form action="{{ route('craftpanel.destroy', {model: model_name, id: item.id}) }}" 
+                                  method="POST" class="inline-block"
+                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="text-gray-300 hover:text-red-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            {% for action in actions if action.route is defined %}
+                            <a href="{{ route(action.route, {id: item.id}) }}"
+                               class="text-gray-300 hover:text-orange-500">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ action.icon_path }}"/>
+                                </svg>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if items.hasPages() %}
+    <div class="px-6 py-4 border-t border-gray-700">
+        {{ items.links()|raw }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

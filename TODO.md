@@ -1,88 +1,100 @@
-# TODO LIST
+# TODO LIST POUR LE FRAMEWORK IRONFLOW
 
 ## POINT A REVOIR SUR IRONFLOW
 
 ### Global
+[x] Pour les commandes cli toujours suivre ce qui fait dans le dossier Console/Commands  
+[] Avoir un framework assez sûr  
+[] Internalise le framework  
 
-[] Utiliser les principes de la PDO  
-[] Mettre en place une nomenclature lié à la forge pour certaines fonctionnalités. Ex: CraftPanel pour le panel d'administration, Iron pour l'ORM, Anvril équivalent du 'Blueprint' de laravel  
-[] Essayer d'être authentique dans certaines pratique
+### Internationalisation
 
-### Routage
+[] Utilisé une librairie pour gérer l'internationalisation 
 
-[x] Changer la syntaxe du routage avec l'utilisateur des methodes static pour certaines methodes. Ex: Router::get('/', [HomeController::class, 'index'])->middleware('auth')->name('home');  
-[x] Garder uniquement une seule approche pour les callback des routes : [Controller::class, 'method']  
-[x] Ajouter une methode static auth pour avoir les routes de l'authentification
+### Le système de Middleware
 
-### Front-end
+[] Revoir le système de middleware  
 
-[x] Mettre en place le design de la page de bienvenue.  
-[x] Afficher les erreurs sur une page d'erreur afin d'être interactif et explicite sur les erreurs
-[x] Prévoir un système de composant
-[x] Mettre en place des pages 404, 403, 500 par défaut dans le front-end. Ces pages peuvent être overwrite par l'utilisateur du framework
+### Application
 
-### Gestion des formulaires
-
-[x] Mettre en place un système de formulaire  
-[x] Prévoir un trait 'HasForm' ou autre nom pour lier un formulaire à un Model  
-[x] Prévoir un design par défaut pour mes champs et composant de formulaire  
-[x] Support des messages d'erreur personnalisés
-[x] Affichage des erreurs dans les composants de formulaire
-[] Prévoir des composants de formulaire telle que login form, contact form, checkout form. Ces composants peuvent être overwrite ou surchargée
+[] Revoir les fichiers du dossier Application
+[] Revoir le container de service  
+[] Revoir aussi le dossier Providers
 
 ### Database
 
-[x] Pour les models avoir la possibilité d'avoir aussi des methodes static pour certaines requete telle que le crud, le find, le findOrfail, etc...  
-[x] Corrigé les bugs actuels  
-[x] Revoir le système de migration notamment la partie schema  
-[x] Completer le système de factorie et de seeding  
+[] Completer le système de factorie et de seeding  
 [] Completer des choses si possible
+
+### Système de component
+
+[] Reorganise le système de composant  
+[] Ajoute des composants  
+[] Mets à jour les components existants (Par défaut, le style des components sera proche de celui de la forge comme le style du framework. L'utilisateur pourra bien sûr modifie le style s'il veut)  
+
+### Système de gestion des uploads et média
+
+[] Mettre en place un système de gestion des uploads et media appelé 'Vibe'  
+[] Mettre en place des composants de lecture des médias audio et vidéo  
+[] Mettre en place aussi un système d'upload des fichiers 
+[] Harmoniser le système avec ce qui est déjà present dans le framework  
 
 ### Console
 
-[x] Mettre à jour les commandes manquantes de generation de fichier et code  
-[x] Ajouter des commandes  
-[x] Afficher les logs en console
-[] Revoir la commande MakeModel et MakeForm en adaptant la commande MakeForm aux différents cas : associé à un model ou non
+[] Revoir la commande MakeModel et MakeForm en adaptant la commande MakeForm aux différents cas : associé à un model ou non  
+[] Analyser toutes les commandes du dossier Console/Commands et mettre à jour les commandes qui necessite des ajustements et/ou des mises à jour
+[] Ajouter des commandes  
+[] Creer une commande l'installateur interactive comme avec Next ou Adonis afin de permettre à l'utilisateur de déjà choisir certaines config telle que :
+   - le nom de l'app
+   - si le projet est web ou api
+   - le driver de db, s'il veut utiliser le système d'auth du framework et si oui lequel (guard, session, token)
+   - le système de cache  
+   - s'il veut utiliser le craftpanel  
+   - Et autres questions
+   Cela d'avoir une base dès le depart  
+
+
+### Système d'authentification  
+
+[] Revoir la partie command cli et l'adapte sous le forme des autres commandes du dossier Console/Commands   
 
 ### Cache
 
-[x] Mettre en place le système de cache
-
-### Service
-
-#### Système de paiement
-
-[] Ajouter une commande pour activer ou bien générer le système de paiement pré-configuré (stripe et paypal) ou encore juste installer via composer mais en l'activant au préable
-
-#### Service de mail
-
-[] Configurer le service de mail
-
-### Autres services
-
-[] Ajouter d'autres services si possible
-
-### Formulaire
-[] Structuration des fichiers  
-[] Gerer la géneration avec ou sans model associé  
-[] Factoring  
+[] Mettre à jour ou revoir entierement le système de cache  
+[] Tester le système de cache  
+[] Tester si le système de cache permet au framework d'être plus rapide et performant      
 
 ### CraftPanel
-[] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne  
+[] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne avec thème sombre et clair  
 [] Génération de la config du craftpanel  
 [] Création de la commande d'installation et de configuration  
 [] Création de la commande d'ajout d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administartion  
 [] Génération des fichier necessaires au fonctionnement du craftpanel  
 [] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
+[] Utiliser l'internationalisation  
 
 ### Controller  
-
 [] Cooriger les bugs presents dans la classe Controller
 
-### Refactoring  
+### Classe Request et Response 
+[] Mettre à jour ces classes en ajoutant des methodes utiles  
 
+### Refactoring  
+[] Bonne pratique et harmonisation en respectant la modularité    
 [] Repartir les responsabilités  
 [] Code facile à maintenir  
 [] Système de log
+[] Avoir un système scalable et sécurisé   
+
+### Services
+
+#### Système de paiement
+[] Ajouter une commande pour activer ou bien générer le système de paiement pré-configuré (stripe et paypal) ou encore juste installer via composer mais en l'activant au préable
+
+#### Service de mail
+[] Configurer le service de mail
+
+#### Autres services
+[] Ajouter d'autres services si possible
+ 
 

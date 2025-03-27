@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Cache\Drivers;
+namespace IronFlow\Cache\Contracts;
 
 interface CacheDriverInterface
 {
@@ -49,4 +49,13 @@ interface CacheDriverInterface
      * @return bool True si la mise à jour a réussi, false sinon
      */
     public function ttl(string $key, int $ttl): bool;
+
+    /**
+     * 
+     * @param string $key
+     * @param callable $callback
+     * @param mixed $ttl
+     * @return void
+     */
+    public function remember(string $key, callable $callback, ?int $ttl = null);
 }

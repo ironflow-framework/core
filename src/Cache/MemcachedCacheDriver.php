@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace IronFlow\Cache;
 
+use IronFlow\Cache\Contracts\CacheDriverInterface;
 use Memcached;
 
-class MemcachedCacheDriver implements CacheDriver
+class MemcachedCacheDriver implements CacheDriverInterface
 {
    private Memcached $memcached;
    private string $prefix;
@@ -31,15 +32,27 @@ class MemcachedCacheDriver implements CacheDriver
       $this->prefix = $config['prefix'] ?? 'ironflow_cache:';
    }
 
-   public function get(string $key, $default = null)
+   public function get(string $key): mixed
    {
       $value = $this->memcached->get($this->prefix . $key);
 
       if ($this->memcached->getResultCode() === Memcached::RES_NOTFOUND) {
-         return $default;
+         return null;
       }
 
       return unserialize($value);
+   }
+
+   public function set(string $key, mixed $value, int|null $ttl = null): bool
+   {
+      // TODO: Implementer la methode
+      return true;
+   }
+
+   public function has(string $key): bool
+   {
+      // TODO: Implementer la methode
+      return true;
    }
 
    public function put(string $key, $value, ?int $ttl = null): bool
@@ -54,7 +67,7 @@ class MemcachedCacheDriver implements CacheDriver
       return $this->memcached->set($key, $value);
    }
 
-   public function forget(string $key): bool
+   public function delete(string $key): bool
    {
       return $this->memcached->delete($this->prefix . $key);
    }
@@ -62,6 +75,12 @@ class MemcachedCacheDriver implements CacheDriver
    public function flush(): bool
    {
       return $this->memcached->flush();
+   }
+
+   public function ttl(string $key, int $ttl): bool 
+   {
+      // TODO: Implementer la methode
+      return true;
    }
 
    public function remember(string $key, callable $callback, ?int $ttl = null)

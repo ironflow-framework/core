@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Cache;
 
 use DateTime;
-use Exception;
-use IronFlow\Cache\Drivers\CacheDriverInterface;
+use IronFlow\Cache\Contracts\CacheDriverInterface;
 use IronFlow\Cache\Drivers\FileDriver;
 
 class Cache
@@ -14,7 +13,7 @@ class Cache
     private static ?Cache $instance = null;
     private CacheDriverInterface $driver;
 
-    private function __construct(CacheDriverInterface $driver = null)
+    private function __construct(?CacheDriverInterface $driver = null)
     {
         $this->driver = $driver ?? new FileDriver();
     }

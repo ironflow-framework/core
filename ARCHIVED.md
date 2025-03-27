@@ -1,0 +1,60 @@
+# FONCTIONNALITE ANCIENNEMENT DANS LA TODO.md REALISEES
+---
+
+## ARCHIVER ET REALISER  
+### Routage [Done]
+[x] Changer la syntaxe du routage avec l'utilisateur des methodes static pour certaines methodes. Ex: Router::get('/', [HomeController::class, 'index'])->middleware('auth')->name('home');  
+[x] Garder uniquement une seule approche pour les callback des routes : [Controller::class, 'method']  
+[x] Ajouter une methode static auth pour avoir les routes de l'authentification
+
+### Front-end [Done]
+[x] Mettre en place le design de la page de bienvenue.  
+[x] Afficher les erreurs sur une page d'erreur afin d'être interactif et explicite sur les erreurs
+[x] Prévoir un système de composant
+[x] Mettre en place des pages 404, 403, 500 par défaut dans le front-end. Ces pages peuvent être overwrite par l'utilisateur du framework
+[x] Integrer vite et tailwind css version 4 au framework  
+[x] Mettre en place le buider d'asset et le reload des pages 
+
+### Global [In Progress]
+[x] Utiliser les principes de la POO  
+[x] Harmoniser le système complet  
+[x] Mettre en place une nomenclature lié à la forge pour certaines fonctionnalités. Ex: CraftPanel pour le panel d'administration, Iron pour l'ORM, Anvril équivalent du 'Blueprint' de laravel  
+[x] Essayer d'être authentique dans certaines pratique et fonctionnalité
+
+### Console [In Progress]
+
+[x] Mettre à jour les commandes manquantes de generation de fichier et code  
+[x] Ajouter des commandes  
+[x] Afficher les logs en console
+
+### Gestion des formulaires [Done]
+
+[x] Mettre en place un système de formulaire  
+[x] Prévoir un trait 'HasForm' ou autre nom pour lier un formulaire à un Model  
+[x] Prévoir un design par défaut pour mes champs et composant de formulaire  
+[x] Support des messages d'erreur personnalisés
+[x] Affichage des erreurs dans les composants de formulaire
+[x] Prévoir des composants de formulaire telle que login form, contact form, checkout form. Ces composants peuvent être overwrite ou surchargée pour permettre une personnalité de l'utilisateur  
+[x] Structuration des fichiers  
+[x] Gerer la géneration avec ou sans model associé  
+[x] Refactoring 
+
+
+### Database [PARTIAL DONE]
+
+[x] Pour les models avoir la possibilité d'avoir aussi des methodes static pour certaines requete telle que le crud, le find, le findOrfail, etc...  
+[x] Corrigé les bugs actuels  
+[x] Revoir le système de migration notamment la partie schema  
+
+### Système d'authentification [Done] 
+
+[x] Mettre en place un système d'authentification moderne et sécurisé    
+[x] Prévoir une authentication via guard, session, token  
+[x] L'utilisation d'une authentication OAuth sera bien donc si possible on pourra utilisé des library existant si la mise en place est complexe  
+[x] Prevoir un système de changement de mot de passe et autres points pour l'authentification    
+[x] Prevoir un système d'email d'activation    
+[x] Prevoir une commande pour initialiser ou installer le système d'authentication  
+[x] Mettre en place des middlewares  
+[x] Prevoir une commande pour 'intialiser' ou 'activer' ou encore 'installer' l'authentification proposer par le framework  
+[x] Le système d'authentification devra utiliser les fonctionnalités déjà présentes notamment le système de formulaire, models, composants et autres   
+[x] Dans le cas du CraftPanel l'authentification devra aussi tenir compte du système de permission et groupe  

@@ -1,0 +1,72 @@
+{% extends "layouts/app.twig" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for model in registered_models %}
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-400">Total {{ model.display_name }}</p>
+                    <p class="mt-1 text-3xl font-semibold text-orange-500">{{ model.count }}</p>
+                </div>
+                <div class="p-3 bg-gray-700 rounded-full">
+                    <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ model.icon_path }}"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{{ route('craftpanel.index', {model: model.name}) }}" 
+                   class="text-sm text-orange-500 hover:text-orange-400">
+                    Voir tout →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-gray-800 border border-gray-700 rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-700">
+            <h2 class="text-xl font-bold text-orange-500">Activité récente</h2>
+        </div>
+        <div class="divide-y divide-gray-700">
+            {% for log in activity_logs %}
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-gray-700 rounded-full">
+                            <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {% if log.action == 'create' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                {% elseif log.action == 'update' %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                {% else %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                {% endif %}
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-300">
+                                <span class="font-medium text-orange-500">{{ log.user.name }}</span>
+                                a {{ log.action == 'create' ? 'créé' : (log.action == 'update' ? 'modifié' : 'supprimé') }}
+                                un(e) {{ log.model_type|split('\\')|last|lower }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-400">{{ log.created_at|date('d/m/Y H:i') }}</p>
+                        </div>
+                    </div>
+                    {% if log.action != 'delete' %}
+                    <a href="{{ route('craftpanel.edit', {model: log.model_type|split('\\')|last|lower, id: log.model_id}) }}"
+                       class="text-sm text-orange-500 hover:text-orange-400">
+                        Voir →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

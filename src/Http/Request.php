@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
+use IronFlow\Validation\Validator;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 class Request extends SymfonyRequest
@@ -57,6 +58,10 @@ class Request extends SymfonyRequest
       return $this->isXmlHttpRequest();
    }
 
+   public function expectsJson(){
+      
+   }
+
    public function json(?string $key = null, $default = null): mixed
    {
       $data = json_decode($this->getContent(), true);
@@ -66,6 +71,12 @@ class Request extends SymfonyRequest
       }
 
       return $data[$key] ?? $default;
+   }
+
+   public function validate(array $rules): bool
+   {
+      $validator = new Validator();
+      return $validator->validate($this->all(), $rules);
    }
 
    public function getBaseRequest(): SymfonyRequest

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.title|default('CraftPanel') }} - {{ page_title|default('Dashboard') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="{{ asset('craftpanel/css/forge-theme.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-gray-900 text-gray-100" x-data="{ sidebarOpen: false }">
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 border-r border-gray-700 transform transition-transform duration-200 ease-in-out"
+           :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}">
+        <div class="p-6">
+            <div class="flex items-center space-x-3">
+                <img src="{{ asset('craftpanel/images/anvil-logo.svg') }}" alt="Logo" class="w-8 h-8">
+                <span class="text-xl font-bold text-orange-500">CraftPanel</span>
+            </div>
+        </div>
+        
+        <nav class="mt-6">
+            <div class="px-4 py-2">
+                <h2 class="text-xs uppercase tracking-wide text-gray-400">Navigation</h2>
+            </div>
+            
+            <a href="{{ route('craftpanel.dashboard') }}" 
+               class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-orange-500 transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                Dashboard
+            </a>
+
+            {% for model in registered_models %}
+            <a href="{{ route('craftpanel.index', {model: model.name}) }}"
+               class="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-orange-500 transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                {{ model.display_name }}
+            </a>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="ml-0 lg:ml-64 min-h-screen">
+        <!-- Top Navigation -->
+        <header class="bg-gray-800 border-b border-gray-700">
+            <div class="flex items-center justify-between px-6 py-4">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-300 hover:text-orange-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
+                <div class="flex items-center space-x-4">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 text-gray-300 hover:text-orange-500">
+                            <span>{{ auth.user.name }}</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <div x-show="open" @click.away="open = false" 
+                             class="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded shadow-lg">
+                            <a href="{{ route('craftpanel.profile') }}" class="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-orange-500">
+                                Profile
+                            </a>
+                            <a href="{{ route('craftpanel.logout') }}" class="block px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-orange-500">
+                                Déconnexion
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-6">
+            {% if flash.success %}
+                <div class="mb-4 p-4 bg-green-800 border border-green-700 rounded text-green-100">
+                    {{ flash.success }}
+                </div>
+            {% endif %}
+
+            {% if flash.error %}
+                <div class="mb-4 p-4 bg-red-800 border border-red-700 rounded text-red-100">
+                    {{ flash.error }}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ asset('craftpanel/js/forge-theme.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

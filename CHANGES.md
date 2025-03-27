@@ -8,9 +8,75 @@
 ### Database et Iron ORM
 - Amelioration de l'ORM
 
-### Craft Panel
+### Craft Panel (A revoir)
 - Création des commandes liées au craftpanel
+  - Installation et configuration    
 - Création du controller
+
+### Harmonisation du Framework
+- Mise en place de la nomenclature "Forge" :
+  - Iron (ORM) pour la gestion de la base de données
+  - Anvil (Schema) pour les migrations
+  - Crucible (Validation) pour la validation des données
+  - Hammer (Cache) pour le système de cache
+  - Furnace (Forms) pour la gestion des formulaires
+  - CraftPanel pour l'administration
+
+### Cache (Hammer)
+- Implémentation du système de cache avec pattern Singleton
+- Création de l'interface CacheDriverInterface
+- Implémentation des drivers :
+  - FileDriver pour le stockage sur fichier
+  - RedisDriver pour le stockage Redis
+- Support de l'expiration des données en cache
+- Gestion des erreurs et exceptions
+
+### Formulaires (Furnace)
+- Renommage du système de formulaires en "Furnace"
+- Implémentation du trait HasForm pour lier les formulaires aux modèles
+- Création de la classe de base FormComponent
+- Amélioration des composants existants :
+  - Input (text, email, password, etc.)
+  - Select
+  - Textarea
+  - Checkbox
+  - Radio
+- Support des validations via Crucible
+- Intégration avec Tailwind CSS pour le style par défaut
+- Suppression du dossier Form situé dans le dossier View
+- Ajout des composants de formulaire prédéfinis :
+  - LoginForm pour l'authentification
+  - ContactForm pour les formulaires de contact
+  - CheckoutForm pour les processus de paiement
+- Amélioration du trait HasForm :
+  - Support des règles de validation
+  - Messages d'erreur personnalisés
+  - Gestion des erreurs de validation
+- Structuration complète des fichiers :
+  - /src/Furnace/Forms/Auth pour les formulaires d'authentification
+  - /src/Furnace/Forms/Checkout pour les formulaires de paiement
+  - /src/Furnace/Forms pour les formulaires génériques
+
+### Authentification
+- Implémentation du système d'authentification moderne et sécurisé :
+  - Pattern Singleton pour AuthManager
+  - Support de plusieurs guards (session, token, oauth)
+  - Intégration avec le système de formulaires (Furnace)
+- Création des guards :
+  - SessionGuard pour l'authentification web
+  - TokenGuard pour l'authentification API
+  - OAuthGuard pour l'authentification sociale
+- Support OAuth :
+  - Intégration de League OAuth2 Client
+  - Support de Google, GitHub et Facebook
+  - Configuration flexible des providers
+  - Gestion sécurisée des états
+- Middleware d'authentification
+- Commande d'installation auth:install :
+  - Création des migrations (users, password_resets)
+  - Installation des vues d'authentification
+  - Configuration des routes
+  - Génération des contrôleurs
 
 ## [26/03/25]
 
@@ -33,11 +99,12 @@
 - Mise à jour des methodes static CRUD au niveau de la classe __IronFlow\Database\Model__
 - Ajout de la classe __Schema__ afin de repartir les tâches au différentes classes
 
-### Gestion des forms
+### Gestion des formulaires
 
 - Création d'un dossier **Forms** pour la gestion des formulaires
 - Déplacement des classes déjà créées dans le dossier et restructuration
 - Seule les composants sont restés dans Views\Components
+
 
 ## [21/03/25]
 
@@ -59,6 +126,64 @@
 - Mise à jour Migration, Seeder, Model commandes  
 - Révue de la classe IronFlow\Database\Collection  
 - Renommage de Schema en Anvil  
+
+### Gestion des formulaires
+
+- Création de la classe `Form` pour la gestion des formulaires
+- Implémentation des composants de base :
+  - Input (text, email, password, etc.)
+  - Textarea
+  - Select
+  - Checkbox
+  - Radio
+  - File (upload de fichiers)
+  - DatePicker (sélection de dates)
+  - ColorPicker (sélection de couleurs)
+- [x] Support des attributs HTML5
+- [x] Gestion des erreurs de validation
+- [x] Intégration avec Tailwind CSS
+
+### Système de Composants
+
+- Création d'une nouvelle structure pour les composants :
+  - `src/View/Components/` : Composants de base
+  - `src/View/Components/Forms/` : Composants de formulaire
+  - `src/View/Components/Layout/` : Composants de mise en page
+  - `src/View/Components/UI/` : Composants d'interface utilisateur
+
+
+### Système de Validation (Crucible)
+
+- [x] Création de la classe `Validator` pour la validation des données
+- [x] Implémentation des règles de validation de base :
+  - required
+  - email
+  - min
+  - max
+  - numeric
+  - alpha
+  - alphanumeric
+  - file (type, size, mime)
+  - date (format, min, max)
+  - color (format)
+- [x] Support des messages d'erreur personnalisés
+- [x] Affichage des erreurs dans les composants de formulaire
+
+- [x] Créer les composants de formulaire suivants :
+  - [x] Input
+  - [x] Textarea
+  - [x] Select
+  - [x] Checkbox
+  - [x] Radio
+  - [x] File upload
+  - [x] Date picker
+  - [x] Color picker
+- [x] Ajouter plus de règles de validation
+- [x] Créer des composants de mise en page
+- [x] Développer des composants UI réutilisables
+- [x] Ajouter des tests unitaires pour les composants
+- [x] Créer une documentation détaillée des composants
+- [x] Implémenter des exemples d'utilisation
 
 ## [20/03/25]
 
@@ -126,63 +251,13 @@
   - Anvil : Système de génération de code (équivalent Blueprint)
   - Forge : CLI et outils de génération
   - Hammer : Système de cache
-  - Furnace : Système de traitement des formulaires
   - Crucible : Système de validation
   - Tongs : Système de gestion des fichiers
 
-### Système de Composants
-
-- [x] Création d'une nouvelle structure pour les composants :
-  - `src/View/Components/` : Composants de base
-  - `src/View/Components/Forms/` : Composants de formulaire
-  - `src/View/Components/Layout/` : Composants de mise en page
-  - `src/View/Components/UI/` : Composants d'interface utilisateur
-
-### Système de Formulaires (Forge)
-
-- [x] Création de la classe `Form` pour la gestion des formulaires
-- [x] Implémentation des composants de base :
-  - Input (text, email, password, etc.)
-  - Textarea
-  - Select
-  - Checkbox
-  - Radio
-  - File (upload de fichiers)
-  - DatePicker (sélection de dates)
-  - ColorPicker (sélection de couleurs)
-- [x] Support des attributs HTML5
-- [x] Gestion des erreurs de validation
-- [x] Intégration avec Tailwind CSS
-
-### Système de Validation (Crucible)
-
-- [x] Création de la classe `Validator` pour la validation des données
-- [x] Implémentation des règles de validation de base :
-  - required
-  - email
-  - min
-  - max
-  - numeric
-  - alpha
-  - alphanumeric
-  - file (type, size, mime)
-  - date (format, min, max)
-  - color (format)
-- [x] Support des messages d'erreur personnalisés
-- [x] Affichage des erreurs dans les composants de formulaire
-
-- [x] Créer les composants de formulaire suivants :
-  - [x] Input
-  - [x] Textarea
-  - [x] Select
-  - [x] Checkbox
-  - [x] Radio
-  - [x] File upload
-  - [x] Date picker
-  - [x] Color picker
-- [x] Ajouter plus de règles de validation
-- [x] Créer des composants de mise en page
-- [x] Développer des composants UI réutilisables
-- [x] Ajouter des tests unitaires pour les composants
-- [x] Créer une documentation détaillée des composants
-- [x] Implémenter des exemples d'utilisation
+### CraftPanel
+Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne  
+Génération de la config du craftpanel  
+Création de la commande d'installation et de configuration  
+Création de la commande d'ajout d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administartion  
+Génération des fichier necessaires au fonctionnement du craftpanel  
+Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
