@@ -47,7 +47,7 @@
 
 ### Cache
 
-[] Mettre en place le système de cache
+[x] Mettre en place le système de cache
 
 ### Service
 
@@ -68,8 +68,21 @@
 [] Gerer la géneration avec ou sans model associé  
 [] Factoring  
 
+### CraftPanel
+[] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne  
+[] Génération de la config du craftpanel  
+[] Création de la commande d'installation et de configuration  
+[] Création de la commande d'ajout d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administartion  
+[] Génération des fichier necessaires au fonctionnement du craftpanel  
+[] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
+
+### Controller  
+
+[] Cooriger les bugs presents dans la classe Controller
+
 ### Refactoring  
 
 [] Repartir les responsabilités  
 [] Code facile à maintenir  
 [] Système de log
+

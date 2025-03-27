@@ -61,7 +61,7 @@ class CraftPanelController extends Controller
         $perPage = $request->get('perPage', $config['perPage'] ?? 10);
         $items = $query->paginate($perPage);
 
-        return view('craftpanel::index', [
+        return $this->view('craftpanel::index', [
             'items' => $items,
             'config' => $config,
             'fields' => $this->modelClass::getAdminFields(),
@@ -71,7 +71,7 @@ class CraftPanelController extends Controller
 
     public function create(): Response
     {
-        return view('craftpanel::create', [
+        return $this->view('craftpanel::create', [
             'config' => $this->modelClass::getAdminConfig(),
             'fields' => $this->modelClass::getAdminFields(),
             'validation' => $this->modelClass::getAdminValidation(),
@@ -81,14 +81,14 @@ class CraftPanelController extends Controller
     public function store(Request $request): Response
     {
         $validation = $this->modelClass::getAdminValidation();
-        $validated = $request->validate($validation);
+        $validated = $this->validate($request->all(), $validation);
 
         $item = $this->modelClass::create($validated);
 
         // Log l'action
         $this->logActivity('create', $item);
 
-        return redirect()
+        return $this->redirect()
             ->route('craftpanel.index', ['model' => class_basename($this->modelClass)])
             ->with('success', 'Item created successfully');
     }
@@ -97,7 +97,7 @@ class CraftPanelController extends Controller
     {
         $item = $this->modelClass::findOrFail($id);
 
-        return view('craftpanel::edit', [
+        return $this->view('craftpanel::edit', [
             'item' => $item,
             'config' => $this->modelClass::getAdminConfig(),
             'fields' => $this->modelClass::getAdminFields(),
@@ -121,7 +121,7 @@ class CraftPanelController extends Controller
             'new' => $item->getAttributes(),
         ]);
 
-        return redirect()
+        return $this->redirect()
             ->route('craftpanel.index', ['model' => class_basename($this->modelClass)])
             ->with('success', 'Item updated successfully');
     }
@@ -134,7 +134,7 @@ class CraftPanelController extends Controller
         // Log l'action
         $this->logActivity('delete', $item);
 
-        return redirect()
+        return $this->redirect()
             ->route('craftpanel.index', ['model' => class_basename($this->modelClass)])
             ->with('success', 'Item deleted successfully');
     }
@@ -164,7 +164,7 @@ class CraftPanelController extends Controller
 
         $filename = strtolower(class_basename($this->modelClass)) . '_' . date('Y-m-d_His') . '.csv';
         
-        return response()
+        return $this->response()
             ->streamDownload(function () use ($csv) {
                 $handle = fopen('php://output', 'w');
                 foreach ($csv as $row) {

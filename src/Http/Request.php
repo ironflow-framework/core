@@ -30,6 +30,11 @@ class Request extends SymfonyRequest
       return $this->routeParameters[$key] ?? $default;
    }
 
+   public function all(): array
+   {
+      return array_merge($this->request->all(), $this->query->all());
+   }
+
    public function input(string $key, mixed $default = null): mixed
    {
       return $this->request->get($key, $this->query->get($key, $default));

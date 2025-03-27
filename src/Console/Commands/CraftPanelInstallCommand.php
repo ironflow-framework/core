@@ -4,37 +4,51 @@ declare(strict_types=1);
 
 namespace IronFlow\Console\Commands;
 
-use IronFlow\Console\Command;
 use IronFlow\CraftPanel\CraftPanelServiceProvider;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 class CraftPanelInstallCommand extends Command
 {
     protected string $signature = 'craft:panel:install';
     protected string $description = 'Install and configure the CraftPanel administration interface';
 
-    public function handle(): int
+    protected function configure(): void
     {
-        $this->info('Installing CraftPanel...');
+        $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Force the installation');
+    }
+
+    
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $io->title('Installation de CraftPanel');
 
         // Créer les dossiers nécessaires
-        $this->createDirectories();
+        $this->createDirectories($io);
+        $io->success('Dossiers créés avec succès!');
 
         // Publier les assets
-        $this->publishAssets();
+        $this->publishAssets($io);
+        $io->success('Assets publiés avec succès!');
 
         // Publier la configuration
-        $this->publishConfig();
+        $this->publishConfig($io);
 
         // Créer les migrations
-        $this->createMigrations();
+        $this->createMigrations($io);
+        $io->success('Migrations créées avec succès!');
 
-        $this->info('CraftPanel has been installed successfully!');
-        $this->info('Run migrations with: php forge migrate');
+        $io->success('CraftPanel a été installé avec succès!');
+        $io->writeln('Exécutez les migrations avec: php forge migrate');
         
         return Command::SUCCESS;
     }
 
-    protected function createDirectories(): void
+    protected function createDirectories(SymfonyStyle $io): void
     {
         $directories = [
             'app/CraftPanel',
@@ -49,19 +63,19 @@ class CraftPanelInstallCommand extends Command
         foreach ($directories as $directory) {
             if (!is_dir($directory)) {
                 mkdir($directory, 0755, true);
-                $this->info("Created directory: {$directory}");
+                $io->success("Created directory: {$directory}");
             }
         }
     }
 
-    protected function publishAssets(): void
+    protected function publishAssets(SymfonyStyle $io): void
     {
         // Copier les assets (JS, CSS, images)
-        $this->info('Publishing assets...');
+        $io->success('Publishing assets...');
         // TODO: Implémenter la copie des assets
     }
 
-    protected function publishConfig(): void
+    protected function publishConfig(SymfonyStyle $io): void
     {
         $configPath = 'config/craftpanel.php';
         if (!file_exists($configPath)) {
@@ -89,24 +103,25 @@ return [
 ];
 PHP;
             file_put_contents($configPath, $content);
-            $this->info("Created configuration file: {$configPath}");
+            $io->success("Fichier de configuration créé: {$configPath}");
         }
     }
 
-    protected function createMigrations(): void
+    protected function createMigrations(SymfonyStyle $io): void
     {
         $timestamp = date('Y_m_d_His');
         $migration = <<<PHP
 <?php
 
 use IronFlow\Database\Iron\Migration;
-use IronFlow\Database\Iron\Schema;
+use IronFlow\Database\Iron\Schema\Schema;
+use IronFlow\Database\Iron\Schema\Anvil;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('admin_users', function (Schema \$table) {
+        Schema::create('admin_users', function (Anvil \$table) {
             \$table->id();
             \$table->string('name');
             \$table->string('email')->unique();
@@ -115,7 +130,7 @@ return new class extends Migration
             \$table->timestamps();
         });
 
-        Schema::create('admin_roles', function (Schema \$table) {
+        Schema::create('admin_roles', function (Anvil \$table) {
             \$table->id();
             \$table->string('name')->unique();
             \$table->string('description')->nullable();
@@ -166,6 +181,6 @@ PHP;
 
         $migrationPath = "database/migrations/{$timestamp}_create_craftpanel_tables.php";
         file_put_contents($migrationPath, $migration);
-        $this->info("Created migration: {$migrationPath}");
+        $io->success("Created migration: {$migrationPath}");
     }
 }

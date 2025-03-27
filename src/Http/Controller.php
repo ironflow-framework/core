@@ -7,6 +7,7 @@ namespace IronFlow\Http;
 use IronFlow\View\ViewInterface;
 use IronFlow\Http\Response;
 use IronFlow\View\TwigView;
+use IronFlow\Validation\Validator;
 
 abstract class Controller
 {
@@ -33,11 +34,31 @@ abstract class Controller
          ->setHeader('Content-Type', 'application/json');
    }
 
-   protected function redirect(string $url): Response
+   protected function redirect(?string $url = null)
    {
-      return $this->response
-         ->setStatusCode(302)
-         ->setHeader('Location', $url);
+      if ($url) {
+         return $this->response
+            ->setStatusCode(302)
+            ->setHeader('Location', $url);
+      }
+      return $this;
+   }
+
+   protected function route(string $name, array $parameters = []): string
+   {
+      return url($name, $parameters);
+   }
+
+   protected function with(string $key, mixed $value): self
+   {
+      $this->response->with($key, $value);
+      return $this;
+   }
+   
+
+   protected function response(): Response
+   {
+      return $this->response;
    }
 
    protected function back(): Response
@@ -45,9 +66,9 @@ abstract class Controller
       return $this->redirect($_SERVER['HTTP_REFERER'] ?? '/');
    }
 
-   protected function validate(array $data, array $rules): array
+   protected function validate(array $data, array $rules): bool
    {
-      // TODO: Implémenter la validation des données
-      return [];
+      $validator = new Validator($data, $rules);
+      return $validator->validate();
    }
 }

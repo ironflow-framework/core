@@ -19,7 +19,8 @@ class Anvil
       $this->table = $table;
    }
 
-   public function getIfTableExists(): bool{
+   public function getIfTableExists(): bool
+   {
       return $this->ifExists;
    }
 
@@ -50,6 +51,22 @@ class Anvil
    public function string(string $name, int $length = 255): self
    {
       return $this->column($name, "varchar({$length})");
+   }
+
+
+   public function char(string $name, int $length = 255): self
+   {
+      return $this->column($name, "char({$length})");
+   }
+
+   public function mediumText(string $name): self
+   {
+      return $this->column($name, 'mediumtext');
+   }
+
+   public function longText(string $name): self
+   {
+      return $this->column($name, 'longtext');
    }
 
    public function text(string $name): self
@@ -91,9 +108,44 @@ class Anvil
       return $this->column($name, "decimal({$precision},{$scale})");
    }
 
+   public function real(string $name): self
+   {
+      return $this->column($name, 'real');
+   }
+
+   public function double(string $name): self
+   {
+      return $this->column($name, 'double');
+   }
+
    public function boolean(string $name): self
    {
       return $this->column($name, 'tinyint', ['length' => 1]);
+   }
+
+   public function enum(string $name, array $values): self
+   {
+      return $this->column($name, "enum('" . implode("','", $values) . "')");
+   }
+
+   public function binary(string $name): self
+   {
+      return $this->column($name, 'blob');
+   }
+
+   public function blob(string $name): self
+   {
+      return $this->column($name, 'blob');
+   }
+
+   public function rememberToken(): self
+   {
+      return $this->column('remember_token', 'varchar(100)', ['nullable' => true]);
+   }
+
+   public function json(string $name): self
+   {
+      return $this->column($name, 'json');
    }
 
    public function date(string $name): self
@@ -104,6 +156,11 @@ class Anvil
    public function dateTime(string $name): self
    {
       return $this->column($name, 'datetime');
+   }
+
+   public function time(string $name): self
+   {
+      return $this->column($name, 'time');
    }
 
    public function timestamp(string $name): self
@@ -166,6 +223,12 @@ class Anvil
       return $this;
    }
 
+   public function constraint(string $name): self
+   {
+      $this->foreignKeys[count($this->foreignKeys) - 1]['name'] = $name;
+      return $this;
+   }
+
    public function references(string $column): self
    {
       $this->foreignKeys[count($this->foreignKeys) - 1]['references'] = $column;
@@ -178,12 +241,23 @@ class Anvil
       return $this;
    }
 
+
+   /**
+    * 
+    * @param CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION $action 
+    * @return self
+    */
    public function onDelete(string $action): self
    {
       $this->foreignKeys[count($this->foreignKeys) - 1]['onDelete'] = $action;
       return $this;
    }
 
+   /**
+    * 
+    * @param CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION $action 
+    * @return self
+    */
    public function onUpdate(string $action): self
    {
       $this->foreignKeys[count($this->foreignKeys) - 1]['onUpdate'] = $action;
