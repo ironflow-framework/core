@@ -26,6 +26,12 @@
 [] Completer le système de factorie et de seeding  
 [] Completer des choses si possible
 
+### Controller  
+[] Cooriger les bugs presents dans la classe Controller
+
+### Classe Request et Response 
+[] Mettre à jour ces classes en ajoutant des methodes utiles  
+
 ### Système de component
 
 [] Reorganise le système de composant  
@@ -72,12 +78,6 @@
 [] Génération des fichier necessaires au fonctionnement du craftpanel  
 [] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
 [] Utiliser l'internationalisation  
-
-### Controller  
-[] Cooriger les bugs presents dans la classe Controller
-
-### Classe Request et Response 
-[] Mettre à jour ces classes en ajoutant des methodes utiles  
 
 ### Refactoring  
 [] Bonne pratique et harmonisation en respectant la modularité    
