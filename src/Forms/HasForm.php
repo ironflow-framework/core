@@ -13,9 +13,14 @@ trait HasForm
    protected array $formMessages = [];
    protected array $formErrors = [];
 
+   public static function form(): Form
+   {
+      return new Form(static::class);
+   }
+
    public function getForm(): Form
    {
-      return new Form($this);
+      return (require_once(app_path('Components/Forms/') . class_basename($this)));
    }
 
    public function getFormRules(): array

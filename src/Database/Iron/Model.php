@@ -6,8 +6,8 @@ namespace IronFlow\Database;
 
 use DateTime;
 use Exception;
-use IronFlow\Database\Iron\Builder;
 use IronFlow\Database\Iron\Collection;
+use IronFlow\Database\Iron\Query\Builder;
 use PDO;
 use PDOException;
 
@@ -207,6 +207,7 @@ abstract class Model
 
    public static function all(): Collection
    {
+
       return static::query()->get();
    }
 

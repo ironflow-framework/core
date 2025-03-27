@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Models\Product;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
@@ -19,8 +20,10 @@ class ProductController extends Controller
 
    public function create(Request $request): Response
    {
+      $form = Product::form()->input('name', 'Nom')->render();
       return $this->view('products.create', [
-         'title' => 'Créer un produit'
+         'title' => 'Créer un produit',
+         'form' => $form
       ]);
    }
 

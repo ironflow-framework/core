@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace IronFlow\Application;
 
+use Closure;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
 use IronFlow\Routing\Router;
 use IronFlow\Core\ErrorHandler;
 use IronFlow\Support\Config;
-use IronFlow\View\TwigView;
+use IronFlow\Application\Container;
 
 class Application
 {
    private string $basePath;
    private static ?self $instance = null;
+   private Container $container;
 
    public function __construct()
    {
@@ -27,6 +29,11 @@ class Application
          self::$instance = new self();
       }
       return self::$instance;
+   }
+
+   public function singleton(string $name, Closure $callback)
+   {
+      $this->container->singleton($name, $callback);
    }
 
    public function withBasePath(string $basePath): self

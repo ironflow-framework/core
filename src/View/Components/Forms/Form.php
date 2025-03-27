@@ -25,10 +25,10 @@ class Form extends Component
    protected array $fields = [];
    protected bool $hasValidation = false;
 
-   public function __construct(Model $model)
+   public function __construct(string $model)
    {
       parent::__construct([]);
-      $this->model = $model;
+      $this->model = new $model;
       $this->hasValidation = in_array(HasForm::class, Helpers::classUsesRecursive($model));
    }
 

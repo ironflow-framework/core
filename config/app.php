@@ -22,11 +22,11 @@ return [
    ],
 
    'aliases' => [
-      'App' => IronFlow\Support\Facades\App::class,
-      'Route' => IronFlow\Support\Facades\Route::class,
-      'DB' => IronFlow\Support\Facades\DB::class,
-      'View' => IronFlow\Support\Facades\View::class,
-      'Cache' => IronFlow\Support\Facades\Cache::class,
+      'App' => IronFlow\Application\Application::class,
+      'Route' => IronFlow\Routing\Router::class,
+      'DB' => IronFlow\Database\Connection::class,
+      'View' => IronFlow\View\TwigView::class,
+      'Cache' => IronFlow\Cache\Cache::class,
    ],
 
    'fallback_locale' => 'en',

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Query;
+namespace IronFlow\Database\Iron\Query;
 
 use IronFlow\Database\Connection;
 use PDO;
@@ -161,7 +161,7 @@ class Query
    public function get(): array
    {
       $sql = $this->toSql();
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       $stmt->execute($this->bindings);
       return $stmt->fetchAll(PDO::FETCH_ASSOC);
    }
@@ -176,7 +176,7 @@ class Query
    public function count(): int
    {
       $sql = $this->toSql();
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       $stmt->execute($this->bindings);
       return (int) $stmt->fetchColumn();
    }
@@ -202,7 +202,7 @@ class Query
          implode(', ', $placeholders)
       );
 
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       return $stmt->execute(array_values($values));
    }
 
@@ -221,7 +221,7 @@ class Query
          $this->buildWhereClause()
       );
 
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       $stmt->execute($this->bindings);
       return $stmt->rowCount();
    }
@@ -234,7 +234,7 @@ class Query
          $this->buildWhereClause()
       );
 
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       $stmt->execute($this->bindings);
       return $stmt->rowCount();
    }

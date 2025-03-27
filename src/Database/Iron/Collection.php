@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database;
+namespace IronFlow\Database\Iron;
 
 class Collection implements \ArrayAccess, \Iterator, \Countable
 {

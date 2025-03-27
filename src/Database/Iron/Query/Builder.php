@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Iron;
+namespace IronFlow\Database\Iron\Query;
 
-use IronFlow\Database\Collection;
+use IronFlow\Database\Iron\Collection;
 use IronFlow\Database\Connection;
-use IronFlow\Database\Model;
+use IronFlow\Database\Iron\Model;
 use PDO;
 
 class Builder
@@ -268,12 +268,12 @@ class Builder
       return $this;
    }
 
-   public function get(): ?self
+   public function get(): ?Collection
    {
       $sql = $this->toSql();
       $stmt = $this->connection->prepare($sql);
       $stmt->execute($this->bindings);
-      return $stmt->fetchObject(static::class);
+      return new Collection($stmt->fetchAll(PDO::FETCH_ASSOC));
    }
 
    public function exists(): bool
@@ -290,7 +290,7 @@ class Builder
       $this->limit(1);
       $results = $this->get();
       if ($results) {
-         return $this->populate($results->toArray());
+         return $this->populate($results->all());
       }
       return null;
    }

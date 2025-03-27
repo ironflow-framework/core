@@ -1,6 +1,6 @@
 <?php
 
-use IronFlow\Database\Collection;
+use IronFlow\Database\Iron\Collection;
 
 if (!function_exists('view_path')) {
    /**
@@ -43,7 +43,7 @@ if (!function_exists('env')) {
     */
    function env(string $key, mixed $default = null): mixed
    {
-      $value = getenv($key);
+      $value = getenv($key) || $_ENV[$key];
 
       if ($value === false) {
          return $default;
