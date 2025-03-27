@@ -19,7 +19,7 @@
 ### Database et Iron ORM
 - Amelioration de l'ORM
 
-### Craft Panel (A revoir)
+### Craft Panel (A revoir car supprimer)
 - Création des commandes liées au craftpanel
   - Installation et configuration    
 - Création du controller

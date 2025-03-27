@@ -1,5 +1,9 @@
 # FONCTIONNALITE ANCIENNEMENT DANS LA TODO.md REALISEES
 
+- [Done]: Tâches réalisées en globalité et est considéré comme archivée
+- [In Progress]: Tâches toujours en cours de réalisation car parfois dépendant des nouvelles fonctionnalités pour être finaliser  
+- [PARTIAL Done]: Tâches réalisée en partie ou doit être revue  
+
 ## ARCHIVER ET REALISER  
 ### Routage [Done]
 [x] Changer la syntaxe du routage avec l'utilisateur des methodes static pour certaines methodes. Ex: Router::get('/', [HomeController::class, 'index'])->middleware('auth')->name('home');  
@@ -39,7 +43,7 @@
 [x] Refactoring 
 
 
-### Database [PARTIAL DONE]
+### Database [Partial Done]
 
 [x] Pour les models avoir la possibilité d'avoir aussi des methodes static pour certaines requete telle que le crud, le find, le findOrfail, etc...  
 [x] Corrigé les bugs actuels  

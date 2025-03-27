@@ -74,9 +74,10 @@
 [] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne avec thème sombre et clair  
 [] Génération de la config du craftpanel  
 [] Création de la commande d'installation et de configuration  
-[] Création de la commande d'ajout d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administartion  
+[] Création de la commande d'enregistrement d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administration un peu comme avec django     
 [] Génération des fichier necessaires au fonctionnement du craftpanel  
 [] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
+[] Le craftpanel pourra aussi tenir compte des rôles et permissions  
 [] Utiliser l'internationalisation  
 
 ### Refactoring  
@@ -89,10 +90,14 @@
 ### Services
 
 #### Système de paiement
-[] Ajouter une commande pour activer ou bien générer le système de paiement pré-configuré (stripe et paypal) ou encore juste installer via composer mais en l'activant au préable
+[] Ajouter une commande pour activer ou bien générer le système de paiement pré-configuré (stripe, paypal et autres) ou encore juste installer via composer mais en l'activant au préable  
 
 #### Service de mail
-[] Configurer le service de mail
+[] Configurer le service de mail  
+
+#### Système de channel
+[] Mettre en place un système de channel  
+[] Harmoniser avec le système présent avec le framework  
 
 #### Autres services
 [] Ajouter d'autres services si possible
