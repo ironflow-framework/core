@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Cache\Contracts;
+namespace IronFlow\Hammer\Contracts;
 
 interface CacheDriverInterface
 {
@@ -51,11 +51,11 @@ interface CacheDriverInterface
     public function ttl(string $key, int $ttl): bool;
 
     /**
-     * 
-     * @param string $key
-     * @param callable $callback
-     * @param mixed $ttl
-     * @return void
+     * Récupère une valeur du cache ou l'enregistre si elle n'existe pas
+     * @param string $key La clé à récupérer
+     * @param callable $callback Fonction à exécuter pour générer la valeur si non trouvée
+     * @param int|null $ttl Durée de vie en secondes (null pour pas d'expiration)
+     * @return mixed La valeur stockée ou générée
      */
-    public function remember(string $key, callable $callback, ?int $ttl = null);
+    public function remember(string $key, callable $callback, ?int $ttl = null): mixed;
 }

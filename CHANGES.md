@@ -1,5 +1,16 @@
 # Historique des Changements
 
+## [28/03/25]
+
+### Cache (Hammer)
+- Refactoring complet du système de cache pour respecter la nomenclature "Forge"
+- Renommage du namespace de `Cache` à `Hammer`
+- Implémentation complète de la classe `Hammer` avec pattern Singleton
+- Amélioration du `HammerManager` pour gérer différents drivers
+- Implémentation complète du `FileDriver` avec gestion avancée des expirations
+- Documentation complète du code avec PHPDoc
+- Correction des méthodes manquantes dans les interfaces et les implémentations
+
 ## [27/03/25]
 
 ### Application
