@@ -3,10 +3,6 @@
 declare(strict_types=1);
 
 namespace IronFlow\Providers;
-
-use IronFlow\Application\Application;
-use IronFlow\Support\ServiceProvider;
-
 class AppServiceProvider extends ServiceProvider
 {
    public function register(): void

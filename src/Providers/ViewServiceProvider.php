@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Support\ServiceProvider;
 use IronFlow\View\TwigView;
 
 class ViewServiceProvider extends ServiceProvider
@@ -27,8 +26,7 @@ class ViewServiceProvider extends ServiceProvider
       });
 
       $view->addFunction('route', function ($name, $parameters = []) {
-         // TODO: Implémenter la génération d'URLs pour les routes nommées
-         return '/' . $name;
+         return $this->app['router']->url($name, $parameters);
       });
    }
 }

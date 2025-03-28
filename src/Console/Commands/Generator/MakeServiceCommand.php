@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-
+use IronFlow\Support\Filesystem;
 class MakeServiceCommand extends Command
 {
    protected static $defaultName = 'make:service';
@@ -29,11 +29,11 @@ class MakeServiceCommand extends Command
       $serviceContent = $this->generateServiceContent($name, $dependencies);
       $servicePath = "src/Services/{$name}.php";
 
-      if (!is_dir(dirname($servicePath))) {
-         mkdir(dirname($servicePath), 0755, true);
+      if (!Filesystem::exists(dirname($servicePath))) {
+         Filesystem::makeDirectory(dirname($servicePath), 0755, true);
       }
 
-      file_put_contents($servicePath, $serviceContent);
+      Filesystem::put($servicePath, $serviceContent);
       $io->success("Le service {$name} a été créé avec succès !");
 
       return Command::SUCCESS;

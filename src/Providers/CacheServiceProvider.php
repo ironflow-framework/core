@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Support\ServiceProvider;
-use IronFlow\Cache\CacheManager;
-
+use IronFlow\Hammer\HammerManager;
 class CacheServiceProvider extends ServiceProvider
 {
    public function register(): void
    {
       $this->app->singleton('cache', function ($app) {
-         return new CacheManager($app['config']['cache']);
+         return new HammerManager($app['config']['cache']);
       });
    }
 

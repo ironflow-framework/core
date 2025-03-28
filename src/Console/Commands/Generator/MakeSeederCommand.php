@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-
+use IronFlow\Support\Filesystem;
 class MakeSeederCommand extends Command
 {
    protected static $defaultName = 'make:seeder';
@@ -29,11 +29,11 @@ class MakeSeederCommand extends Command
       $seederContent = $this->generateSeederContent($name, $model);
       $seederPath = "database/seeders/{$name}.php";
 
-      if (!is_dir(dirname($seederPath))) {
-         mkdir(dirname($seederPath), 0755, true);
+      if (!Filesystem::exists(dirname($seederPath))) {
+         Filesystem::makeDirectory(dirname($seederPath), 0755, true);
       }
 
-      file_put_contents($seederPath, $seederContent);
+      Filesystem::put($seederPath, $seederContent);
       $io->success("Le seeder {$name} a été créé avec succès !");
 
       return Command::SUCCESS;

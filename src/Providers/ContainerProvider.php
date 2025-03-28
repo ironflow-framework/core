@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Support;
+namespace IronFlow\Providers;
 
 use IronFlow\Application\Container;
 

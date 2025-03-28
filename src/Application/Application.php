@@ -47,6 +47,13 @@ class Application
       foreach ($config as $key => $value) {
          Config::set($key, $value);
       }
+      
+      foreach ($services as $service) {
+         $this->container->singleton($service, function () use ($service) {
+            return new $service($this);
+         });
+      }
+
       return $this;
    }
 

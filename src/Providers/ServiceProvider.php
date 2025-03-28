@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Support;
+namespace IronFlow\Providers;
 
 use IronFlow\Application\Application;
 
@@ -20,5 +20,6 @@ abstract class ServiceProvider
    public function boot(): void
    {
       // Les providers peuvent surcharger cette méthode si nécessaire
+      
    }
 }

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Support\ServiceProvider;
 use IronFlow\Routing\Router;
-
 class RouteServiceProvider extends ServiceProvider
 {
    public function register(): void

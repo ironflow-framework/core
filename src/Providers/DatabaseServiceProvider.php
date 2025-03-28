@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 namespace IronFlow\Providers;
-
-use IronFlow\Support\ServiceProvider;
 use IronFlow\Database\DatabaseManager;
 
 class DatabaseServiceProvider extends ServiceProvider

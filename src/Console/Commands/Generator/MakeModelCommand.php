@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-
+use IronFlow\Support\Filesystem;
 class MakeModelCommand extends Command
 {
     protected static $defaultName = 'make:model';
@@ -40,11 +40,11 @@ class MakeModelCommand extends Command
         $modelContent = $this->generateModelContent($name, $table, $fillable, $withFactory, $withForm);
         $modelPath = app_path("Models/") . "{$name}.php";
 
-        if (!is_dir(dirname($modelPath))) {
-            mkdir(dirname($modelPath), 0755, true);
+        if (!Filesystem::exists(dirname($modelPath))) {
+            Filesystem::makeDirectory(dirname($modelPath), 0755, true);
         }
 
-        file_put_contents($modelPath, $modelContent);
+        Filesystem::put($modelPath, $modelContent);
         $io->success("Le modèle {$name} a été créé avec succès !");
 
         if ($withMigration) {
@@ -106,7 +106,7 @@ PHP;
         $migrationPath = database_path("Migrations/") . "{$timestamp}_{$name}.php";
 
         $migrationContent = $this->generateMigrationContent($table, $fillable);
-        file_put_contents($migrationPath, $migrationContent);
+        Filesystem::put($migrationPath, $migrationContent);
         $io->success("La migration {$name} a été créée avec succès !");
     }
 
@@ -150,7 +150,7 @@ PHP;
         $factoryPath = database_path("Factories/") . "{$name}Factory.php";
 
         $factoryContent = $this->generateFactoryContent($name, $fillable);
-        file_put_contents($factoryPath, $factoryContent);
+        Filesystem::put($factoryPath, $factoryContent);
         $io->success("La factory {$name} a été créée avec succès !");
     }
 
@@ -189,7 +189,7 @@ PHP;
         $seederPath = database_path("Seeders/") . "{$name}Seeder.php";
 
         $seederContent = $this->generateSeederContent($name);
-        file_put_contents($seederPath, $seederContent);
+        Filesystem::put($seederPath, $seederContent);
         $io->success("Le seeder {$name} a été créé avec succès !");
     }
 
@@ -218,7 +218,7 @@ PHP;
         $formPath = app_path("Components/Forms") . "{$name}Form.php";
 
         $formContent = $this->generateFormContent($name, $fillable);
-        file_put_contents($formPath, $formContent);
+        Filesystem::put($formPath, $formContent);
         $io->success("Le formulaire {$name} a été créé avec succès !");
     }
 
@@ -232,17 +232,11 @@ PHP;
 
 namespace App\Components\Forms;
 
-use IronFlow\Forms\Form;
+use IronFlow\Furnace\Form;
 use IronFlow\Validation\Validator;
 
 class {$name}Form extends Form
 {
-    public function __construct()
-    {
-        parent::__construct();
-        
-        {$fieldsContent}
-    }
 
     public function rules(): array
     {
@@ -255,6 +249,14 @@ class {$name}Form extends Form
             // Messages de validation personnalisés
         ];
     }
+
+    public function build(): Form
+    {
+        {$fieldsContent}
+
+        return \$this;
+    }
+
 }
 PHP;
     }
