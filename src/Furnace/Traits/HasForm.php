@@ -6,6 +6,7 @@ namespace IronFlow\Furnace\Traits;
 
 use IronFlow\Furnace\Form;
 use IronFlow\Database\Model;
+use IronFlow\Validation\Validator;
 use ReflectionClass;
 
 trait HasForm

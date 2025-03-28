@@ -4,7 +4,7 @@ namespace App\Models;
 
 use IronFlow\Database\Factories\HasFactory;
 use IronFlow\Database\Model;
-use IronFlow\Forms\HasForm;
+use IronFlow\Furnace\Traits\HasForm;
 
 class Product extends Model
 {

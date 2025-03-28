@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Forms\Components;
+namespace IronFlow\Furnace\Components;
 
-use IronFlow\Forms\ChoiceField;
+use IronFlow\Furnace\ChoiceField;
 
 class Radio extends ChoiceField
 {

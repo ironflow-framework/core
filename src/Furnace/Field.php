@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Forms;
+namespace IronFlow\Furnace;
 
 use IronFlow\View\Components\Component;
 

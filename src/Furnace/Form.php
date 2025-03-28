@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Forms;
+namespace IronFlow\Furnace;
 
 abstract class Form
 {

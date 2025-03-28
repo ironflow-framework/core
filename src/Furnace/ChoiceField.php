@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Forms;
+namespace IronFlow\Furnace;
 
 abstract class ChoiceField extends Field
 {
