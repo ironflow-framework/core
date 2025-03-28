@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Console\Commands;
+namespace IronFlow\Console\Commands\Generator;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
