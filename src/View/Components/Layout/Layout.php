@@ -8,7 +8,7 @@ use IronFlow\View\Components\Component;
 
 abstract class Layout extends Component
 {
-   protected array $content = [];
+   protected array $children = [];
    protected array $attributes = [];
 
    public function __construct(array $attributes = [])
@@ -19,7 +19,7 @@ abstract class Layout extends Component
 
    public function addContent($content): self
    {
-      $this->content[] = $content;
+      $this->children[] = $content;
       return $this;
    }
 
@@ -40,9 +40,9 @@ abstract class Layout extends Component
 
    protected function renderContent(): string
    {
-      return implode("\n", array_map(function ($content) {
-         return is_string($content) ? $content : $content->render();
-      }, $this->content));
+      return implode("\n", array_map(function ($child) {
+         return is_string($child) ? $child : $child->render();
+      }, $this->children));
    }
 
    abstract public function render(): string;

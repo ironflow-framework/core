@@ -20,10 +20,17 @@ class ProductController extends Controller
 
    public function create(Request $request): Response
    {
-      $form = Product::form()->input('name', 'Nom')->render();
+      $form = Product::form()->input('name', 'Nom du produit')
+         ->input('description', 'Description du produit')
+         ->input('price', 'Prix du produit')
+         ->input('stock', 'Quantité en stock')
+         ->input('category', 'Catégorie du produit')
+         ->button('Créer le produit')
+         ->action('/products/store');
+
       return $this->view('products.create', [
          'title' => 'Créer un produit',
-         'form' => $form
+         'form' => $form->render()
       ]);
    }
 

@@ -6,27 +6,37 @@ namespace IronFlow\View\Components;
 
 abstract class Component
 {
+   protected array $attributes = [];
    protected array $props = [];
    protected array $slots = [];
-   protected string $template = '';
+   protected string $content = '';
 
-   public function __construct(array $props = [])
+   public function __construct(array $attributes = [])
    {
-      $this->props = $props;
+      $this->attributes = $attributes;
    }
 
-   public function render(): string
-   {
-      if (empty($this->template)) {
-         throw new \RuntimeException('Template not defined for component');
-      }
+   abstract public function render(): string;
 
-      return $this->template;
+   public function setContent(string $content): self
+   {
+      $this->content = $content;
+      return $this;
    }
 
-   public function withProps(array $props): self
+   protected function renderContent(): string
    {
-      $this->props = array_merge($this->props, $props);
+      return $this->content;
+   }
+
+   protected function renderAttributes(): string
+   {
+      return implode(' ', $this->attributes);
+   }
+
+   public function withAttributes(array $attributes): self
+   {
+      $this->attributes = array_merge($this->attributes, $attributes);
       return $this;
    }
 

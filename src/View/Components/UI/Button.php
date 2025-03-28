@@ -15,6 +15,7 @@ class Button extends Component
    protected bool $disabled = false;
    protected ?string $icon = null;
    protected bool $iconOnly = false;
+   protected bool $loading = false;
 
    public function __construct(array $attributes = [])
    {
@@ -48,6 +49,12 @@ class Button extends Component
    public function disabled(bool $disabled = true): self
    {
       $this->disabled = $disabled;
+      return $this;
+   }
+
+   public function loading(bool $loading = true): self
+   {
+      $this->loading = $loading;
       return $this;
    }
 

@@ -6,6 +6,7 @@ namespace IronFlow\Furnace\Traits;
 
 use IronFlow\Furnace\Form;
 use IronFlow\Database\Model;
+use IronFlow\Furnace\ModelForm;
 use IronFlow\Validation\Validator;
 use ReflectionClass;
 
@@ -16,9 +17,9 @@ trait HasForm
     protected array $formMessages = [];
     protected array $formErrors = [];
 
-    public static function form(): Form
+    public static function form(): ModelForm
     {
-        return (new static())->getForm();
+        return new ModelForm(new static());
     }
 
     public function getForm(): Form

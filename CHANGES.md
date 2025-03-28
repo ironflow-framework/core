@@ -29,6 +29,10 @@
 - Documentation complète du code avec PHPDoc
 - Correction des méthodes manquantes dans les interfaces et les implémentations
 
+### Système de formulaire (Furnace)  
+- Mise à jour du système de formulaire  
+- Ajoute d'une classe pour gérer le lien entre le formulaire et le model  
+
 ## [27/03/25]
 
 ### Application
