@@ -189,6 +189,11 @@ class Router
       return self::$routes ?? new RouteCollection();
    }
 
+   public static function getRoute(string $name): Route
+   {
+      return self::$routes->get($name);
+   }
+
    public static function match(string $path, string $method): array
    {
       $context = new RequestContext();

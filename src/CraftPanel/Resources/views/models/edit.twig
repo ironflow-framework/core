@@ -1,0 +1,140 @@
+{% extends 'craftpanel::layouts.app' %}
+
+{% block content %}
+    <div class="bg-base-200 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-base-300">
+            <h2 class="text-lg font-semibold">{{ __('Edit') }} {{ config.displayName|default(model|split('\\')|last) }}</h2>
+        </div>
+        
+        <!-- Form -->
+        <div class="p-4">
+            <form action="{{ route('craftpanel.update', {model: model|replace('\\', '.'), id: item.id}) }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="_method" value="PUT">
+                
+                <!-- Form Fields -->
+                {% for field in form.fields %}
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">{{ field.label }}</span>
+                        {% if field.required %}
+                        <span class="label-text-alt text-error">*</span>
+                        {% endif %}
+                    </label>
+                    
+                    {% if field.type == 'text' %}
+                    <input type="text" name="{{ field.name }}" value="{{ old(field.name, item[field.name]) }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    
+                    {% elseif field.type == 'textarea' %}
+                    <textarea name="{{ field.name }}" class="textarea textarea-bordered w-full {{ errors.has(field.name) ? 'textarea-error' : '' }}" rows="4" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>{{ old(field.name, item[field.name]) }}</textarea>
+                    
+                    {% elseif field.type == 'number' %}
+                    <input type="number" name="{{ field.name }}" value="{{ old(field.name, item[field.name]) }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    
+                    {% elseif field.type == 'email' %}
+                    <input type="email" name="{{ field.name }}" value="{{ old(field.name, item[field.name]) }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    
+                    {% elseif field.type == 'password' %}
+                    <input type="password" name="{{ field.name }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.attributes|raw }}>
+                    <label class="label">
+                        <span class="label-text-alt">{{ __('Leave empty to keep current password') }}</span>
+                    </label>
+                    
+                    {% elseif field.type == 'date' %}
+                    <input type="date" name="{{ field.name }}" value="{{ old(field.name, item[field.name] ? item[field.name]|date('Y-m-d') : '') }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    
+                    {% elseif field.type == 'datetime-local' %}
+                    <input type="datetime-local" name="{{ field.name }}" value="{{ old(field.name, item[field.name] ? item[field.name]|date('Y-m-d\\TH:i') : '') }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    
+                    {% elseif field.type == 'file' %}
+                    {% if item[field.name] %}
+                    <div class="mb-2">
+                        {% if field.is_image %}
+                        <img src="{{ item[field.name] }}" alt="{{ field.label }}" class="w-32 h-32 object-cover rounded">
+                        {% else %}
+                        <div class="flex items-center">
+                            <i class="ti ti-file mr-2"></i>
+                            <span>{{ item[field.name]|split('/')|last }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <input type="file" name="{{ field.name }}" class="file-input file-input-bordered w-full {{ errors.has(field.name) ? 'file-input-error' : '' }}" {{ field.attributes|raw }}>
+                    <label class="label">
+                        <span class="label-text-alt">{{ __('Leave empty to keep current file') }}</span>
+                    </label>
+                    
+                    {% elseif field.type == 'select' %}
+                    <select name="{{ field.name }}" class="select select-bordered w-full {{ errors.has(field.name) ? 'select-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                        <option value="">{{ __('Select an option') }}</option>
+                        {% for option_value, option_label in field.options %}
+                        <option value="{{ option_value }}" {{ old(field.name, item[field.name]) == option_value ? 'selected' : '' }}>{{ option_label }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    {% elseif field.type == 'checkbox' %}
+                    <div class="flex items-center mt-2">
+                        <input type="checkbox" name="{{ field.name }}" value="1" {{ old(field.name, item[field.name]) ? 'checked' : '' }} class="checkbox {{ errors.has(field.name) ? 'checkbox-error' : '' }}" {{ field.attributes|raw }}>
+                        <span class="ml-2">{{ field.description|default('') }}</span>
+                    </div>
+                    
+                    {% elseif field.type == 'radio' %}
+                    <div class="flex flex-col gap-2 mt-2">
+                        {% for option_value, option_label in field.options %}
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="{{ field.name }}" value="{{ option_value }}" {{ old(field.name, item[field.name]) == option_value ? 'checked' : '' }} class="radio {{ errors.has(field.name) ? 'radio-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                            <span class="ml-2">{{ option_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    
+                    {% elseif field.type == 'relation' %}
+                    <select name="{{ field.name }}" class="select select-bordered w-full {{ errors.has(field.name) ? 'select-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                        <option value="">{{ __('Select an option') }}</option>
+                        {% for option in field.options %}
+                        <option value="{{ option.id }}" {{ old(field.name, item[field.name]) == option.id ? 'selected' : '' }}>{{ option[field.display_field] }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    {% elseif field.type == 'relation_multiple' %}
+                    <select name="{{ field.name }}[]" multiple class="select select-bordered w-full {{ errors.has(field.name) ? 'select-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                        {% for option in field.options %}
+                        <option value="{{ option.id }}" {{ old(field.name, item[field.relation]) is iterable and option.id in item[field.relation]|column('id') ? 'selected' : '' }}>{{ option[field.display_field] }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    {% elseif field.type == 'hidden' %}
+                    <input type="hidden" name="{{ field.name }}" value="{{ old(field.name, field.value ?? item[field.name]) }}">
+                    
+                    {% else %}
+                    <input type="text" name="{{ field.name }}" value="{{ old(field.name, item[field.name]) }}" class="input input-bordered w-full {{ errors.has(field.name) ? 'input-error' : '' }}" {{ field.required ? 'required' : '' }} {{ field.attributes|raw }}>
+                    {% endif %}
+                    
+                    {% if errors.has(field.name) %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ errors.first(field.name) }}</span>
+                    </label>
+                    {% endif %}
+                    
+                    {% if field.help %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ field.help }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <!-- Submit Button -->
+                <div class="flex justify-end mt-6">
+                    <a href="{{ route('craftpanel.index', {model: model|replace('\\', '.')}) }}" class="btn btn-outline mr-2">
+                        {{ __('Cancel') }}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy mr-1"></i>
+                        {{ __('Update') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

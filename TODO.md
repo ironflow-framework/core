@@ -59,26 +59,28 @@
    - Et autres questions
    Cela d'avoir une base dès le depart  
 
-
 ### Système d'authentification  
 
 [] Revoir la partie command cli et l'adapte sous le forme des autres commandes du dossier Console/Commands   
 
-### Cache
-
-[] Mettre à jour ou revoir entierement le système de cache  
-[] Tester le système de cache  
-[] Tester si le système de cache permet au framework d'être plus rapide et performant      
-
 ### CraftPanel
-[] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne avec thème sombre et clair  
-[] Génération de la config du craftpanel  
-[] Création de la commande d'installation et de configuration  
-[] Création de la commande d'enregistrement d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administration un peu comme avec django     
-[] Génération des fichier necessaires au fonctionnement du craftpanel  
-[] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
-[] Le craftpanel pourra aussi tenir compte des rôles et permissions  
-[] Utiliser l'internationalisation  
+[x] Creation des interfaces (vue twig) en respectant la design lié à la forge et plutôt moderne avec thème sombre et clair  
+[x] Génération de la config du craftpanel  
+[x] Création de la commande d'installation et de configuration  
+[x] Création de la commande d'enregistrement d'un model au niveau de craftpanel afin qu'il pris en compte dans l'administration un peu comme avec django     
+[x] Génération des fichier necessaires au fonctionnement du craftpanel  
+[x] Sécuriser et ajouter des middlewares
+[x] Mise à jour du CraftController afin d'integrer les fonctionnalités de gestion des formulaires et des validations du framework  
+[x] Le craftpanel pourra aussi tenir compte des rôles et permissions  
+[x] Générer des commandes pour initialiser le craftpanel  
+[x] Utiliser l'authentification du framework  
+[x] Utiliser le système de middleware du framework  
+[x] Utiliser le système de composant du framework  
+[x] Utiliser le système de formulaire du framework  
+[x] Utiliser le système de validation du framework  
+[x] Utiliser le système de service du framework  
+[x] Ajouter les routes pour accéder au craftpanel
+[x] Utiliser l'internationalisation  
 
 ### Refactoring  
 [] Bonne pratique et harmonisation en respectant la modularité    
@@ -101,5 +103,3 @@
 
 #### Autres services
 [] Ajouter d'autres services si possible
- 
-

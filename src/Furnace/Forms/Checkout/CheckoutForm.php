@@ -38,11 +38,25 @@ class CheckoutForm extends Form
              ->setRequired(true)
              ->setRules(['required']);
 
+        $this->addComponent(new Input('billing_country', 'Country'))
+             ->setRequired(true)
+             ->setRules(['required'])
+             ->setAttributes(['autocomplete' => 'country']);
+
         $this->addComponent(new Input('billing_postal_code', 'Postal Code'))
              ->setRequired(true)
              ->setRules(['required', 'regex:/^[0-9A-Z\-\s]+$/i']);
 
         // Payment Information
+        $this->addComponent(new Select('payment_method', 'Payment Method'))
+             ->setOptions([
+                 'credit_card' => 'Credit Card',
+                 'paypal' => 'PayPal',
+                 'bank_transfer' => 'Bank Transfer'
+             ])
+             ->setRequired(true)
+             ->setRules(['required']);
+             
         $this->addComponent(new Input('card_number', 'Card Number'))
              ->setType('text')
              ->setRequired(true)

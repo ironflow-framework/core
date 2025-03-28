@@ -1,7 +1,5 @@
 <?php
 
-use IronFlow\Database\Iron\Collection;
-
 if (!function_exists('view_path')) {
    /**
     * Obtient le chemin vers le dossier des vues.
@@ -12,59 +10,6 @@ if (!function_exists('view_path')) {
    function view_path(string $path = ''): string
    {
       return resource_path('views' . ($path ? DIRECTORY_SEPARATOR . $path : $path));
-   }
-}
-
-if (!function_exists('config')) {
-   /**
-    * Obtient une valeur de configuration.
-    *
-    * @param string|null $key
-    * @param mixed $default
-    * @return mixed
-    */
-   function config(?string $key = null, mixed $default = null): mixed
-   {
-      if (is_null($key)) {
-         return IronFlow\Support\Config::all();
-      }
-
-      return IronFlow\Support\Config::get($key, $default);
-   }
-}
-
-if (!function_exists('env')) {
-   /**
-    * Obtient une variable d'environnement.
-    *
-    * @param string $key
-    * @param mixed $default
-    * @return mixed
-    */
-   function env(string $key, mixed $default = null): mixed
-   {
-      $value = getenv($key) || $_ENV[$key];
-
-      if ($value === false) {
-         return $default;
-      }
-
-      switch (strtolower($value)) {
-         case 'true':
-         case '(true)':
-            return true;
-         case 'false':
-         case '(false)':
-            return false;
-         case 'null':
-         case '(null)':
-            return null;
-         case 'empty':
-         case '(empty)':
-            return '';
-      }
-
-      return $value;
    }
 }
 
@@ -159,16 +104,69 @@ if (!function_exists('database_path')) {
    }
 }
 
+if (!function_exists('config')) {
+   /**
+    * Obtient une valeur de configuration.
+    *
+    * @param string|null $key
+    * @param mixed $default
+    * @return mixed
+    */
+   function config(?string $key = null, mixed $default = null): mixed
+   {
+      if (is_null($key)) {
+         return IronFlow\Support\Config::all();
+      }
+
+      return IronFlow\Support\Config::get($key, $default);
+   }
+}
+
+if (!function_exists('env')) {
+   /**
+    * Obtient une variable d'environnement.
+    *
+    * @param string $key
+    * @param mixed $default
+    * @return mixed
+    */
+   function env(string $key, mixed $default = null): mixed
+   {
+      $value = getenv($key) || $_ENV[$key];
+
+      if ($value === false) {
+         return $default;
+      }
+
+      switch (strtolower($value)) {
+         case 'true':
+         case '(true)':
+            return true;
+         case 'false':
+         case '(false)':
+            return false;
+         case 'null':
+         case '(null)':
+            return null;
+         case 'empty':
+         case '(empty)':
+            return '';
+      }
+
+      return $value;
+   }
+}
+
 if (!function_exists('collect')) {
    /**
     * Crée une nouvelle instance de collection à partir des éléments donnés
     * 
     * @param mixed $items
-    * @return Collection
+    * @return IronFlow\Database\Iron\Collection
     */
-   function collect($items = []): Collection
+   function collect($items = []): IronFlow\Database\Iron\Collection
    {
-      return new Collection($items);
+      return new IronFlow\Database\Iron\Collection($items);
    }
 }
 
@@ -186,3 +184,50 @@ if (! function_exists('class_basename')) {
       return basename(str_replace('\\', '/', $class));
    }
 }
+
+if (!function_exists('class_uses_recursive')) {
+   /**
+    * Get all traits used by a class.
+    *
+    * @param  string|object  $class
+    * @return array
+    */
+   function class_uses_recursive($class)
+   {
+      return IronFlow\Support\Helpers::classUsesRecursive($class);
+   }
+}
+
+if (!function_exists('trait_uses_recursive')) {
+   /**
+    * Get all traits used by a trait.
+    *
+    * @param  string|object  $trait
+    * @return array
+    */
+   function trait_uses_recursive($trait)
+   {
+      return IronFlow\Support\Helpers::traitUsesRecursive($trait);
+   }
+}
+
+if (!function_exists('route')){
+   /**
+    * Retourner la route sous la forme d'une URL.
+    *
+    * @param string $name
+    * @return string
+    */
+   function route(string $name): string
+   {
+      $name = str_replace('.', '/', $name);
+      $route = IronFlow\Routing\Router::getRoute($name);
+
+      if (!$route) {
+         throw new \Exception("Route {$name} not found");
+      }
+
+      return $route->getPath();
+   }
+}
+

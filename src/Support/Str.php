@@ -21,5 +21,4 @@ class Str
       return substr(str_shuffle(str_repeat($x = '0123456789', (int) ceil($length / strlen($x)))), 1, $length);
    }
 
-   
 }

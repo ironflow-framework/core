@@ -8,6 +8,8 @@ abstract class Form
    protected string $method = 'POST';
    protected string $action = '';
    protected array $attributes = [];
+   protected array $components = [];
+   protected array $rules = [];
 
    public function addField(string $name, string $type, array $options = []): void
    {
@@ -15,6 +17,78 @@ abstract class Form
          'type' => $type,
          'options' => $options
       ];
+   }
+
+   public function addComponent(Field $field): self
+   {
+      $this->components[$field->getName()] = $field;
+      return $this;
+   }
+
+   public function addRule(string $name, string $rule): self
+   {
+      $this->rules[$name] = $rule;
+      return $this;
+   }
+
+   public function setType(string $type): self
+   {
+      foreach ($this->components as $component) {
+         $component->type($type);
+      }
+      return $this;
+   }
+
+   public function setRequired(bool $required = true): self
+   {
+      foreach ($this->components as $component) {
+         $component->required($required);
+      }
+      return $this;
+   }
+
+   public function setValue(string $name, string $value): self
+   {
+      $this->components[$name]->value($value);
+      return $this;
+   }
+
+   public function setOptions(array $options): self
+   {
+      foreach ($this->components as $component) {
+         $component->options($options);
+      }
+      return $this;
+   }
+
+   public function setAttributes(array $attributes): self
+   {
+      foreach ($this->components as $component) {
+         $component->attributes($attributes);
+      }
+      return $this;
+   }
+
+   public function setRules(array $rules): self
+   {
+      foreach ($this->components as $component) {
+         $component->rules($rules);
+      }
+      return $this;
+   }
+
+   public function setError(string $name, string $error): self
+   {
+      $this->components[$name]->error($error);
+      return $this;
+   }
+
+   public function setPlaceholder(string $placeholder): self
+   {
+      foreach ($this->components as $component) {
+         $component->placeholder($placeholder);
+      }
+      return $this;
    }
 
    public function setMethod(string $method): self
@@ -46,6 +120,10 @@ abstract class Form
 
       foreach ($this->fields as $name => $field) {
          $html .= $this->renderField($name, $field);
+      }
+
+      foreach ($this->components as $component) {
+         $html .= $this->renderComponent($component);
       }
 
       $html .= '</form>';
@@ -100,6 +178,19 @@ abstract class Form
             );
       }
 
+      $html .= '</div>';
+      return $html;
+   }
+
+   protected function renderComponent(Field $component): string
+   {
+      $html = sprintf(
+         '<div class="form-group">
+                <label for="%s">%s</label>',
+         $component->getName(),
+         $component->getLabel()
+      );
+      $html .= $component->render();
       $html .= '</div>';
       return $html;
    }

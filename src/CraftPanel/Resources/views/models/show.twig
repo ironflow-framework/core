@@ -1,0 +1,201 @@
+{% extends 'craftpanel::layouts.app' %}
+
+{% block content %}
+    <div class="bg-base-200 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-base-300 flex flex-col md:flex-row md:items-center md:justify-between">
+            <h2 class="text-lg font-semibold mb-2 md:mb-0">{{ config.displayName|default(model|split('\\')|last) }} #{{ item.id }}</h2>
+            
+            <div class="flex flex-wrap gap-2">
+                {% if actions.edit %}
+                <a href="{{ route('craftpanel.edit', {model: model|replace('\\', '.'), id: item.id}) }}" class="btn btn-outline btn-sm">
+                    <i class="ti ti-edit mr-1"></i>
+                    {{ __('Edit') }}
+                </a>
+                {% endif %}
+                
+                {% if actions.delete %}
+                <form action="{{ route('craftpanel.destroy', {model: model|replace('\\', '.'), id: item.id}) }}" method="POST" onsubmit="return confirm('{{ __('Are you sure you want to delete this item?') }}')" class="inline">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-error btn-sm">
+                        <i class="ti ti-trash mr-1"></i>
+                        {{ __('Delete') }}
+                    </button>
+                </form>
+                {% endif %}
+                
+                <a href="{{ route('craftpanel.index', {model: model|replace('\\', '.')}) }}" class="btn btn-ghost btn-sm">
+                    <i class="ti ti-arrow-left mr-1"></i>
+                    {{ __('Back to List') }}
+                </a>
+            </div>
+        </div>
+        
+        <!-- Details -->
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for field_name, field in fields %}
+                <div class="">
+                    <h3 class="text-sm font-medium text-base-content/70 mb-1">{{ field.label|default(field_name|title) }}</h3>
+                    
+                    <div class="">
+                        {% if field.type == 'boolean' %}
+                        <span class="badge {{ item[field_name] ? 'badge-success' : 'badge-error' }}">
+                            {{ item[field_name] ? __('Yes') : __('No') }}
+                        </span>
+                        
+                        {% elseif field.type == 'date' %}
+                        {{ item[field_name] ? item[field_name]|date('Y-m-d') : '-' }}
+                        
+                        {% elseif field.type == 'datetime' %}
+                        {{ item[field_name] ? item[field_name]|date('Y-m-d H:i:s') : '-' }}
+                        
+                        {% elseif field.type == 'image' %}
+                        {% if item[field_name] %}
+                        <img src="{{ item[field_name] }}" alt="{{ field.label|default(field_name|title) }}" class="max-w-xs rounded">
+                        {% else %}
+                        -
+                        {% endif %}
+                        
+                        {% elseif field.type == 'file' %}
+                        {% if item[field_name] %}
+                        <a href="{{ item[field_name] }}" target="_blank" class="btn btn-sm btn-outline">
+                            <i class="ti ti-download mr-1"></i>
+                            {{ __('Download') }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                        
+                        {% elseif field.type == 'relation' %}
+                        {% if item[field.relation] %}
+                        <a href="{{ route('craftpanel.show', {model: field.related_model|replace('\\', '.'), id: item[field.relation].id}) }}" class="link link-primary">
+                            {{ item[field.relation][field.display_field] }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                        
+                        {% elseif field.type == 'relation_multiple' %}
+                        {% if item[field.relation] is not empty %}
+                        <div class="flex flex-wrap gap-2">
+                            {% for related in item[field.relation] %}
+                            <a href="{{ route('craftpanel.show', {model: field.related_model|replace('\\', '.'), id: related.id}) }}" class="badge badge-outline">
+                                {{ related[field.display_field] }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        -
+                        {% endif %}
+                        
+                        {% elseif field.type == 'textarea' or field.type == 'richtext' %}
+                        <div class="whitespace-pre-wrap">{{ item[field_name] ?: '-' }}</div>
+                        
+                        {% elseif field.type == 'json' %}
+                        <pre class="bg-base-300 p-2 rounded overflow-x-auto">{{ item[field_name]|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                        
+                        {% else %}
+                        {{ item[field_name] ?: '-' }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Records -->
+    {% if config.relations is defined and config.relations is not empty %}
+    <div class="mt-6">
+        <div class="tabs tabs-boxed bg-base-200 mb-4">
+            {% for relation_name, relation in config.relations %}
+            <a class="tab {{ loop.first ? 'tab-active' : '' }}" data-tab="{{ relation_name }}">{{ relation.label|default(relation_name|title) }}</a>
+            {% endfor %}
+        </div>
+        
+        {% for relation_name, relation in config.relations %}
+        <div class="tab-content {{ loop.first ? 'block' : 'hidden' }}" id="tab-{{ relation_name }}">
+            <div class="bg-base-200 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+                <div class="p-4 border-b border-base-300">
+                    <h3 class="text-lg font-semibold">{{ relation.label|default(relation_name|title) }}</h3>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-base-300">
+                                {% for field_name, field in relation.fields %}
+                                <th class="px-4 py-3 text-left">{{ field.label|default(field_name|title) }}</th>
+                                {% endfor %}
+                                <th class="px-4 py-3 text-right">{{ __('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for related_item in item[relation_name] %}
+                            <tr class="border-t border-base-300 hover:bg-base-300/50">
+                                {% for field_name, field in relation.fields %}
+                                <td class="px-4 py-3">
+                                    {% if field.type == 'boolean' %}
+                                    <span class="badge {{ related_item[field_name] ? 'badge-success' : 'badge-error' }}">
+                                        {{ related_item[field_name] ? __('Yes') : __('No') }}
+                                    </span>
+                                    {% elseif field.type == 'date' %}
+                                    {{ related_item[field_name] ? related_item[field_name]|date('Y-m-d') : '' }}
+                                    {% elseif field.type == 'datetime' %}
+                                    {{ related_item[field_name] ? related_item[field_name]|date('Y-m-d H:i') : '' }}
+                                    {% else %}
+                                    {{ related_item[field_name]|truncate(50) }}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{{ route('craftpanel.show', {model: relation.model|replace('\\', '.'), id: related_item.id}) }}" class="btn btn-sm btn-ghost">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{{ relation.fields|length + 1 }}" class="px-4 py-8 text-center">
+                                    <p>{{ __('No related items found') }}</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab handling
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.getAttribute('data-tab');
+                
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('tab-active'));
+                tab.classList.add('tab-active');
+                
+                // Show active content
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                    if (content.id === `tab-${tabName}`) {
+                        content.classList.remove('hidden');
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends 'craftpanel::layouts.app' %}
+
+{% block content %}
+    <div class="bg-base-200 rounded-lg shadow-sm border border-base-300 overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-base-300 flex flex-col md:flex-row md:items-center md:justify-between">
+            <h2 class="text-lg font-semibold mb-2 md:mb-0">{{ config.displayName|default(model|split('\\')|last) }}</h2>
+            
+            <div class="flex flex-wrap gap-2">
+                {% if actions.export %}
+                <div class="dropdown dropdown-end">
+                    <button class="btn btn-outline btn-sm">
+                        <i class="ti ti-download mr-1"></i>
+                        {{ __('Export') }}
+                    </button>
+                    <ul class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52 border border-base-300">
+                        <li><a href="{{ route('craftpanel.export', {model: model|replace('\\', '.'), format: 'csv'}) }}">CSV</a></li>
+                        <li><a href="{{ route('craftpanel.export', {model: model|replace('\\', '.'), format: 'json'}) }}">JSON</a></li>
+                        <li><a href="{{ route('craftpanel.export', {model: model|replace('\\', '.'), format: 'xlsx'}) }}">Excel</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if actions.create %}
+                <a href="{{ route('craftpanel.create', {model: model|replace('\\', '.')}) }}" class="btn btn-primary btn-sm">
+                    <i class="ti ti-plus mr-1"></i>
+                    {{ __('Create New') }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        {% if filters|length > 0 %}
+        <div class="p-4 border-b border-base-300 bg-base-300/30">
+            <form action="{{ route('craftpanel.index', {model: model|replace('\\', '.')}) }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {% for field_name, field in filters %}
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">{{ field.label|default(field_name|title) }}</span>
+                    </label>
+                    
+                    {% if field.type == 'select' %}
+                    <select name="filter[{{ field_name }}]" class="select select-bordered w-full">
+                        <option value="">{{ __('All') }}</option>
+                        {% for option_value, option_label in field.options %}
+                        <option value="{{ option_value }}" {{ request.get('filter.' ~ field_name) == option_value ? 'selected' : '' }}>
+                            {{ option_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input type="text" name="filter[{{ field_name }}]" value="{{ request.get('filter.' ~ field_name) }}" class="input input-bordered w-full" placeholder="{{ __('Filter by') }} {{ field.label|default(field_name|title) }}">
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="form-control md:self-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter mr-1"></i>
+                        {{ __('Filter') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+        
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-base-300">
+                        {% for field_name, field in fields %}
+                        <th class="px-4 py-3 text-left">
+                            {% if field.sortable %}
+                            <a href="{{ route('craftpanel.index', {model: model|replace('\\', '.'), sort: field_name, direction: request.get('sort') == field_name and request.get('direction') == 'asc' ? 'desc' : 'asc'}) }}" class="flex items-center">
+                                {{ field.label|default(field_name|title) }}
+                                {% if request.get('sort') == field_name %}
+                                <i class="ti ti-arrow-{{ request.get('direction') == 'asc' ? 'up' : 'down' }} ml-1"></i>
+                                {% endif %}
+                            </a>
+                            {% else %}
+                            {{ field.label|default(field_name|title) }}
+                            {% endif %}
+                        </th>
+                        {% endfor %}
+                        <th class="px-4 py-3 text-right">{{ __('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="border-t border-base-300 hover:bg-base-300/50">
+                        {% for field_name, field in fields %}
+                        <td class="px-4 py-3">
+                            {% if field.type == 'boolean' %}
+                            <span class="badge {{ item[field_name] ? 'badge-success' : 'badge-error' }}">
+                                {{ item[field_name] ? __('Yes') : __('No') }}
+                            </span>
+                            {% elseif field.type == 'date' %}
+                            {{ item[field_name] ? item[field_name]|date('Y-m-d') : '' }}
+                            {% elseif field.type == 'datetime' %}
+                            {{ item[field_name] ? item[field_name]|date('Y-m-d H:i') : '' }}
+                            {% elseif field.type == 'image' %}
+                            {% if item[field_name] %}
+                            <img src="{{ item[field_name] }}" alt="{{ field.label|default(field_name|title) }}" class="w-10 h-10 object-cover rounded">
+                            {% endif %}
+                            {% elseif field.type == 'relation' %}
+                            {{ item[field.relation ~ '_' ~ (field.display_field ?? 'id')] ?? '' }}
+                            {% else %}
+                            {{ item[field_name]|truncate(50) }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                {% if actions.show %}
+                                <a href="{{ route('craftpanel.show', {model: model|replace('\\', '.'), id: item.id}) }}" class="btn btn-sm btn-ghost" title="{{ __('View') }}">
+                                    <i class="ti ti-eye"></i>
+                                </a>
+                                {% endif %}
+                                
+                                {% if actions.edit %}
+                                <a href="{{ route('craftpanel.edit', {model: model|replace('\\', '.'), id: item.id}) }}" class="btn btn-sm btn-ghost" title="{{ __('Edit') }}">
+                                    <i class="ti ti-edit"></i>
+                                </a>
+                                {% endif %}
+                                
+                                {% if actions.delete %}
+                                <form action="{{ route('craftpanel.destroy', {model: model|replace('\\', '.'), id: item.id}) }}" method="POST" onsubmit="return confirm('{{ __('Are you sure you want to delete this item?') }}')" class="inline">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit" class="btn btn-sm btn-ghost text-error" title="{{ __('Delete') }}">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ fields|length + 1 }}" class="px-4 py-8 text-center">
+                            <i class="ti ti-database-off text-2xl mb-2 text-base-content opacity-50"></i>
+                            <p>{{ __('No items found') }}</p>
+                            {% if actions.create %}
+                            <div class="mt-4">
+                                <a href="{{ route('craftpanel.create', {model: model|replace('\\', '.')}) }}" class="btn btn-primary btn-sm">
+                                    <i class="ti ti-plus mr-1"></i>
+                                    {{ __('Create New') }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="p-4 border-t border-base-300">
+            {{ items.links|raw }}
+        </div>
+    </div>
+{% endblock %}

@@ -21,7 +21,7 @@
 ### Global [In Progress]
 [x] Utiliser les principes de la POO  
 [x] Harmoniser le système complet  
-[x] Mettre en place une nomenclature lié à la forge pour certaines fonctionnalités. Ex: CraftPanel pour le panel d'administration, Iron pour l'ORM, Anvril équivalent du 'Blueprint' de laravel  
+[x] Mettre en place une nomenclature lié à la forge pour certaines fonctionnalités. Ex: CraftPanel pour le panel d'administration, Iron pour l'ORM, Anvril équivalent du 'Blueprint' de laravel, Hammer pour le système de cache  
 [x] Essayer d'être authentique dans certaines pratique et fonctionnalité
 
 ### Console [In Progress]
@@ -61,3 +61,8 @@
 [x] Prevoir une commande pour 'intialiser' ou 'activer' ou encore 'installer' l'authentification proposer par le framework  
 [x] Le système d'authentification devra utiliser les fonctionnalités déjà présentes notamment le système de formulaire, models, composants et autres   
 [x] Dans le cas du CraftPanel l'authentification devra aussi tenir compte du système de permission et groupe  
+
+### Cache [Done]
+[x] Mettre à jour ou revoir entierement le système de cache  
+[x] Tester le système de cache  
+[x] Tester si le système de cache permet au framework d'être plus rapide et performant

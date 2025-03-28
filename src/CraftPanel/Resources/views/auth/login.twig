@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="{{ app.locale }}" data-theme="{{ theme|default('dark') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config('craftpanel.title', 'CraftPanel') }} - {{ __('Login') }}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('craftpanel/img/favicon.png') }}">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ asset('craftpanel/css/main.css') }}">
+    
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.30.0/tabler-icons.min.css">
+    
+    <!-- Theme Switcher Script -->
+    <script>
+        // Check for saved theme preference or use browser preference
+        const getThemePreference = () => {
+            if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+                return localStorage.getItem('theme');
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+        
+        // Apply theme
+        document.documentElement.setAttribute('data-theme', getThemePreference());
+    </script>
+</head>
+<body class="bg-base-100 text-base-content">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <img src="{{ asset('craftpanel/img/logo.svg') }}" alt="Logo" class="h-16 w-16 mx-auto mb-2">
+                <h1 class="text-2xl font-bold">{{ config('craftpanel.title', 'CraftPanel') }}</h1>
+                <p class="text-base-content/70">{{ __('Administration Panel') }}</p>
+            </div>
+            
+            <!-- Login Card -->
+            <div class="bg-base-200 rounded-lg shadow-lg border border-base-300 overflow-hidden">
+                <div class="p-6">
+                    <h2 class="text-xl font-semibold mb-6">{{ __('Login to your account') }}</h2>
+                    
+                    <!-- Flash Messages -->
+                    {% if flash('error') %}
+                    <div class="alert alert-error mb-4">
+                        <i class="ti ti-alert-circle"></i>
+                        <span>{{ flash('error') }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Login Form -->
+                    <form action="{{ route('craftpanel.login') }}" method="POST">
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">{{ __('Email') }}</span>
+                            </label>
+                            <input type="email" name="email" value="{{ old('email') }}" class="input input-bordered w-full {{ errors.has('email') ? 'input-error' : '' }}" required autofocus>
+                            {% if errors.has('email') %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ errors.first('email') }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text">{{ __('Password') }}</span>
+                            </label>
+                            <input type="password" name="password" class="input input-bordered w-full {{ errors.has('password') ? 'input-error' : '' }}" required>
+                            {% if errors.has('password') %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ errors.first('password') }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center justify-between mb-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="remember" class="checkbox checkbox-sm mr-2" {{ old('remember') ? 'checked' : '' }}>
+                                <span class="label-text">{{ __('Remember me') }}</span>
+                            </label>
+                            
+                            {% if routes_exists('craftpanel.password.request') %}
+                            <a href="{{ route('craftpanel.password.request') }}" class="text-primary hover:underline text-sm">
+                                {{ __('Forgot password?') }}
+                            </a>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-full">
+                            <i class="ti ti-login mr-2"></i>
+                            {{ __('Login') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Theme Toggle -->
+            <div class="mt-6 text-center">
+                <button id="theme-toggle" class="btn btn-ghost btn-sm">
+                    <i class="ti ti-sun theme-light-icon"></i>
+                    <i class="ti ti-moon theme-dark-icon"></i>
+                    <span class="ml-2">{{ __('Toggle theme') }}</span>
+                </button>
+            </div>
+            
+            <!-- Footer -->
+            <div class="mt-8 text-center text-sm text-base-content/70">
+                <p>&copy; {{ 'now'|date('Y') }} {{ config('craftpanel.title', 'CraftPanel') }}. {{ __('All rights reserved.') }}</p>
+                <p class="mt-1">{{ __('Powered by') }} <a href="https://ironflow.dev" class="text-primary hover:underline" target="_blank">IronFlow</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Theme Switcher -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            
+            // Toggle theme
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = htmlElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -22,6 +22,16 @@ abstract class Field extends Component
       $this->label = $label ?: ucfirst($name);
    }
 
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   public function getLabel(): string
+   {
+      return $this->label;
+   }
+
    public function value(string $value): self
    {
       $this->value = $value;

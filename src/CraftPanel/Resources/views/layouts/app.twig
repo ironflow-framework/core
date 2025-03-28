@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="{{ app.locale }}" data-theme="{{ theme|default('dark') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config('craftpanel.title', 'CraftPanel') }} - {{ title|default('Dashboard') }}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('craftpanel/img/favicon.png') }}">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ asset('craftpanel/css/main.css') }}">
+    
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.30.0/tabler-icons.min.css">
+    
+    <!-- Custom CSS -->
+    {% block styles %}{% endblock %}
+    
+    <!-- Theme Switcher Script -->
+    <script>
+        // Check for saved theme preference or use browser preference
+        const getThemePreference = () => {
+            if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+                return localStorage.getItem('theme');
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+        
+        // Apply theme
+        document.documentElement.setAttribute('data-theme', getThemePreference());
+    </script>
+</head>
+<body class="bg-base-100 text-base-content">
+    <div class="flex flex-col min-h-screen">
+        <!-- Navbar -->
+        {% include '@CraftPanel/components/navbar.twig' %}
+
+        <div class="flex flex-1">
+            <!-- Sidebar -->
+            {% include '@CraftPanel/components/sidebar.twig' %}
+
+            <!-- Main Content -->
+            <main class="flex-1 p-6 bg-base-100">
+                {% block main %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="{{ asset('craftpanel/js/alpine.min.js') }}"></script>
+    <script src="{{ asset('craftpanel/js/main.js') }}"></script>
+    
+    <!-- Theme Switcher -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            
+            // Toggle theme
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = htmlElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+            
+            // Mobile sidebar
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            const sidebarContent = document.getElementById('sidebar-content');
+            const closeSidebar = document.getElementById('close-sidebar');
+            const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+            
+            if (sidebarToggle && mobileSidebar && closeSidebar && sidebarBackdrop) {
+                sidebarToggle.addEventListener('click', () => {
+                    mobileSidebar.classList.remove('hidden');
+                    setTimeout(() => {
+                        sidebarContent.classList.remove('-translate-x-full');
+                    }, 10);
+                });
+                
+                const hideSidebar = () => {
+                    sidebarContent.classList.add('-translate-x-full');
+                    setTimeout(() => {
+                        mobileSidebar.classList.add('hidden');
+                    }, 300);
+                };
+                
+                closeSidebar.addEventListener('click', hideSidebar);
+                sidebarBackdrop.addEventListener('click', hideSidebar);
+            }
+        });
+    </script>
+    
+    <!-- Custom JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

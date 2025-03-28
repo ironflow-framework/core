@@ -16,6 +16,11 @@ trait HasForm
     protected array $formMessages = [];
     protected array $formErrors = [];
 
+    public static function form(): Form
+    {
+        return (new static())->getForm();
+    }
+
     public function getForm(): Form
     {
         if ($this->form === null) {
@@ -51,16 +56,6 @@ trait HasForm
         }
 
         return $formClass;
-    }
-
-    public function fill(array $data): self
-    {
-        foreach ($data as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->{$key} = $value;
-            }
-        }
-        return $this;
     }
 
     public function getFormRules(): array
