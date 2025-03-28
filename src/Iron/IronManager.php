@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database;
+namespace IronFlow\Iron;
 
-use IronFlow\Database\Migration\MigrationManager;
-use IronFlow\Database\Seeder\SeederManager;
+use IronFlow\Iron\Migration\MigrationManager;
+use IronFlow\Iron\Seeder\SeederManager;
 
-class DatabaseManager
+class IronManager
 {
    protected array $connections = [];
    protected array $config;

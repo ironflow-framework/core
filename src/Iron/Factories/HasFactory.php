@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Database\Factories;
+namespace IronFlow\Iron\Factories;
 
 use Exception;
 

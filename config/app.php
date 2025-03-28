@@ -19,6 +19,7 @@ return [
       IronFlow\Providers\DatabaseServiceProvider::class,
       IronFlow\Providers\ViewServiceProvider::class,
       IronFlow\Providers\CacheServiceProvider::class,
+      IronFlow\Providers\TranslationServiceProvider::class,
    ],
 
    'aliases' => [
@@ -27,6 +28,7 @@ return [
       'DB' => IronFlow\Database\Connection::class,
       'View' => IronFlow\View\TwigView::class,
       'Cache' => IronFlow\Cache\Cache::class,
+      'Translator' => IronFlow\Support\Translator::class,
    ],
 
    'fallback_locale' => 'en',

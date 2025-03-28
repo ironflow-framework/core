@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Relations;
+namespace IronFlow\Iron\Relations;
 
-use IronFlow\Database\Collection;
-use IronFlow\Database\Model;
-use IronFlow\Database\Query\Builder;
+use IronFlow\Iron\Model;
+use IronFlow\Iron\Collection;
+use IronFlow\Iron\Query\Builder;
+use PDO;
 
 class BelongsToMany extends Relation
 {
@@ -33,17 +34,17 @@ class BelongsToMany extends Relation
       parent::__construct($parent, $related, $parentKey, $relatedKey);
    }
 
-   public function getResults(): ?self
+   public function getResults()
    {
-      return $this->query
-         ->select($this->related->getTable() . '.*')
+      return $this->query()
+         ->select($this->related()->getTable() . '.*')
          ->join(
             $this->table,
-            $this->getQualifiedRelatedKeyName(),
+            $this->qualifiedRelatedKeyName(),
             '=',
             $this->relatedPivotKey
          )
-         ->where($this->foreignPivotKey, '=', $this->getParentKey())
+         ->where($this->foreignPivotKey, '=', $this->parentKey())
          ->get();
    }
 
@@ -54,19 +55,42 @@ class BelongsToMany extends Relation
          $attributes
       );
 
-      return $this->query->insert($values)->execute();
+      // Insertion directe en SQL plutôt que via la méthode insert
+      $conn = $this->parent()->getConnection();
+      $success = true;
+
+      foreach ($values as $record) {
+         $columns = implode(", ", array_keys($record));
+         $placeholders = implode(", ", array_map(fn($col) => ":$col", array_keys($record)));
+         $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
+         $stmt = $conn->prepare($sql);
+         $success = $success && $stmt->execute($record);
+      }
+
+      return $success;
    }
 
    public function detach($ids = null): bool
    {
-      $query = $this->query->where($this->foreignPivotKey, '=', $this->getParentKey());
+      $conn = $this->parent()->getConnection();
+      $sql = "DELETE FROM {$this->table} WHERE {$this->foreignPivotKey} = :parentKey";
+      $params = [':parentKey' => $this->parentKey()];
 
       if ($ids !== null) {
          $ids = $this->parseIds($ids);
-         $query->whereIn($this->relatedPivotKey, $ids);
+         $placeholders = implode(',', array_map(function ($i) {
+            return ':id' . $i;
+         }, array_keys($ids)));
+
+         $sql .= " AND {$this->relatedPivotKey} IN ($placeholders)";
+
+         foreach ($ids as $i => $id) {
+            $params[':id' . $i] = $id;
+         }
       }
 
-      return $query->delete()->execute();
+      $stmt = $conn->prepare($sql);
+      return $stmt->execute($params);
    }
 
    public function sync($ids, bool $detaching = true)
@@ -77,9 +101,11 @@ class BelongsToMany extends Relation
          'updated' => []
       ];
 
-      $current = $this->newPivotQuery()
-         ->pluck($this->relatedPivotKey)
-         ->all();
+      // Récupérer les IDs existants
+      $sql = "SELECT {$this->relatedPivotKey} FROM {$this->table} WHERE {$this->foreignPivotKey} = :parentKey";
+      $stmt = $this->parent()->getConnection()->prepare($sql);
+      $stmt->execute([':parentKey' => $this->parentKey()]);
+      $current = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
       $records = $this->formatAttachRecords(
          $this->parseIds($ids),
@@ -113,9 +139,11 @@ class BelongsToMany extends Relation
          []
       );
 
-      $current = $this->newPivotQuery()
-         ->pluck($this->relatedPivotKey)
-         ->all();
+      // Récupérer les IDs existants
+      $sql = "SELECT {$this->relatedPivotKey} FROM {$this->table} WHERE {$this->foreignPivotKey} = :parentKey";
+      $stmt = $this->parent()->getConnection()->prepare($sql);
+      $stmt->execute([':parentKey' => $this->parentKey()]);
+      $current = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
       $detach = array_diff($current, array_keys($records));
       $attach = array_diff(array_keys($records), $current);
@@ -126,8 +154,12 @@ class BelongsToMany extends Relation
       }
 
       if (count($attach) > 0) {
-         $this->attachNew($records, $current, false);
-         $changes['attached'] = $attach;
+         foreach ($attach as $id) {
+            if (isset($records[$id])) {
+               $this->attach($id, $records[$id]);
+               $changes['attached'][] = $id;
+            }
+         }
       }
 
       return $changes;
@@ -148,7 +180,7 @@ class BelongsToMany extends Relation
    protected function attacher($id, $value, array $attributes, bool $hasTimestamps): array
    {
       $record = [
-         $this->foreignPivotKey => $this->getParentKey(),
+         $this->foreignPivotKey => $this->parentKey(),
          $this->relatedPivotKey => $id
       ];
 
@@ -167,7 +199,12 @@ class BelongsToMany extends Relation
       }
 
       if ($value instanceof Collection) {
-         return $value->modelKeys();
+         // Alternative à modelKeys
+         $keys = [];
+         foreach ($value as $model) {
+            $keys[] = $model->getAttribute($this->relatedKey);
+         }
+         return $keys;
       }
 
       if (is_array($value)) {
@@ -180,12 +217,25 @@ class BelongsToMany extends Relation
    protected function attachNew(array $records, array $current, bool $touch = true): array
    {
       $changes = ['attached' => [], 'updated' => []];
+      $conn = $this->parent()->getConnection();
 
       foreach ($records as $id => $attributes) {
          if (!in_array($id, $current)) {
-            $this->query->insert($attributes);
-            $changes['attached'][] = $id;
+            // Insertion directe en SQL
+            $record = array_merge($attributes, [
+               $this->foreignPivotKey => $this->parentKey(),
+               $this->relatedPivotKey => $id
+            ]);
+
+            $columns = implode(", ", array_keys($record));
+            $placeholders = implode(", ", array_map(fn($col) => ":$col", array_keys($record)));
+            $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
+            $stmt = $conn->prepare($sql);
+            if ($stmt->execute($record)) {
+               $changes['attached'][] = $id;
+            }
          } elseif (count($attributes) > 0) {
+            // Mise à jour directe en SQL
             $this->updateExistingPivot($id, $attributes, $touch);
             $changes['updated'][] = $id;
          }
@@ -200,11 +250,28 @@ class BelongsToMany extends Relation
          $attributes = $this->addTimestampsToAttachment($attributes, true);
       }
 
-      return $this->newPivotQuery()
-         ->where($this->foreignPivotKey, $this->getParentKey())
-         ->where($this->relatedPivotKey, $id)
-         ->update($attributes)
-         ->execute();
+      $conn = $this->parent()->getConnection();
+
+      if (empty($attributes)) {
+         return true;
+      }
+
+      $setParts = [];
+      $params = [
+         ':parentKey' => $this->parentKey(),
+         ':id' => $id
+      ];
+
+      foreach ($attributes as $key => $value) {
+         $setParts[] = "$key = :set_$key";
+         $params[':set_' . $key] = $value;
+      }
+
+      $sql = "UPDATE {$this->table} SET " . implode(', ', $setParts) .
+         " WHERE {$this->foreignPivotKey} = :parentKey AND {$this->relatedPivotKey} = :id";
+
+      $stmt = $conn->prepare($sql);
+      return $stmt->execute($params);
    }
 
    protected function addTimestampsToAttachment(array $attributes, bool $exists = false): array
@@ -235,69 +302,83 @@ class BelongsToMany extends Relation
 
    protected function newPivotQuery(): Builder
    {
-      return $this->query->from($this->table);
+      // Créer une requête sur la table pivot sans utiliser from()
+      $query = new Builder(new class extends Model {});
+      $query->setTable($this->table);
+      return $query;
    }
 
-   public function getQualifiedRelatedKeyName(): string
+   /**
+    * Récupère une liste de valeurs à partir d'une colonne
+    */
+   protected function pluck(Builder $query, string $column): array
    {
-      return $this->related->getTable() . '.' . $this->relatedKey;
+      $sql = "SELECT {$column} FROM {$this->table} WHERE {$this->foreignPivotKey} = :parentKey";
+      $stmt = $this->parent()->getConnection()->prepare($sql);
+      $stmt->execute([':parentKey' => $this->parentKey()]);
+      return $stmt->fetchAll(PDO::FETCH_COLUMN);
    }
 
-   public function getQualifiedForeignPivotKeyName(): string
+   public function qualifiedRelatedKeyName(): string
+   {
+      return $this->related()->getTable() . '.' . $this->relatedKey;
+   }
+
+   public function qualifiedForeignPivotKeyName(): string
    {
       return $this->table . '.' . $this->foreignPivotKey;
    }
 
-   public function getQualifiedRelatedPivotKeyName(): string
+   public function qualifiedRelatedPivotKeyName(): string
    {
       return $this->table . '.' . $this->relatedPivotKey;
    }
 
    public function with(array $relations): self
    {
-      $this->query->with($relations);
+      $this->query()->with($relations);
       return $this;
    }
 
    public function where($column, $operator = null, $value = null): self
    {
-      $this->query->where($column, $operator, $value);
+      $this->query()->where($column, $operator, $value);
       return $this;
    }
 
    public function whereIn($column, array $values): self
    {
-      $this->query->whereIn($column, $values);
+      $this->query()->whereIn($column, $values);
       return $this;
    }
 
    public function whereNull($column): self
    {
-      $this->query->whereNull($column);
+      $this->query()->whereNull($column);
       return $this;
    }
 
    public function whereNotNull($column): self
    {
-      $this->query->whereNotNull($column);
+      $this->query()->whereNotNull($column);
       return $this;
    }
 
    public function orderBy($column, $direction = 'asc'): self
    {
-      $this->query->orderBy($column, $direction);
+      $this->query()->orderBy($column, $direction);
       return $this;
    }
 
    public function limit($limit): self
    {
-      $this->query->limit($limit);
+      $this->query()->limit($limit);
       return $this;
    }
 
    public function offset($offset): self
    {
-      $this->query->offset($offset);
+      $this->query()->offset($offset);
       return $this;
    }
 }

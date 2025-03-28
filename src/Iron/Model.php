@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Iron;
+namespace IronFlow\Iron;
 
 use DateTime;
 use Exception;
-use IronFlow\Database\Connection;
-use IronFlow\Database\Iron\Collection;
-use IronFlow\Database\Iron\Query\Builder;
+use IronFlow\Iron\Collection;
+use IronFlow\Iron\Query\Builder;
+use IronFlow\Iron\Relations\HasManyThrough;
+use IronFlow\Iron\Relations\BelongsTo;
+use IronFlow\Iron\Relations\BelongsToMany;
+use IronFlow\Iron\Relations\HasMany;
+use IronFlow\Iron\Relations\HasOne;
+use IronFlow\Iron\Connection;
 use PDO;
 use PDOException;
 
@@ -124,6 +129,7 @@ abstract class Model
    {
       return Connection::getInstance()->getConnection();
    }
+
    protected function asDateTime($value): bool|DateTime
    {
       if ($value instanceof DateTime) {
@@ -139,7 +145,6 @@ abstract class Model
 
    public function save(): bool
    {
-
       if (isset($this->id)) {
          // Mettre à jour l'enregistrement existant
          return static::update($this->attributes);
@@ -165,7 +170,6 @@ abstract class Model
 
    public static function create(array $data): Model
    {
-
       self::setTimestamps($data);
 
       $columns = implode(", ", array_keys($data));
@@ -208,7 +212,6 @@ abstract class Model
 
    public static function all(): Collection
    {
-
       return static::query()->get();
    }
 
@@ -265,109 +268,17 @@ abstract class Model
          $whereClause[] = "$column = :$column";
          $params[":$column"] = $value;
       }
-      
+
       $sql = "SELECT COUNT(*) FROM " . static::$table;
       if (!empty($whereClause)) {
          $sql .= " WHERE " . implode(" AND ", $whereClause);
       }
-      
+
       $stmt = (new static())->getConnection()->prepare($sql);
       $stmt->execute($params);
       return (bool)$stmt->fetchColumn();
    }
 
-   public static function latest(string $column = 'created_at'): ?static
-   {
-      $sql = "SELECT * FROM " . static::$table . " ORDER BY :column DESC LIMIT 1";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
-      $stmt->execute();
-      return $stmt->fetchObject(static::class);
-   }
-
-   public static function oldest(string $column = 'created_at'): ?static
-   {
-      $sql = "SELECT * FROM " . static::$table . " ORDER BY :column ASC LIMIT 1";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
-      $stmt->execute();
-      return $stmt->fetchObject(static::class);
-   }
-
-   public static function pluck(string $column): array
-   {
-      $sql = "SELECT :column FROM " . static::$table;
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
-      $stmt->execute();
-      return $stmt->fetchAll(PDO::FETCH_COLUMN);
-   }
-
-   public static function chunk(int $size, callable $callback): void
-   {
-      $offset = 0;
-      do {
-         $sql = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
-         $stmt = (new static())->getConnection()->prepare($sql);
-         $stmt->bindValue(':limit', $size, PDO::PARAM_INT);
-         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-         $stmt->execute();
-         $results = $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
-
-         if (empty($results)) {
-            break;
-         }
-
-         $callback($results);
-         $offset += $size;
-      } while (count($results) === $size);
-   }
-
-   public static function increment($id, string $column, int $amount = 1): bool
-   {
-      $sql = "UPDATE " . static::$table . " SET :column = :column + :amount WHERE " . static::$primaryKey . " = :id";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
-      $stmt->bindParam(':amount', $amount, PDO::PARAM_INT);
-      $stmt->bindParam(':id', $id);
-      return $stmt->execute();
-   }
-
-   public static function decrement($id, string $column, int $amount = 1): bool
-   {
-      $sql = "UPDATE " . static::$table . " SET :column = :column - :amount WHERE " . static::$primaryKey . " = :id";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindParam(':column', $column, PDO::PARAM_STR);
-      $stmt->bindParam(':amount', $amount, PDO::PARAM_INT);
-      $stmt->bindParam(':id', $id);
-      return $stmt->execute();
-   }
-
-   public static function withTrashed(): Collection
-   {
-      $sql = "SELECT * FROM " . static::$table;
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->execute();
-      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
-   }
-
-   public static function onlyTrashed(): Collection
-   {
-      $sql = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NOT NULL";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->execute();
-      return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
-   }
-
-   public static function restore($id): bool
-   {
-      $sql = "UPDATE " . static::$table . " SET deleted_at = NULL WHERE " . static::$primaryKey . " = :id";
-      $stmt = (new static())->getConnection()->prepare($sql);
-      $stmt->bindValue(':id', $id);
-      return $stmt->execute();
-   }
-
-   // Filtrer les enregistrements
    public static function filter(array $conditions): Collection
    {
       $whereClause = [];
@@ -376,12 +287,12 @@ abstract class Model
          $whereClause[] = "$column = :$column";
          $params[":$column"] = $value;
       }
-      
+
       $sql = "SELECT * FROM " . static::$table;
       if (!empty($whereClause)) {
          $sql .= " WHERE " . implode(" AND ", $whereClause);
       }
-      
+
       $stmt = (new static())->getConnection()->prepare($sql);
       $stmt->execute($params);
       return new Collection($stmt->fetchAll(PDO::FETCH_CLASS, static::class));
@@ -390,6 +301,240 @@ abstract class Model
    public static function query(): Builder
    {
       return new Builder(static::class);
+   }
+
+   // Relationships
+
+   /**
+    * Définit une relation un-à-un.
+    *
+    * @param string $related Classe du modèle relié
+    * @param string|null $foreignKey Clé étrangère
+    * @param string|null $localKey Clé locale
+    * @return \IronFlow\Iron\Relations\HasOne
+    */
+   public function hasOne(string $related, ?string $foreignKey = null, ?string $localKey = null): HasOne
+   {
+      $foreignKey = $foreignKey ?? $this->getForeignKey();
+      $localKey = $localKey ?? $this->getKeyName();
+
+      $instance = new $related();
+
+      return new HasOne($this, $instance, $foreignKey, $localKey);
+   }
+
+   /**
+    * Définit une relation un-à-plusieurs.
+    *
+    * @param string $related Classe du modèle relié
+    * @param string|null $foreignKey Clé étrangère
+    * @param string|null $localKey Clé locale
+    * @return \IronFlow\Iron\Relations\HasMany
+    */
+   public function hasMany(string $related, ?string $foreignKey = null, ?string $localKey = null): HasMany
+   {
+      $foreignKey = $foreignKey ?? $this->getForeignKey();
+      $localKey = $localKey ?? $this->getKeyName();
+
+      $instance = new $related();
+
+      return new HasMany($this, $instance, $foreignKey, $localKey);
+   }
+
+   /**
+    * Définit une relation plusieurs-à-un.
+    *
+    * @param string $related Classe du modèle relié
+    * @param string|null $foreignKey Clé étrangère
+    * @param string|null $ownerKey Clé du propriétaire
+    * @return \IronFlow\Iron\Relations\BelongsTo
+    */
+   public function belongsTo(string $related, ?string $foreignKey = null, ?string $ownerKey = null): BelongsTo
+   {
+      $foreignKey = $foreignKey ?? $this->guessBelongsToForeignKey();
+      $ownerKey = $ownerKey ?? (new $related())->getKeyName();
+
+      $instance = new $related();
+
+      return new BelongsTo($this, $instance, $foreignKey, $ownerKey);
+   }
+
+   /**
+    * Définit une relation plusieurs-à-plusieurs.
+    *
+    * @param string $related Classe du modèle relié
+    * @param string|null $table Table pivot
+    * @param string|null $foreignPivotKey Clé étrangère dans la table pivot
+    * @param string|null $relatedPivotKey Clé du modèle relié dans la table pivot
+    * @param string|null $parentKey Clé du modèle parent
+    * @param string|null $relatedKey Clé du modèle relié
+    * @return \IronFlow\Iron\Relations\BelongsToMany
+    */
+   public function belongsToMany(
+      string $related,
+      ?string $table = null,
+      ?string $foreignPivotKey = null,
+      ?string $relatedPivotKey = null,
+      ?string $parentKey = null,
+      ?string $relatedKey = null
+   ): BelongsToMany {
+      $foreignPivotKey = $foreignPivotKey ?? $this->getForeignKey();
+      $relatedPivotKey = $relatedPivotKey ?? (new $related())->getForeignKey();
+
+      if (is_null($table)) {
+         $table = $this->joiningTable($related);
+      }
+
+      $parentKey = $parentKey ?? $this->getKeyName();
+      $relatedKey = $relatedKey ?? (new $related())->getKeyName();
+
+      $instance = new $related();
+
+      return new BelongsToMany(
+         $this,
+         $instance,
+         $table,
+         $foreignPivotKey,
+         $relatedPivotKey,
+         $parentKey,
+         $relatedKey
+      );
+   }
+
+   /**
+    * Définit une relation has-many-through.
+    *
+    * @param string $related Classe du modèle final
+    * @param string $through Classe du modèle intermédiaire
+    * @param string|null $firstKey Clé étrangère du premier modèle
+    * @param string|null $secondKey Clé étrangère du second modèle
+    * @param string|null $localKey Clé locale
+    * @param string|null $secondLocalKey Clé locale du second modèle
+    * @return \IronFlow\Iron\Relations\HasManyThrough
+    */
+   public function hasManyThrough(
+      string $related,
+      string $through,
+      ?string $firstKey = null,
+      ?string $secondKey = null,
+      ?string $localKey = null,
+      ?string $secondLocalKey = null
+   ): HasManyThrough {
+      $firstKey = $firstKey ?? $this->getForeignKey();
+      $secondKey = $secondKey ?? (new $through())->getForeignKey();
+
+      $localKey = $localKey ?? $this->getKeyName();
+      $secondLocalKey = $secondLocalKey ?? (new $through())->getKeyName();
+
+      $throughInstance = new $through();
+      $relatedInstance = new $related();
+
+      return new HasManyThrough(
+         $this,
+         $relatedInstance,
+         $through,
+         $firstKey,
+         $secondKey,
+         $localKey,
+         $secondLocalKey
+      );
+   }
+
+   /**
+    * Obtient la clé étrangère pour ce modèle.
+    *
+    * @return string
+    */
+   protected function getForeignKey(): string
+   {
+      return strtolower(class_basename($this)) . '_' . $this->getKeyName();
+   }
+
+   /**
+    * Obtient le nom de la clé primaire.
+    *
+    * @return string
+    */
+   protected function getKeyName(): string
+   {
+      return static::$primaryKey;
+   }
+
+   /**
+    * Devine la clé étrangère pour une relation belongsTo.
+    *
+    * @return string
+    */
+   protected function guessBelongsToForeignKey(): string
+   {
+      $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['function'];
+      return $caller . '_' . $this->getKeyName();
+   }
+
+   /**
+    * Génère le nom de la table pivot pour une relation belongsToMany.
+    *
+    * @param string $related Classe du modèle relié
+    * @return string
+    */
+   protected function joiningTable(string $related): string
+   {
+      $models = [
+         strtolower(class_basename($this)),
+         strtolower(class_basename($related))
+      ];
+      sort($models);
+
+      return implode('_', $models);
+   }
+
+   /**
+    * Charge des relations en même temps que le modèle principal (eager loading)
+    * 
+    * @param array|string $relations Relations à charger
+    * @return \IronFlow\Iron\Query\Builder
+    */
+   public static function with($relations): Builder
+   {
+      $relations = is_string($relations) ? func_get_args() : $relations;
+      $query = static::query()->with($relations);
+
+      return $query;
+   }
+
+   /**
+    * Définit une relation sur ce modèle
+    * 
+    * @param string $relation Nom de la relation
+    * @param mixed $value Valeur de la relation
+    * @return $this
+    */
+   public function setRelation(string $relation, $value): self
+   {
+      $this->relations[$relation] = $value;
+      return $this;
+   }
+
+   /**
+    * Récupère une relation chargée sur ce modèle
+    * 
+    * @param string $relation Nom de la relation
+    * @return mixed|null
+    */
+   public function getRelation(string $relation)
+   {
+      return $this->relations[$relation] ?? null;
+   }
+
+   /**
+    * Détermine si la clé donnée est une relation chargée
+    * 
+    * @param string $key Clé à vérifier
+    * @return bool
+    */
+   public function isRelation(string $key): bool
+   {
+      return array_key_exists($key, $this->relations) || method_exists($this, $key);
    }
 
    public function __get(string $key)
@@ -412,6 +557,18 @@ abstract class Model
       unset($this->attributes[$key]);
    }
 
+   public function __call(string $method, array $arguments): mixed
+   {
+      if (method_exists($this, $method)) {
+         return $this->$method(...$arguments);
+      }
+      return null;
+   }
+
+   public function __toString(): string
+   {
+      return json_encode($this->attributes);
+   }
 
    /**
     * Formate une date ou une chaîne en objet DateTime en une chaîne au format 'Y-m-d H:i:s'.

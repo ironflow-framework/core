@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Relations;
+namespace IronFlow\Iron\Relations;
 
-use IronFlow\Database\Model;
-use IronFlow\Database\Query\Builder;
+use IronFlow\Iron\Model;
+use IronFlow\Iron\Query\Builder;
 
 class HasOne extends Relation
 {
@@ -16,43 +16,45 @@ class HasOne extends Relation
 
    public function getResults(): ?Model
    {
-      return $this->query
-         ->where($this->getQualifiedForeignKeyName(), '=', $this->getParentKey())
+      return $this->query()
+         ->where($this->qualifiedForeignKeyName(), '=', $this->parentKey())
          ->first();
    }
 
    public function create(array $attributes): Model
    {
-      $attributes[$this->getForeignKeyName()] = $this->getParentKey();
-      return $this->related->create($attributes);
+      $attributes[$this->foreignKeyName()] = $this->parentKey();
+      return $this->related()->create($attributes);
    }
 
    public function save(Model $model): bool
    {
-      $model->setAttribute($this->getForeignKeyName(), $this->getParentKey());
+      $model->setAttribute($this->foreignKeyName(), $this->parentKey());
       return $model->save();
    }
 
    public function update(array $attributes): bool
    {
-      return $this->query
-         ->where($this->getQualifiedForeignKeyName(), '=', $this->getParentKey())
-         ->update($attributes)
-         ->execute();
+      $instance = $this->getResults();
+      if ($instance === null) {
+         return false;
+      }
+      return $instance::update($attributes);
    }
 
    public function delete(): bool
    {
-      return $this->query
-         ->where($this->getQualifiedForeignKeyName(), '=', $this->getParentKey())
-         ->delete()
-         ->execute();
+      $instance = $this->getResults();
+      if ($instance === null) {
+         return false;
+      }
+      return $instance::delete($instance->getAttribute($this->related()->getKeyName()));
    }
 
    public function exists(): bool
    {
-      return $this->query
-         ->where($this->getQualifiedForeignKeyName(), '=', $this->getParentKey())
+      return $this->query()
+         ->where($this->qualifiedForeignKeyName(), '=', $this->parentKey())
          ->exists();
    }
 
@@ -63,49 +65,49 @@ class HasOne extends Relation
 
    public function with(array $relations): self
    {
-      $this->query->with($relations);
+      $this->query()->with($relations);
       return $this;
    }
 
    public function where($column, $operator = null, $value = null): self
    {
-      $this->query->where($column, $operator, $value);
+      $this->query()->where($column, $operator, $value);
       return $this;
    }
 
    public function whereIn($column, array $values): self
    {
-      $this->query->whereIn($column, $values);
+      $this->query()->whereIn($column, $values);
       return $this;
    }
 
    public function whereNull($column): self
    {
-      $this->query->whereNull($column);
+      $this->query()->whereNull($column);
       return $this;
    }
 
    public function whereNotNull($column): self
    {
-      $this->query->whereNotNull($column);
+      $this->query()->whereNotNull($column);
       return $this;
    }
 
    public function orderBy($column, $direction = 'asc'): self
    {
-      $this->query->orderBy($column, $direction);
+      $this->query()->orderBy($column, $direction);
       return $this;
    }
 
    public function limit($limit): self
    {
-      $this->query->limit($limit);
+      $this->query()->limit($limit);
       return $this;
    }
 
    public function offset($offset): self
    {
-      $this->query->offset($offset);
+      $this->query()->offset($offset);
       return $this;
    }
 }

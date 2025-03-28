@@ -26,6 +26,19 @@ if (!function_exists('config_path')) {
    }
 }
 
+if (!function_exists('lang_path')) {
+   /**
+    * Obtient le chemin vers le dossier des traductions.
+    *
+    * @param string $path
+    * @return string
+    */
+   function lang_path(string $path = ''): string
+   {
+      return resource_path('lang' . ($path ? DIRECTORY_SEPARATOR . $path : $path));
+   }
+}
+
 if (!function_exists('app_path')) {
    /**
     * Obtient le chemin vers le dossier de l'application.
@@ -211,7 +224,7 @@ if (!function_exists('trait_uses_recursive')) {
    }
 }
 
-if (!function_exists('route')){
+if (!function_exists('route')) {
    /**
     * Retourner la route sous la forme d'une URL.
     *
@@ -261,14 +274,14 @@ if (!function_exists('validator')) {
     * Retourne l'instance de validator.
     *
     * @return IronFlow\Validation\Validator
-    */ 
+    */
    function validator(array $data, array $rules): IronFlow\Validation\Validator
    {
       return new IronFlow\Validation\Validator($data, $rules);
    }
 }
 
-if(!function_exists('auth')){
+if (!function_exists('auth')) {
    /**
     * Retourne l'instance de l'authentification.
     *
@@ -289,6 +302,22 @@ if (!function_exists('logger')) {
    function logger(): IronFlow\Logger\Log
    {
       return IronFlow\Logger\Log::getInstance();
+   }
+}
+
+if (!function_exists('trans')) {
+   /**
+    * Traduit un message.
+    *
+    * @param string $key
+    * @param array $parameters
+    * @param string|null $domain
+    * @param string|null $locale
+    * @return string
+    */
+   function trans(string $key, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+   {
+      return IronFlow\Support\Translator::trans($key, $parameters, $domain, $locale);
    }
 }
 

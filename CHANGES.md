@@ -2,19 +2,28 @@
 
 ## [28/03/25]
 
+- Ajout du système d'internationalisation avec Symfony Translation
+- Création de la classe Translator dans le namespace Support
+- Création du TranslationServiceProvider
+- Ajout de la fonction helper trans() pour faciliter l'utilisation des traductions
+- Création de la commande make:translation pour générer des fichiers de traduction
+- Support pour les formats de traduction PHP, JSON et YAML
+- Gestion automatique des dossiers de langue
+- Fonction fallback pour revenir à la langue par défaut si une traduction est manquante
 - Ajout de nouvelles dépendances dans composer.json
 - mise à jour des fichiers composer.lock
 - Amélioration des commandes dans le fichier forge.
-- Ajout de nouvelles fonctions d'assistance dans helpers.php pour la gestion des sessions et des messages flash. 
-- Amélioration de la gestion de l'authentification et des contrôleurs OAuth. 
+- Ajout de nouvelles fonctions d'assistance dans helpers.php pour la gestion des sessions et des messages flash.
+- Amélioration de la gestion de l'authentification et des contrôleurs OAuth.
 - Suppression de l'interface GuardInterface obsolète et mise à jour des gardes d'authentification.
 - Refactorisation des modèles et des contrôleurs pour une meilleure structure et fonctionnalité.
 
 ### Console/Command
+
 - Mise à jour de la commande `make:scaffold` pour générer automatiquement les composants CRUD
 - Implémentation de la génération de modèles avec méthodes de base (find, create, update, delete)
 - Création automatique des contrôleurs avec actions CRUD standardisées
-- Génération des vues (index, create, edit, show) 
+- Génération des vues (index, create, edit, show)
 - Création automatique des formulaires avec validation intégrée
 - Génération des routes RESTful pour chaque ressource
 - Création des tests unitaires de base pour chaque composant généré
@@ -24,6 +33,7 @@
 - Mise à jour de la commande `make:service`
 
 ### CraftPanel
+
 - Création des composants de base (navbar, sidebar) avec un design moderne et support des thèmes clair/sombre
 - Mise en place de la structure de base des vues Twig
 - Intégration des composants existants (Furnace, Crucible) pour les formulaires et validations
@@ -39,6 +49,7 @@
 - Mise à jour du fichier CHANGES.md pour documenter les modifications apportées au CraftPanel
 
 ### Cache (Hammer)
+
 - Refactoring complet du système de cache pour respecter la nomenclature "Forge"
 - Renommage du namespace de `Cache` à `Hammer`
 - Implémentation complète de la classe `Hammer` avec pattern Singleton
@@ -50,24 +61,29 @@
 - Documentation complète du code avec PHPDoc
 - Correction des méthodes manquantes dans les interfaces et les implémentations
 
-### Système de formulaire (Furnace)  
-- Mise à jour du système de formulaire  
-- Ajoute d'une classe pour gérer le lien entre le formulaire et le model  
+### Système de formulaire (Furnace)
+
+- Mise à jour du système de formulaire
+- Ajoute d'une classe pour gérer le lien entre le formulaire et le model
 
 ## [27/03/25]
 
 ### Application
+
 - Création de la classe Container
 
 ### Database et Iron ORM
+
 - Amelioration de l'ORM
 
 ### Craft Panel (A revoir car supprimer)
+
 - Création des commandes liées au craftpanel
-  - Installation et configuration    
+  - Installation et configuration
 - Création du controller
 
 ### Harmonisation du Framework
+
 - Mise en place de la nomenclature "Forge" :
   - Iron (ORM) pour la gestion de la base de données
   - Anvil (Schema) pour les migrations
@@ -77,6 +93,7 @@
   - CraftPanel pour l'administration
 
 ### Cache (Hammer)
+
 - Implémentation du système de cache avec pattern Singleton
 - Création de l'interface CacheDriverInterface
 - Implémentation des drivers :
@@ -86,6 +103,7 @@
 - Gestion des erreurs et exceptions
 
 ### Formulaires (Furnace)
+
 - Renommage du système de formulaires en "Furnace"
 - Implémentation du trait HasForm pour lier les formulaires aux modèles
 - Création de la classe de base FormComponent
@@ -112,6 +130,7 @@
   - /src/Furnace/Forms pour les formulaires génériques
 
 ### Système de Component
+
 - Création d'une nouvelle structure pour les composants :
   - `src/View/Components/` : Composants de base
   - `src/View/Components/Forms/` : Composants de formulaire
@@ -119,6 +138,7 @@
   - `src/View/Components/UI/` : Composants d'interface utilisateur
 
 ### Système de Validation (Crucible)
+
 - [x] Création de la classe `Validator` pour la validation des données
 - [x] Implémentation des règles de validation de base :
   - required
@@ -151,6 +171,7 @@
 - [x] Implémenter des exemples d'utilisation
 
 ### Système d'authentification
+
 - Implémentation du système d'authentification moderne et sécurisé :
   - Pattern Singleton pour AuthManager
   - Support de plusieurs guards (session, token, oauth)

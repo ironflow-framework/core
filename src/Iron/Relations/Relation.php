@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Relations;
+namespace IronFlow\Iron\Relations;
 
-use IronFlow\Database\Model;
-use IronFlow\Database\Iron\Builder;
+use IronFlow\Iron\Model;
+use IronFlow\Iron\Query\Builder as QueryBuilder;
 
 abstract class Relation
 {
-   protected Model $parent;
-   protected Model $related;
-   protected Builder $query;
-   protected string $foreignKey;
-   protected string $localKey;
+   private Model $parent;
+   private Model $related;
+   private QueryBuilder $query;
+   private string $foreignKey;
+   private string $localKey;
 
    public function __construct(Model $parent, Model $related, string $foreignKey, string $localKey)
    {
@@ -26,54 +26,52 @@ abstract class Relation
 
    abstract public function getResults();
 
-   public function getQuery(): Builder
+   public function query(): QueryBuilder
    {
       return $this->query;
    }
 
-   public function getParent(): Model
+   public function parent(): Model
    {
       return $this->parent;
    }
 
-   public function getRelated(): Model
+   public function related(): Model
    {
       return $this->related;
    }
 
-   public function getForeignKey(): string
+   public function foreignKey(): string
    {
       return $this->foreignKey;
    }
 
-   public function getLocalKey(): string
+   public function localKey(): string
    {
       return $this->localKey;
    }
 
-   protected function getParentKey()
+   protected function parentKey()
    {
       return $this->parent->getAttribute($this->localKey);
    }
 
-   protected function getParentKeyName(): string
+   protected function parentKeyName(): string
    {
       return $this->localKey;
    }
 
-   protected function getForeignKeyName(): string
+   protected function foreignKeyName(): string
    {
       return $this->foreignKey;
    }
 
-   
-
-   protected function getQualifiedForeignKeyName(): string
+   protected function qualifiedForeignKeyName(): string
    {
       return $this->related->getTable() . '.' . $this->foreignKey;
    }
 
-   protected function getQualifiedParentKeyName(): string
+   protected function qualifiedParentKeyName(): string
    {
       return $this->parent->getTable() . '.' . $this->localKey;
    }

@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Database;
+namespace IronFlow\Iron;
 
 use PDO;
 
@@ -46,5 +46,4 @@ class Connection
    {
       return $this->connection;
    }
- 
 }
