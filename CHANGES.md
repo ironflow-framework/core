@@ -2,6 +2,19 @@
 
 ## [28/03/25]
 
+### Console/Command
+- Mise à jour de la commande `make:scaffold` pour générer automatiquement les composants CRUD
+- Implémentation de la génération de modèles avec méthodes de base (find, create, update, delete)
+- Création automatique des contrôleurs avec actions CRUD standardisées
+- Génération des vues (index, create, edit, show) 
+- Création automatique des formulaires avec validation intégrée
+- Génération des routes RESTful pour chaque ressource
+- Création des tests unitaires de base pour chaque composant généré
+- Support de la personnalisation des champs via options de ligne de commande
+- Intégration avec le système de validation Crucible
+- Documentation des méthodes générées avec PHPDoc
+- Mise à jour de la commande `make:service`
+
 ### CraftPanel
 - Création des composants de base (navbar, sidebar) avec un design moderne et support des thèmes clair/sombre
 - Mise en place de la structure de base des vues Twig

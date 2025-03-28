@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -31,11 +32,11 @@ class MakeTestCommand extends Command
       $testContent = $this->generateTestContent($name, $type, $class);
       $testPath = "tests/{$type}/{$name}.php";
 
-      if (!is_dir(dirname($testPath))) {
-         mkdir(dirname($testPath), 0755, true);
+      if (!Filesystem::exists(dirname($testPath))) {
+         Filesystem::makeDirectory(dirname($testPath), 0755, true);
       }
 
-      file_put_contents($testPath, $testContent);
+      Filesystem::put($testPath, $testContent);
       $io->success("Le test {$name} a été créé avec succès !");
 
       return Command::SUCCESS;

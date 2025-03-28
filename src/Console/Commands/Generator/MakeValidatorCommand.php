@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,11 +30,11 @@ class MakeValidatorCommand extends Command
       $validatorContent = $this->generateValidatorContent($name, $rules);
       $validatorPath = "src/Validation/{$name}.php";
 
-      if (!is_dir(dirname($validatorPath))) {
-         mkdir(dirname($validatorPath), 0755, true);
+      if (!Filesystem::exists(dirname($validatorPath))) {
+         Filesystem::makeDirectory(dirname($validatorPath), 0755, true);
       }
 
-      file_put_contents($validatorPath, $validatorContent);
+      Filesystem::put($validatorPath, $validatorContent);
       $io->success("Le validateur {$name} a été créé avec succès !");
 
       return Command::SUCCESS;

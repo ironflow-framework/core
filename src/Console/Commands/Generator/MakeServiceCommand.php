@@ -49,7 +49,9 @@ class MakeServiceCommand extends Command
 
 namespace App\Services;
 
-class {$name}
+use IronFlow\Support\Service\Service;
+
+class {$name} extends Service
 {
     {$depsContent}
 
@@ -58,7 +60,15 @@ class {$name}
     ) {
     }
 
-    // Ajoutez vos méthodes de service ici
+    public function register(): void
+    {
+        // TODO: Implement register() method.
+    }
+
+    public function boot(): void
+    {
+        // TODO: Implement boot() method.
+    }
 }
 PHP;
    }

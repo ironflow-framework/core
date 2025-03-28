@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,6 +39,10 @@ class ScaffoldCommand extends Command
       $this->createController($name);
       $io->success("Le contrôleur {$name}Controller a été créé");
 
+      // Créer les formulaires
+      $this->createForms($name, $fields);
+      $io->success("Les formulaires pour {$name} ont été créés");
+
       // Créer les vues
       $this->createViews($name, $fields);
       $io->success("Les vues pour {$name} ont été créées");
@@ -62,11 +67,11 @@ class ScaffoldCommand extends Command
       $modelContent = $this->generateModelContent($name, strtolower($name) . 's', $fillable);
       $modelPath = "src/Models/{$name}.php";
 
-      if (!is_dir(dirname($modelPath))) {
-         mkdir(dirname($modelPath), 0755, true);
+      if (!Filesystem::exists(dirname($modelPath))) {
+         Filesystem::makeDirectory(dirname($modelPath), 0755, true);
       }
 
-      file_put_contents($modelPath, $modelContent);
+      Filesystem::put($modelPath, $modelContent);
    }
 
    protected function createMigration(string $name, array $fields): void
@@ -75,11 +80,11 @@ class ScaffoldCommand extends Command
       $migrationContent = $this->generateMigrationContent("Create{$name}Table", strtolower($name) . 's', $fields);
       $migrationPath = "database/migrations/{$timestamp}_create_{$name}_table.php";
 
-      if (!is_dir(dirname($migrationPath))) {
-         mkdir(dirname($migrationPath), 0755, true);
+      if (!Filesystem::exists(dirname($migrationPath))) {
+         Filesystem::makeDirectory(dirname($migrationPath), 0755, true);
       }
 
-      file_put_contents($migrationPath, $migrationContent);
+      Filesystem::put($migrationPath, $migrationContent);
    }
 
    protected function createController(string $name): void
@@ -87,11 +92,23 @@ class ScaffoldCommand extends Command
       $controllerContent = $this->generateControllerContent($name);
       $controllerPath = "src/Http/Controllers/{$name}Controller.php";
 
-      if (!is_dir(dirname($controllerPath))) {
-         mkdir(dirname($controllerPath), 0755, true);
+      if (!Filesystem::exists(dirname($controllerPath))) {
+         Filesystem::makeDirectory(dirname($controllerPath), 0755, true);
       }
 
-      file_put_contents($controllerPath, $controllerContent);
+      Filesystem::put($controllerPath, $controllerContent);
+   }
+
+   protected function createForms(string $name, array $fields): void
+   {
+      $formContent = $this->generateFormContent($name, $fields);
+      $formPath = app_path("Forms/{$name}Form.php");
+
+      if (!Filesystem::exists(dirname($formPath))) {
+         Filesystem::makeDirectory(dirname($formPath), 0755, true);
+      }
+
+      Filesystem::put($formPath, $formContent);
    }
 
    protected function createViews(string $name, array $fields): void
@@ -104,12 +121,12 @@ class ScaffoldCommand extends Command
       ];
 
       $viewPath = "resources/views/{$name}";
-      if (!is_dir($viewPath)) {
-         mkdir($viewPath, 0755, true);
+      if (!Filesystem::exists(dirname($viewPath))) {
+         Filesystem::makeDirectory(dirname($viewPath), 0755, true);
       }
 
       foreach ($views as $view => $content) {
-         file_put_contents("{$viewPath}/{$view}.php", $content);
+        Filesystem::put("{$viewPath}/{$view}.php", $content);
       }
    }
 
@@ -120,11 +137,11 @@ class ScaffoldCommand extends Command
 
       if (file_exists($routesPath)) {
          $currentRoutes = file_get_contents($routesPath);
-         if (strpos($currentRoutes, "Route::resource('{$name}')") === false) {
-            file_put_contents($routesPath, $currentRoutes . "\n" . $routesContent);
+         if (strpos($currentRoutes, "Router::resource('{$name}')") === false) {
+            Filesystem::put($routesPath, $currentRoutes . "\n" . $routesContent);
          }
       } else {
-         file_put_contents($routesPath, $routesContent);
+         Filesystem::put($routesPath, $routesContent);
       }
    }
 
@@ -133,11 +150,11 @@ class ScaffoldCommand extends Command
       $testContent = $this->generateTestContent("{$name}Test", 'Feature', "IronFlow\\Models\\{$name}");
       $testPath = "tests/Feature/{$name}Test.php";
 
-      if (!is_dir(dirname($testPath))) {
-         mkdir(dirname($testPath), 0755, true);
+      if (!Filesystem::exists(dirname($testPath))) {
+         Filesystem::makeDirectory(dirname($testPath), 0755, true);
       }
 
-      file_put_contents($testPath, $testContent);
+      Filesystem::put($testPath, $testContent);
    }
 
    protected function generateModelContent(string $name, string $table, array $fillable): string
@@ -289,6 +306,123 @@ class {$name}Controller extends Controller
 }
 PHP;
    }
+
+    protected function generateFormContent(string $name, array $fillable): string
+    {
+        $fieldsContent = $this->generateFieldsContent($fillable);
+        $rulesContent = $this->generateValidationRules($fillable);
+
+        return <<<PHP
+<?php
+
+namespace App\Components\Forms;
+
+use IronFlow\Furnace\Form;
+use IronFlow\Validation\Validator;
+
+class {$name}Form extends Form
+{
+
+    public function rules(): array
+    {
+        return {$rulesContent};
+    }
+
+    public function messages(): array
+    {
+        return [
+            // Messages de validation personnalisés
+        ];
+    }
+
+    public function build(): Form
+    {
+        {$fieldsContent}
+
+        return \$this;
+    }
+
+}
+PHP;
+    }
+
+    protected function generateFieldsContent(array $fillable): string
+    {
+        $fieldsContent = [];
+        foreach ($fillable as $field) {
+            $type = $this->inferFieldType($field);
+            $label = ucfirst(str_replace('_', ' ', $field));
+
+            $fieldsContent[] = <<<PHP
+        \$this->addField('{$field}', [
+            'type' => '{$type}',
+            'label' => '{$label}',
+            'required' => true
+        ]);
+PHP;
+        }
+
+        return implode("\n        ", $fieldsContent);
+    }
+
+    protected function generateValidationRules(array $fillable): string
+    {
+        $rules = [];
+        foreach ($fillable as $field) {
+            $rules[$field] = $this->generateFieldRules($field);
+        }
+
+        return var_export($rules, true);
+    }
+
+    protected function inferFieldType(string $field): string
+    {
+        // Inférer le type de champ basé sur le nom
+        $fieldLower = strtolower($field);
+
+        $typeMap = [
+            'email' => 'email',
+            'password' => 'password',
+            'phone' => 'tel',
+            'date' => 'date',
+            'time' => 'time',
+            'url' => 'url',
+            'description' => 'textarea',
+            'content' => 'textarea'
+        ];
+
+        foreach ($typeMap as $key => $type) {
+            if (strpos($fieldLower, $key) !== false) {
+                return $type;
+            }
+        }
+
+        return 'text';
+    }
+
+    protected function generateFieldRules(string $field): array
+    {
+        $rules = ['required'];
+        $fieldLower = strtolower($field);
+
+        // Règles spécifiques basées sur le nom du champ
+        if (strpos($fieldLower, 'email') !== false) {
+            $rules[] = 'email';
+            $rules[] = 'max:255';
+            $rules[] = 'unique:users,email';
+        } elseif (strpos($fieldLower, 'password') !== false) {
+            $rules[] = 'min:8';
+            $rules[] = 'confirmed';
+        } elseif (strpos($fieldLower, 'phone') !== false) {
+            $rules[] = 'regex:/^[0-9\-\+]{10,15}$/';
+        } elseif (strpos($fieldLower, 'url') !== false) {
+            $rules[] = 'url';
+        } elseif (strpos($fieldLower, 'date') !== false) {
+            $rules[] = 'date';
+        }
+
+        return $rules;
+    }
 
    protected function generateIndexView(string $name, array $fields): string
    {
@@ -456,7 +590,7 @@ PHP;
 
    protected function generateRoutesContent(string $name): string
    {
-      return "Route::resource('{$name}', {$name}Controller::class);\n";
+      return "Router::resource('{$name}', {$name}Controller::class);\n";
    }
 
    protected function generateTestContent(string $name, string $type, string $class): string
