@@ -1,114 +1,155 @@
 <?php
 
-namespace IronFlow\Console\Commands\Generator;
+namespace IronFlow\Furnace\Console\Commands;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class MakeFormCommand extends Command
 {
-   protected static $defaultName = 'make:form';
-   protected static $defaultDescription = 'Crée un nouveau formulaire';
+    protected function configure()
+    {
+        $this
+            ->setName('make:form')
+            ->setDescription('Create a new form class')
+            ->addArgument('name', InputArgument::REQUIRED, 'Name of the form')
+            ->addArgument('fields', InputArgument::OPTIONAL, 'Form fields (format: name:type:options)')
+            ->addArgument('namespace', InputArgument::OPTIONAL, 'Custom namespace', 'App\\Forms');
+    }
 
-   protected function configure(): void
-   {
-      $this
-         ->addArgument('name', InputArgument::REQUIRED, 'Le nom du formulaire')
-         ->addArgument('model', InputArgument::OPTIONAL, 'Le model associé au formulaire')
-         ->addArgument('fields', InputArgument::OPTIONAL, 'Les champs (format: nom:type,options)');
-   }
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        
+        $name = $input->getArgument('name');
+        $fieldsInput = $input->getArgument('fields');
+        $namespace = $input->getArgument('namespace');
 
-   protected function execute(InputInterface $input, OutputInterface $output): int
-   {
-      $io = new SymfonyStyle($input, $output);
-      $name = $input->getArgument('name');
-      $model = $input->getArgument('model');
-      $fields = $input->getArgument('fields') ? explode(',', $input->getArgument('fields')) : [];
+        $formClassName = str_replace(['Form', 'form'], '', $name) . 'Form';
+        
+        $fields = $fieldsInput ? $this->parseFields($fieldsInput) : [];
 
-      $formContent = $this->generateFormContent($name, $model, $fields);
-      $formPath = app_path("Components/Forms/") . "{$name}.php";
+        $formContent = $this->generateFormContent($namespace, $formClassName, $fields);
 
-      if (!is_dir(dirname($formPath))) {
-         mkdir(dirname($formPath), 0755, true);
-      }
+        $basePath = str_replace('\\', '/', $namespace);
+        $formPath = base_path($basePath . '/' . $formClassName . '.php');
 
-      file_put_contents($formPath, $formContent);
-      $io->success("Le formulaire {$name} a été créé avec succès !");
+        if (!Filesystem::exists($formPath)) {
+            Filesystem::makeDirectory(dirname($formPath), 0755, true);
+        }
 
-      return Command::SUCCESS;
-   }
+        Filesystem::put($formPath, $formContent);
 
-   protected function generateFormContent(string $name, string $model, array $fields): string
-   {
-      $fieldsContent = $this->generateFieldsContent($fields);
+        $io->success("Form {$formClassName} created successfully at {$formPath}");
 
-      $modelAttached = isset($model) ? "use App\Models\{$model};" : "";
+        return Command::SUCCESS;
+    }
 
-      return <<<PHP
+    protected function parseFields(?string $fieldsInput): array
+    {
+        if (empty($fieldsInput)) {
+            return [];
+        }
+
+        $parsedFields = [];
+        $fieldEntries = explode(',', $fieldsInput);
+
+        foreach ($fieldEntries as $entry) {
+            $parts = explode(':', $entry);
+            
+            $field = [
+                'name' => $parts[0] ?? '',
+                'type' => $parts[1] ?? 'text',
+                'options' => []
+            ];
+
+            // Parse additional options if exists
+            if (isset($parts[2])) {
+                $optionParts = explode(';', $parts[2]);
+                foreach ($optionParts as $option) {
+                    $optionDetail = explode('=', $option);
+                    if (count($optionDetail) === 2) {
+                        $key = trim($optionDetail[0]);
+                        $value = trim($optionDetail[1]);
+                        
+                        // Convert string values to appropriate types
+                        if (strtolower($value) === 'true') {
+                            $value = true;
+                        } elseif (strtolower($value) === 'false') {
+                            $value = false;
+                        } elseif (is_numeric($value)) {
+                            $value = strpos($value, '.') !== false ? floatval($value) : intval($value);
+                        }
+
+                        $field['options'][$key] = $value;
+                    }
+                }
+            }
+
+            $parsedFields[] = $field;
+        }
+
+        return $parsedFields;
+    }
+
+    protected function generateFormContent(string $namespace, string $formClassName, array $fields): string
+    {
+        $fieldsContent = $this->generateFieldsContent($fields);
+
+        return <<<PHP
 <?php
 
-namespace App\Components\Forms;
+namespace {$namespace};
 
-use IronFlow\Forms\Form;
-{$modelAttached};
+use IronFlow\Furnace\Form;
 
-class {$name} extends Form
+class {$formClassName} extends Form
 {
-    public function __construct()
+    protected function build(): void
     {
-        parent::__construct();
-        
-        {$fieldsContent}
+{$fieldsContent}
     }
 }
 PHP;
-   }
+    }
 
-   protected function generateFieldsContent(array $fields): string
-   {
-      $content = '';
-      foreach ($fields as $field) {
-         $parts = explode(':', $field);
-         $name = $parts[0];
-         $type = $parts[1] ?? 'text';
-         $options = isset($parts[2]) ? explode('|', $parts[2]) : [];
+    protected function generateFieldsContent(array $fields): string
+    {
+        $content = '';
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            $type = $field['type'];
+            $options = $field['options'];
 
-         $optionsArray = [];
-         foreach ($options as $option) {
-            if (strpos($option, '=') !== false) {
-               list($key, $value) = explode('=', $option);
-               $optionsArray[$key] = $value;
+            // Convert options to a string representation
+            $optionsStr = $this->formatOptions($options);
+
+            $content .= "        \$this->addField('{$name}', '{$type}', {$optionsStr});\n";
+        }
+        return $content;
+    }
+
+    protected function formatOptions(array $options): string
+    {
+        if (empty($options)) {
+            return '[]';
+        }
+
+        $formattedOptions = [];
+        foreach ($options as $key => $value) {
+            if (is_bool($value)) {
+                $formattedOptions[] = "'{$key}' => " . ($value ? 'true' : 'false');
+            } elseif (is_string($value)) {
+                $formattedOptions[] = "'{$key}' => '{$value}'";
             } else {
-               $optionsArray[$option] = true;
+                $formattedOptions[] = "'{$key}' => {$value}";
             }
-         }
+        }
 
-         $optionsString = $this->formatOptions($optionsArray);
-
-         $content .= "        \$this->addField('{$name}', '{$type}', {$optionsString});\n";
-      }
-
-      return rtrim($content, "\n");
-   }
-
-   protected function formatOptions(array $options): string
-   {
-      if (empty($options)) {
-         return '[]';
-      }
-
-      $formatted = [];
-      foreach ($options as $key => $value) {
-         if (is_bool($value)) {
-            $formatted[] = "'{$key}' => " . ($value ? 'true' : 'false');
-         } else {
-            $formatted[] = "'{$key}' => '{$value}'";
-         }
-      }
-
-      return "[\n            " . implode(",\n            ", $formatted) . "\n        ]";
-   }
+        return "[\n            " . implode(",\n            ", $formattedOptions) . "\n        ]";
+    }
 }

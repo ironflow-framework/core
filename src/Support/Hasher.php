@@ -4,8 +4,6 @@ namespace IronFlow\Support;
 
 class Hasher
 {
-   public static function make()
-
    public static function hash(string $value): string
    {
       return hash('sha256', $value);

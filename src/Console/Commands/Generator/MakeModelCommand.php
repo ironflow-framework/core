@@ -23,7 +23,7 @@ class MakeModelCommand extends Command
             ->addOption('migration', 'm', InputOption::VALUE_NONE, 'Créer une migration associée')
             ->addOption('factory', 'f', InputOption::VALUE_NONE, 'Créer une factory associée')
             ->addOption('seeder', 's', InputOption::VALUE_NONE, 'Créer un seeder associé')
-            ->addOption('form', 'fm', InputOption::VALUE_NONE, 'Créer le formulaire associé');
+            ->addOption('form', 'fm', InputOption::VALUE_NONE, 'Créer un formulaire associé');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -40,7 +40,7 @@ class MakeModelCommand extends Command
         $modelContent = $this->generateModelContent($name, $table, $fillable, $withFactory, $withForm);
         $modelPath = app_path("Models/") . "{$name}.php";
 
-        if (!is_dir(dirname($modelPath))) { 
+        if (!is_dir(dirname($modelPath))) {
             mkdir(dirname($modelPath), 0755, true);
         }
 
@@ -217,15 +217,123 @@ PHP;
     {
         $formPath = app_path("Components/Forms") . "{$name}Form.php";
 
-        $formContent = $this->generateFormContent($name);
+        $formContent = $this->generateFormContent($name, $fillable);
         file_put_contents($formPath, $formContent);
         $io->success("Le formulaire {$name} a été créé avec succès !");
     }
 
-    protected function generateFormContent(string $name): string
+    protected function generateFormContent(string $name, array $fillable): string
     {
+        $fieldsContent = $this->generateFieldsContent($fillable);
+        $rulesContent = $this->generateValidationRules($fillable);
+
         return <<<PHP
-        ""
-        PHP;
+<?php
+
+namespace App\Components\Forms;
+
+use IronFlow\Forms\Form;
+use IronFlow\Validation\Validator;
+
+class {$name}Form extends Form
+{
+    public function __construct()
+    {
+        parent::__construct();
+        
+        {$fieldsContent}
+    }
+
+    public function rules(): array
+    {
+        return {$rulesContent};
+    }
+
+    public function messages(): array
+    {
+        return [
+            // Messages de validation personnalisés
+        ];
+    }
+}
+PHP;
+    }
+
+    protected function generateFieldsContent(array $fillable): string
+    {
+        $fieldsContent = [];
+        foreach ($fillable as $field) {
+            $type = $this->inferFieldType($field);
+            $label = ucfirst(str_replace('_', ' ', $field));
+
+            $fieldsContent[] = <<<PHP
+        \$this->addField('{$field}', [
+            'type' => '{$type}',
+            'label' => '{$label}',
+            'required' => true
+        ]);
+PHP;
+        }
+
+        return implode("\n        ", $fieldsContent);
+    }
+
+    protected function generateValidationRules(array $fillable): string
+    {
+        $rules = [];
+        foreach ($fillable as $field) {
+            $rules[$field] = $this->generateFieldRules($field);
+        }
+
+        return var_export($rules, true);
+    }
+
+    protected function inferFieldType(string $field): string
+    {
+        // Inférer le type de champ basé sur le nom
+        $fieldLower = strtolower($field);
+
+        $typeMap = [
+            'email' => 'email',
+            'password' => 'password',
+            'phone' => 'tel',
+            'date' => 'date',
+            'time' => 'time',
+            'url' => 'url',
+            'description' => 'textarea',
+            'content' => 'textarea'
+        ];
+
+        foreach ($typeMap as $key => $type) {
+            if (strpos($fieldLower, $key) !== false) {
+                return $type;
+            }
+        }
+
+        return 'text';
+    }
+
+    protected function generateFieldRules(string $field): array
+    {
+        $rules = ['required'];
+        $fieldLower = strtolower($field);
+
+        // Règles spécifiques basées sur le nom du champ
+        if (strpos($fieldLower, 'email') !== false) {
+            $rules[] = 'email';
+            $rules[] = 'max:255';
+            $rules[] = 'unique:users,email';
+        } elseif (strpos($fieldLower, 'password') !== false) {
+            $rules[] = 'min:8';
+            $rules[] = 'confirmed';
+        } elseif (strpos($fieldLower, 'phone') !== false) {
+            $rules[] = 'regex:/^[0-9\-\+]{10,15}$/';
+        } elseif (strpos($fieldLower, 'url') !== false) {
+            $rules[] = 'url';
+        } elseif (strpos($fieldLower, 'date') !== false) {
+            $rules[] = 'date';
+        }
+
+        return $rules;
     }
 }

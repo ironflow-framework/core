@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -25,13 +26,13 @@ class MakeMiddlewareCommand extends Command
       $name = $input->getArgument('name');
 
       $middlewareContent = $this->generateMiddlewareContent($name);
-      $middlewarePath = "src/Http/Middleware/{$name}.php";
+      $middlewarePath = app_path("Middleware/{$name}.php");
 
-      if (!is_dir(dirname($middlewarePath))) {
-         mkdir(dirname($middlewarePath), 0755, true);
+      if (!Filesystem::exists(dirname($middlewarePath))) {
+         Filesystem::makeDirectory(dirname($middlewarePath), 0755, true);
       }
 
-      file_put_contents($middlewarePath, $middlewareContent);
+      Filesystem::put($middlewarePath, $middlewareContent);
       $io->success("Le middleware {$name} a été créé avec succès !");
 
       return Command::SUCCESS;
@@ -46,8 +47,8 @@ namespace App\Middleware;
 
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-
-class {$name}
+use IronFlow\Http\Middleware;
+class {$name} extends Middleware
 {
     public function handle(Request \$request, callable \$next): Response
     {

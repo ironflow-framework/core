@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,13 +31,13 @@ class MakeMigrationCommand extends Command
 
       $timestamp = date('Y_m_d_His');
       $migrationContent = $this->generateMigrationContent($$table, $columns);
-      $migrationPath = "database/migrations/{$timestamp}_{$name}.php";
+      $migrationPath = database_path("migrations/{$timestamp}_{$name}.php");
 
-      if (!is_dir(dirname($migrationPath))) {
-         mkdir(dirname($migrationPath), 0755, true);
+      if (!Filesystem::exists(dirname($migrationPath))) {
+         Filesystem::makeDirectory(dirname($migrationPath), 0755, true);
       }
 
-      file_put_contents($migrationPath, $migrationContent);
+      Filesystem::put($migrationPath, $migrationContent);
       $io->success("La migration {$name} a été créée avec succès !");
 
       return Command::SUCCESS;

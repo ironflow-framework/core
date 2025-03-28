@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,13 +30,13 @@ class MakeFactoryCommand extends Command
       $fields = $input->getArgument('fields') ? explode(',', $input->getArgument('fields')) : [];
 
       $factoryContent = $this->generateFactoryContent($name, $model, $fields);
-      $factoryPath = "database/factories/{$name}.php";
+      $factoryPath = database_path("factories/{$name}.php");
 
-      if (!is_dir(dirname($factoryPath))) {
-         mkdir(dirname($factoryPath), 0755, true);
+      if (!Filesystem::exists(dirname($factoryPath))) {
+         Filesystem::makeDirectory(dirname($factoryPath), 0755, true);
       }
 
-      file_put_contents($factoryPath, $factoryContent);
+      Filesystem::put($factoryPath, $factoryContent);
       $io->success("La factory {$name} a été créée avec succès !");
 
       return Command::SUCCESS;
@@ -43,13 +44,13 @@ class MakeFactoryCommand extends Command
 
    protected function generateFactoryContent(string $name, string $model, array $fields): string
    {
-      $modelClass = "IronFlow\\Models\\{$model}";
+      $modelClass = "App\\Models\\{$model}";
       $fieldsContent = $this->generateFieldsContent($fields);
 
       return <<<PHP
 <?php
 
-namespace IronFlow\Database\Factories;
+namespace Database\Factories;
 
 use IronFlow\Database\Factory;
 use {$modelClass};

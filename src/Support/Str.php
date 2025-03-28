@@ -6,6 +6,12 @@ namespace IronFlow\Support;
 
 class Str
 {
+
+   public static function title(string $string): string
+   {
+      return ucwords(str_replace('_', ' ', $string));
+   }
+
    public static function slug(string $string): string
    {
       return strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $string)));

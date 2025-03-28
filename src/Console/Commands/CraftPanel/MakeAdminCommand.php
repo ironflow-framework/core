@@ -100,7 +100,7 @@ class MakeAdminCommand extends Command
         return $userClass::create([
             'name' => $name,
             'email' => $email,
-            'password' => Hasher::make($password),
+            'password' => Hasher::hash($password),
             'role' => 'admin'
         ]);
     }
