@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Auth\Guards;
 
+use IronFlow\Auth\Contracts\GuardInterface;
 use IronFlow\Database\Model;
 use IronFlow\Http\Request;
 
@@ -68,15 +69,14 @@ class TokenGuard implements GuardInterface
 
     public function validate(array $credentials): bool
     {
-        return isset($credentials[$this->tokenKey]) && 
-               $this->retrieveByToken($credentials[$this->tokenKey]) !== null;
+        return isset($credentials[$this->tokenKey]) &&
+            $this->retrieveByToken($credentials[$this->tokenKey]) !== null;
     }
 
     protected function retrieveByToken(string $token): ?Model
     {
         return $this->createModel()
-            ->where($this->tokenKey, $token)
-            ->first();
+            ->where($this->tokenKey, $token);
     }
 
     protected function retrieveByCredentials(array $credentials): ?Model
@@ -90,8 +90,8 @@ class TokenGuard implements GuardInterface
 
     protected function getTokenFromRequest(): ?string
     {
-        $request = Request::getInstance();
-        
+        $request = new Request();
+
         // Check Authorization header
         $header = $request->header('Authorization');
         if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {

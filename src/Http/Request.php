@@ -11,6 +11,7 @@ class Request extends SymfonyRequest
 {
    protected array $routeParameters = [];
 
+
    public static function capture(): static
    {
       return static::createFromGlobals();
@@ -36,9 +37,24 @@ class Request extends SymfonyRequest
       return array_merge($this->request->all(), $this->query->all());
    }
 
+   public function has(string $key): bool
+   {
+      return $this->request->has($key) || $this->query->has($key);
+   }
+
    public function input(string $key, mixed $default = null): mixed
    {
       return $this->request->get($key, $this->query->get($key, $default));
+   }
+
+   public function query($key)
+   {
+      return $this->query($key);
+   }
+
+   public function header(string|array $data): string|null
+   {
+      return $this->headers->get($data);
    }
 
    public function only(array $keys): array

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
+use IronFlow\Support\Flash;
 use IronFlow\View\TwigView;
 
 class Response
@@ -84,7 +85,7 @@ class Response
 
    public function with(string $key, $value): self
    {
-      $this->data[$key] = $value;
+      session()->flash($key, $value);
       return $this;
    }
 

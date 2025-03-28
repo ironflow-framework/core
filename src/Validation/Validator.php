@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Validation;
 
+use IronFlow\Support\Utils\Str;
+
 class Validator
 {
    protected array $data = [];
@@ -17,6 +19,11 @@ class Validator
       $this->data = $data;
       $this->rules = $rules;
       $this->messages = $messages;
+   }
+
+   public static function make(array $data = [], array $rules = [], array $messages = []): self
+   {
+      return new self($data, $rules, $messages);
    }
 
    public function validate($value = null, array $data = []): bool
@@ -59,7 +66,8 @@ class Validator
 
    protected function validateValue($value, array $data = []): bool
    {
-      return true;
+      $this->data = $data;
+      return $this->validate($value);
    }
 
    public function addRule(string $name, callable $callback): self
@@ -109,7 +117,7 @@ class Validator
          ':max' => $parameters[0] ?? '',
       ];
 
-      return str_replace(array_keys($replacements), array_values($replacements), $message);
+      return Str::replace($message, ':field', $replacements[':field']);
    }
 
    // Règles de validation de base

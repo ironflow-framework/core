@@ -2,24 +2,32 @@
 
 namespace IronFlow\CraftPanel\Middleware;
 
-use IronFlow\Support\Facades\Auth;
-use IronFlow\Support\Facades\Redirect;
-use IronFlow\Support\Facades\Config;
+use IronFlow\Http\Middleware;
+use IronFlow\Http\Redirect;
+use IronFlow\Http\Response;
+use IronFlow\Http\Request;
+use IronFlow\Support\Config;
 
-use Closure;
-
-class CraftPanelAuthMiddleware
+class CraftPanelAuthMiddleware extends Middleware
 {
-    public function handle($request, Closure $next)
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \IronFlow\Http\Request  $request
+     * @param  callable  $next
+     * @return \IronFlow\Http\Response
+     */
+    public function handle(Request $request, callable $next): Response
     {
         // Vérifier si l'utilisateur est connecté
-        if (!Auth::check()) {
-            return Redirect::guest(Config::get('auth.login.route'));
+        if (!auth()->check()) {
+            return Redirect::guest(Config::get('auth.login.route', 'login'));
         }
 
         // Vérifier si l'utilisateur a accès au CraftPanel
-        if (!Auth::user()->can(Config::get('craftpanel.permissions.view'))) {
-            abort(403);
+        $permission = Config::get('craftpanel.permissions.view', 'craftpanel.view');
+        if (!auth()->user()->can($permission)) {
+            return Response::json(['error' => 'Unauthorized'], 403);
         }
 
         return $next($request);

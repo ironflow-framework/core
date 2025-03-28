@@ -6,6 +6,7 @@ namespace IronFlow\Http;
 
 use IronFlow\View\ViewInterface;
 use IronFlow\Http\Response;
+use IronFlow\Routing\Router;
 use IronFlow\View\TwigView;
 use IronFlow\Validation\Validator;
 
@@ -46,8 +47,9 @@ abstract class Controller
 
    public function route(string $name, array $parameters = []): self
    {
-      // TODO
-      return $this;
+      $router = new Router();
+      $url = $router->url($name, $parameters);
+      return $this->redirect($url);
    }
 
    public function with(string $key, mixed $value): self
@@ -56,7 +58,7 @@ abstract class Controller
       return $this;
    }
 
-   protected function abort(int $status, string $message)
+   protected function abort(int $status, string $message = "Page non trouvée")
     {
       $this->response->setStatusCode($status)->setContent($message);
       $this->response->send();

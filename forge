@@ -1,25 +1,30 @@
 #!/usr/bin/env php
 <?php
 
+use IronFlow\Console\Application;
+use IronFlow\Console\Commands\Generator\CraftPanelInstallCommand;
+use IronFlow\Console\Commands\Generator\MakeAdminCommand;
 use IronFlow\Console\Commands\ServeCommand;
-use IronFlow\Console\Commands\MakeModelCommand;
-use IronFlow\Console\Commands\MakeMigrationCommand;
-use IronFlow\Console\Commands\MakeSeederCommand;
-use IronFlow\Console\Commands\MakeFactoryCommand;
-use IronFlow\Console\Commands\MakeFormCommand;
-use IronFlow\Console\Commands\MakeComponentCommand;
-use IronFlow\Console\Commands\MakeValidatorCommand;
-use IronFlow\Console\Commands\MakeServiceCommand;
-use IronFlow\Console\Commands\MakeTestCommand;
-use IronFlow\Console\Commands\ScaffoldCommand;
+use IronFlow\Console\Commands\Generator\MakeModelCommand;
+use IronFlow\Console\Commands\Generator\MakeMigrationCommand;
+use IronFlow\Console\Commands\Generator\MakeSeederCommand;
+use IronFlow\Console\Commands\Generator\MakeFactoryCommand;
+use IronFlow\Console\Commands\Generator\MakeFormCommand;
+use IronFlow\Console\Commands\Generator\MakeComponentCommand;
+use IronFlow\Console\Commands\Generator\MakeValidatorCommand;
+use IronFlow\Console\Commands\Generator\MakeServiceCommand;
+use IronFlow\Console\Commands\Generator\MakeTestCommand;
+use IronFlow\Console\Commands\Generator\RegisterModelCommand;
+use IronFlow\Console\Commands\Generator\ScaffoldCommand;
 use IronFlow\Console\Commands\InstallCommand;
-use Symfony\Component\Console\Application;
+
 
 require __DIR__ . '/vendor/autoload.php';
 
-$app = new Application('IronFlow', '1.0.0');
+$app = new Application();
 
 // Enregistrer les commandes
+$app->add(new InstallCommand());
 $app->add(new ServeCommand());
 $app->add(new MakeModelCommand());
 $app->add(new MakeMigrationCommand());
@@ -31,6 +36,8 @@ $app->add(new MakeValidatorCommand());
 $app->add(new MakeServiceCommand());
 $app->add(new MakeTestCommand());
 $app->add(new ScaffoldCommand());
-$app->add(new InstallCommand());
+$app->add(new CraftPanelInstallCommand());
+$app->add(new MakeAdminCommand());
+$app->add(new RegisterModelCommand());
 
 $app->run();

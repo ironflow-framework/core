@@ -2,6 +2,14 @@
 
 ## [28/03/25]
 
+- Ajout de nouvelles dépendances dans composer.json
+- mise à jour des fichiers composer.lock
+- Amélioration des commandes dans le fichier forge.
+- Ajout de nouvelles fonctions d'assistance dans helpers.php pour la gestion des sessions et des messages flash. 
+- Amélioration de la gestion de l'authentification et des contrôleurs OAuth. 
+- Suppression de l'interface GuardInterface obsolète et mise à jour des gardes d'authentification.
+- Refactorisation des modèles et des contrôleurs pour une meilleure structure et fonctionnalité.
+
 ### Console/Command
 - Mise à jour de la commande `make:scaffold` pour générer automatiquement les composants CRUD
 - Implémentation de la génération de modèles avec méthodes de base (find, create, update, delete)

@@ -2,18 +2,16 @@
 
 namespace IronFlow\CraftPanel\Controllers;
 
-use IronFlow\Http\Controllers\Controller;
-use IronFlow\Support\Facades\Auth;
-use IronFlow\Support\Facades\Config;
-use IronFlow\Support\Facades\Request;
-use IronFlow\Support\Facades\Response;
-use IronFlow\Support\Facades\View;
-use IronFlow\Support\Facades\Validator;
-use IronFlow\Support\Facades\Flash;
-use IronFlow\Support\Facades\Redirect;
-use IronFlow\Support\Facades\Str;
-use IronFlow\Support\Facades\Log;
-use IronFlow\CraftPanel\Contracts\AdminModel;
+use IronFlow\Http\Controller;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
+use IronFlow\Support\Flash;
+use IronFlow\Support\Utils\Str;
+use IronFlow\Validation\Validator;
+use IronFlow\Support\Collection;
+use IronFlow\Support\Config;
+use IronFlow\Support\Paginator;
+use IronFlow\Support\Excel;
 
 class CraftPanelController extends Controller
 {
@@ -22,12 +20,17 @@ class CraftPanelController extends Controller
      * @var string|null
      */
     protected ?string $model = null;
-    
+
     /**
      * Configuration du modèle
      * @var array
      */
-    protected array $config = [];
+    protected array $config = [
+        'perPage' => 15,
+        'sortable' => true,
+        'searchable' => true,
+        'exportable' => true,
+    ];
 
     /**
      * Affiche le tableau de bord
@@ -37,8 +40,8 @@ class CraftPanelController extends Controller
     {
         $stats = $this->getDashboardStats();
         $models = $this->getAdminModels();
-        
-        return View::make('CraftPanel::dashboard', [
+
+        return $this->view('CraftPanel::dashboard', [
             'stats' => $stats,
             'models' => $models,
             'title' => Config::get('craftpanel.title'),
@@ -59,8 +62,8 @@ class CraftPanelController extends Controller
         $items = $this->getItems($modelClass);
         $fields = $modelClass::getFormFields();
         $filters = $modelClass::getFilters();
-        
-        return View::make('CraftPanel::index', [
+
+        return $this->view('CraftPanel::index', [
             'model' => $model,
             'modelClass' => $modelClass,
             'items' => $items,
@@ -82,8 +85,8 @@ class CraftPanelController extends Controller
 
         $modelClass = $this->getModelClass($model);
         $fields = $modelClass::getFormFields();
-        
-        return View::make('CraftPanel::create', [
+
+        return $this->view('CraftPanel::create', [
             'model' => $model,
             'modelClass' => $modelClass,
             'fields' => $fields,
@@ -96,23 +99,24 @@ class CraftPanelController extends Controller
      * @param string $model Nom du modèle
      * @return Response
      */
-    public function store(string $model): Response
+    public function store(Request $request, string $model): Response
     {
+        $data = $request->all();
         $this->checkModelPermission($model, 'create');
         $this->checkModelExists($model);
 
         $modelClass = $this->getModelClass($model);
-        $validator = Validator::make(Request::all(), $modelClass::getValidationRules());
+        $validator = Validator::make($data, $modelClass::getValidationRules());
 
-        if ($validator->fails()) {
-            return Redirect::back()->withErrors($validator)->withInput();
+        if ($validator->validate()) {
+            return $this->back()->with('errors', $validator->errors());
         }
 
-        $item = $modelClass::create(Request::all());
-        Log::info("Nouvel élément créé dans le modèle {$model}", ['id' => $item->id]);
+        $item = $modelClass::create($data);
+        logger()->info("Nouvel élément créé dans le modèle {$model}", ['id' => $item->id]);
         Flash::success('L\'élément a été créé avec succès.');
 
-        return Redirect::route('craftpanel.index', ['model' => $model]);
+        return $this->redirect('craftpanel.index')->with('model', $model);
     }
 
     /**
@@ -127,10 +131,10 @@ class CraftPanelController extends Controller
         $this->checkModelExists($model);
 
         $modelClass = $this->getModelClass($model);
-        $item = $this->getItem($modelClass, $id);
+        $item = $modelClass::find($id);
         $fields = $modelClass::getFormFields();
-        
-        return View::make('CraftPanel::edit', [
+
+        return $this->view('CraftPanel::edit', [
             'model' => $model,
             'modelClass' => $modelClass,
             'item' => $item,
@@ -141,32 +145,34 @@ class CraftPanelController extends Controller
 
     /**
      * Met à jour un élément
+     * @param Request $request
      * @param string $model Nom du modèle
      * @param int $id Identifiant de l'élément
      * @return Response
      */
-    public function update(string $model, int $id): Response
+    public function update(Request $request, string $model, int $id): Response
     {
+        $data = $request->all();
         $this->checkModelPermission($model, 'edit');
         $this->checkModelExists($model);
 
         $modelClass = $this->getModelClass($model);
-        $item = $this->getItem($modelClass, $id);
-        $validator = Validator::make(Request::all(), $modelClass::getValidationRules());
+        $item = $modelClass::find($id);
+        $validator = Validator::make($data, $modelClass::getValidationRules());
 
-        if ($validator->fails()) {
-            return Redirect::back()->withErrors($validator)->withInput();
+        if ($validator->validate()) {
+            return $this->back()->with('errors', $validator->errors());
         }
 
         $oldData = $item->toArray();
-        $item->update(Request::all());
-        Log::info("Élément mis à jour dans le modèle {$model}", [
+        $item->update($data);
+        logger()->info("Élément mis à jour dans le modèle {$model}", [
             'id' => $id,
             'changes' => array_diff_assoc($item->toArray(), $oldData)
         ]);
         Flash::success('L\'élément a été mis à jour avec succès.');
 
-        return Redirect::route('craftpanel.index', ['model' => $model]);
+        return $this->redirect('craftpanel.index', ['model' => $model]);
     }
 
     /**
@@ -181,12 +187,12 @@ class CraftPanelController extends Controller
         $this->checkModelExists($model);
 
         $modelClass = $this->getModelClass($model);
-        $item = $this->getItem($modelClass, $id);
+        $item = $modelClass::find($id);
         $item->delete();
-        Log::info("Élément supprimé du modèle {$model}", ['id' => $id]);
+        logger()->info("Élément supprimé du modèle {$model}", ['id' => $id]);
         Flash::success('L\'élément a été supprimé avec succès.');
 
-        return Redirect::route('craftpanel.index', ['model' => $model]);
+        return $this->redirect('craftpanel.index', ['model' => $model]);
     }
 
     /**
@@ -195,7 +201,7 @@ class CraftPanelController extends Controller
      */
     public function settings(): Response
     {
-        return View::make('CraftPanel::settings', [
+        return $this->view('CraftPanel::settings', [
             'title' => 'Paramètres',
         ]);
     }
@@ -207,7 +213,7 @@ class CraftPanelController extends Controller
     public function updateSettings(): Response
     {
         // TODO: Implémenter la mise à jour des paramètres
-        return Redirect::route('craftpanel.settings');
+        return $this->redirect('craftpanel.settings');
     }
 
     /**
@@ -216,89 +222,137 @@ class CraftPanelController extends Controller
      * @param string $action Action à vérifier
      * @return void
      */
-    private function checkModelPermission(string $model, string $action): void
+    protected function checkModelPermission(string $model, string $action): void
     {
-        $modelClass = $this->getModelClass($model);
-        $permission = $modelClass::getPermissions()[$action] ?? null;
-        
-        if ($permission && !Auth::user()->can($permission)) {
-            abort(403);
+        if (!auth()->check()) {
+            throw new \Exception('Unauthorized access');
+        }
+
+        $permissions = Config::get('craftpanel.permissions', []);
+        $requiredPermission = $permissions[$model][$action] ?? "{$model}.{$action}";
+
+        if (!auth()->user()->can($requiredPermission)) {
+            throw new \Exception("Permission denied for action '$action' on model '$model'");
         }
     }
 
     /**
      * Vérifie l'existence du modèle
-     * @param string $model Nom du modèle
+     * @param string $model
      * @return void
+     * @throws \Exception
      */
-    private function checkModelExists(string $model): void
+    protected function checkModelExists(string $model): void
     {
-        if (!class_exists($model) || !in_array(AdminModel::class, class_implements($model))) {
-            abort(404, "Le modèle {$model} n'est pas un modèle administrable");
+        if (!in_array($model, $this->getAdminModels())) {
+            throw new \Exception("Model '$model' is not registered in CraftPanel");
         }
+    }
+
+    /**
+     * Récupère la liste des modèles administrables
+     * @return array
+     */
+    protected function getAdminModels(): array
+    {
+        return Config::get('craftpanel.models', []);
+    }
+
+    /**
+     * Récupère la classe du modèle
+     * @param string $model
+     * @return string
+     */
+    protected function getModelClass(string $model): string
+    {
+        $namespace = Config::get('craftpanel.model_namespace', 'App\Models');
+        return Str::studly($namespace . '\\' . $model);
+    }
+
+    /**
+     * Récupère les éléments du modèle avec filtrage et pagination
+     * @param string $modelClass
+     * @return Collection|Paginator
+     */
+    protected function getItems(string $modelClass)
+    {
+        $query = $modelClass::query();
+        $request = new Request();
+
+        // Gestion des relations
+        $relations = $modelClass::getRelations();
+        if (!empty($relations)) {
+            $query->with($relations);
+        }
+
+        // Gestion des filtres
+        $filters = $modelClass::getFilters();
+        foreach ($filters as $field => $filter) {
+            if ($request->has($field)) {
+                $query->where($field, $request->get($field));
+            }
+        }
+
+        // Gestion du tri
+        if ($this->config['sortable'] && $request->has('sort')) {
+            $query->orderBy($request->get('sort'), $request->get('direction', 'asc'));
+        }
+
+        // Gestion de la recherche
+        if ($this->config['searchable'] && $request->has('search')) {
+            $search = $request->get('search');
+            $searchFields = $modelClass::getSearchableFields();
+            $query->where(function ($query) use ($search, $searchFields) {
+                foreach ($searchFields as $field) {
+                    $query->orWhere($field, 'like', "%{$search}%");
+                }
+            });
+        }
+
+        // Pagination
+        return $query->paginate($this->config['perPage']);
+    }
+
+    /**
+     * Exporte les données du modèle
+     * @param string $model
+     * @return Response
+     */
+    public function export(string $model): Response
+    {
+        $this->checkModelPermission($model, 'export');
+        $this->checkModelExists($model);
+
+        $modelClass = $this->getModelClass($model);
+        $items = $modelClass::all();
+        $fields = $modelClass::getFormFields();
+
+        $data = [];
+        foreach ($items as $item) {
+            $row = [];
+            foreach ($fields as $field) {
+                $row[$field] = $item->{$field};
+            }
+            $data[] = $row;
+        }
+
+        return Excel::download($data, "{$model}_export_" . date('Y-m-d') . '.xlsx');
     }
 
     /**
      * Récupère les statistiques du tableau de bord
      * @return array
      */
-    private function getDashboardStats(): array
+    protected function getDashboardStats(): array
     {
         $stats = [];
-        $models = $this->getAdminModels();
-        
-        foreach ($models as $model) {
-            $stats[$model::class] = [
-                'count' => $model::count(),
-                'displayName' => $model::getDisplayName(),
-                'icon' => $model::getIcon(),
+        foreach ($this->getAdminModels() as $model) {
+            $modelClass = $this->getModelClass($model);
+            $stats[$model] = [
+                'count' => $modelClass::count(),
+                'name' => $modelClass::getDisplayName(),
             ];
         }
-        
         return $stats;
-    }
-
-    /**
-     * Récupère les modèles administrables
-     * @return array
-     */
-    private function getAdminModels(): array
-    {
-        return array_filter(get_declared_classes(), function ($class) {
-            return in_array(AdminModel::class, class_implements($class));
-        });
-    }
-
-    /**
-     * Récupère les éléments avec leurs relations
-     * @param string $modelClass Classe du modèle
-     * @return mixed
-     */
-    private function getItems($modelClass)
-    {
-        return $modelClass::with($modelClass::getRelations())
-            ->paginate(Config::get('craftpanel.pagination.items_per_page', 15));
-    }
-
-    /**
-     * Récupère un élément avec ses relations
-     * @param string $modelClass Classe du modèle
-     * @param int $id Identifiant de l'élément
-     * @return mixed
-     */
-    private function getItem($modelClass, int $id)
-    {
-        return $modelClass::with($modelClass::getRelations())
-            ->findOrFail($id);
-    }
-
-    /**
-     * Récupère la classe du modèle
-     * @param string $model Nom du modèle
-     * @return string
-     */
-    private function getModelClass(string $model): string
-    {
-        return Str::studly($model);
     }
 }

@@ -17,6 +17,26 @@ class Str
       return strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $string)));
    }
 
+   public static function studly(string $string): string
+   {
+      return ucwords(str_replace('_', ' ', $string));
+   }
+
+   public static function kebab(string $string): string
+   {
+      return strtolower(preg_replace('/([A-Z])/', '_$1', $string));
+   }
+
+   public static function snake(string $string): string
+   {
+      return strtolower(preg_replace('/([A-Z])/', '_$1', $string));
+   }
+
+   public static function camel(string $string): string
+   {
+      return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $string))));
+   }
+
    public static function escape(string $string): string
    {
       return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');

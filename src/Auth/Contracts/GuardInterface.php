@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Auth\Guards;
+namespace IronFlow\Auth\Contracts;
 
 use IronFlow\Database\Model;
+use IronFlow\Database\Iron\Collection;
 
 interface GuardInterface
 {
@@ -31,7 +32,7 @@ interface GuardInterface
     /**
      * Récupère l'utilisateur authentifié
      */
-    public function user(): ?Model;
+    public function user(): Model|Collection|null;
 
     /**
      * Récupère l'ID de l'utilisateur authentifié

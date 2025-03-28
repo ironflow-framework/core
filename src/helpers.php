@@ -231,3 +231,75 @@ if (!function_exists('route')){
    }
 }
 
+if (!function_exists('flash')) {
+   /**
+    * Ajoute un message flash à la session.
+    *
+    * @param string $key
+    * @param mixed $value
+    */
+   function flash(string $key, mixed $value): void
+   {
+      session()->flash($key, $value);
+   }
+}
+
+if (!function_exists('session')) {
+   /**
+    * Retourne l'instance de session.
+    *
+    * @return IronFlow\Http\Session
+    */
+   function session(): IronFlow\Http\Session
+   {
+      return new IronFlow\Http\Session();
+   }
+}
+
+if (!function_exists('validator')) {
+   /**
+    * Retourne l'instance de validator.
+    *
+    * @return IronFlow\Validation\Validator
+    */ 
+   function validator(array $data, array $rules): IronFlow\Validation\Validator
+   {
+      return new IronFlow\Validation\Validator($data, $rules);
+   }
+}
+
+if(!function_exists('auth')){
+   /**
+    * Retourne l'instance de l'authentification.
+    *
+    * @return IronFlow\Auth\AuthManager
+    */
+   function auth(): IronFlow\Auth\AuthManager
+   {
+      return new IronFlow\Auth\AuthManager()->getInstance();
+   }
+}
+
+if (!function_exists('logger')) {
+   /**
+    * Retourne l'instance de Log.
+    *
+    * @return IronFlow\Logger\Log
+    */
+   function logger(): IronFlow\Logger\Log
+   {
+      return IronFlow\Logger\Log::getInstance();
+   }
+}
+
+if (!function_exists('excel')) {
+   /**
+    * Retourne l'instance de Excel.
+    *
+    * @return IronFlow\Support\Excel
+    */
+   function excel(): IronFlow\Support\Excel
+   {
+      return new IronFlow\Support\Excel();
+   }
+}

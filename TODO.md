@@ -4,8 +4,8 @@
 
 ### Global
 [x] Pour les commandes cli toujours suivre ce qui fait dans le dossier Console/Commands  
-[] Avoir un framework assez sûr  
-[] Internalise le framework  
+[] Avoir un framework assez sécurité, si le framework n'est pas sécurisé le sécurisé    
+[] Internaliser le framework en integrant le multi language (tu peux ajouter des dependances si possible)   
 
 ### Internationalisation
 

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace IronFlow\Auth;
 
-use IronFlow\Auth\Guards\GuardInterface;
+use IronFlow\Auth\Contracts\GuardInterface;
 use IronFlow\Auth\Guards\SessionGuard;
 use IronFlow\Auth\Guards\TokenGuard;
+use IronFlow\CraftPanel\Models\AdminUser;
 use IronFlow\Database\Model;
 
 class AuthManager
@@ -19,7 +20,7 @@ class AuthManager
     {
         $this->config = array_merge([
             'guard' => 'session',
-            'model' => \App\Models\User::class,
+            'model' => AdminUser::class | App\Model\User::class,
             'session_key' => 'auth_user_id',
             'token_key' => 'api_token',
         ], $config);
@@ -64,7 +65,7 @@ class AuthManager
         return $this->guard->check();
     }
 
-    public function user(): ?Model
+    public function user(): Model|AdminUser|null
     {
         return $this->guard->user();
     }

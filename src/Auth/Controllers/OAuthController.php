@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace IronFlow\Auth\Controllers;
 
 use IronFlow\Auth\OAuth\OAuthManager;
+use IronFlow\CraftPanel\Models\AdminUser;
+use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Routing\Controller;
 
 class OAuthController extends Controller
 {
@@ -18,7 +19,7 @@ class OAuthController extends Controller
         $this->oauth = OAuthManager::getInstance();
     }
 
-    public function redirect(Request $request, string $provider)
+    public function redirectTo(Request $request, string $provider): Response
     {
         try {
             $provider = $this->oauth->getProvider($provider);
@@ -31,10 +32,10 @@ class OAuthController extends Controller
         } catch (\Exception $e) {
             return Response::redirect('/login')
                 ->with('error', 'Unable to connect with ' . ucfirst($provider));
-        }
+        }   
     }
 
-    public function callback(Request $request, string $provider)
+    public function callback(Request $request, string $provider): Response
     {
         if (!$request->query('code')) {
             return Response::redirect('/login')
@@ -42,12 +43,18 @@ class OAuthController extends Controller
         }
 
         if ($request->query('state') !== session()->get('oauth2state')) {
-            session()->remove('oauth2state');
+            session()->forget('oauth2state');
             return Response::redirect('/login')
                 ->with('error', 'Invalid state parameter');
         }
 
         try {
+            $user = auth()->user();
+            if (!$user instanceof AdminUser) {
+                return Response::redirect('/login')
+                    ->with('error', 'Unauthorized access');
+            }
+
             auth()->attempt([
                 'provider' => $provider,
                 'code' => $request->query('code')

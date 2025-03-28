@@ -213,7 +213,7 @@ abstract class Model
 
    public static function find($id): ?static
    {
-      return static::query()->where(static::$primaryKey, $id)->first();
+      return static::query()->where(static::$primaryKey, '=', $id)->first();
    }
 
    public static function findOrFail($id): static
@@ -223,6 +223,11 @@ abstract class Model
          throw new Exception("Model with ID {$id} not found");
       }
       return $result;
+   }
+
+   public static function where($column, $value)
+   {
+      return static::query()->where($column, "=", $value)->first();
    }
 
    // ----- Filtering and Counting -----

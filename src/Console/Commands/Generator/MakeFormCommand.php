@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Furnace\Console\Commands;
+namespace IronFlow\Console\Commands\Generator;
 
 use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Command\Command;

@@ -6,7 +6,11 @@ namespace IronFlow\Auth\Guards;
 
 use IronFlow\Database\Model;
 use IronFlow\Auth\OAuth\OAuthManager;
+use IronFlow\Database\Iron\Collection;
+use IronFlow\Support\Hasher;
+use IronFlow\Support\Utils\Str;
 use League\OAuth2\Client\Provider\AbstractProvider;
+use IronFlow\Auth\Contracts\GuardInterface;
 
 class OAuthGuard implements GuardInterface
 {
@@ -36,7 +40,7 @@ class OAuthGuard implements GuardInterface
 
             $oauthUser = $provider->getResourceOwner($token);
             $user = $this->findOrCreateUser($oauthUser, $credentials['provider']);
-            
+
             $this->login($user);
             return true;
         } catch (\Exception $e) {
@@ -54,8 +58,8 @@ class OAuthGuard implements GuardInterface
     public function logout(): void
     {
         $this->user = null;
-        session()->remove('auth_user_id');
-        session()->remove('auth_provider');
+        session()->forget('auth_user_id');
+        session()->forget('auth_provider');
     }
 
     public function check(): bool
@@ -63,7 +67,7 @@ class OAuthGuard implements GuardInterface
         return $this->user() !== null;
     }
 
-    public function user(): ?Model
+    public function user(): Model|Collection|null
     {
         if ($this->user !== null) {
             return $this->user;
@@ -90,20 +94,20 @@ class OAuthGuard implements GuardInterface
         return isset($credentials['provider'], $credentials['code']);
     }
 
-    protected function findOrCreateUser($oauthUser, string $provider): Model
+    protected function findOrCreateUser($oauthUser, string $provider): Model|Collection
     {
         $email = $oauthUser->getEmail();
         $model = $this->createModel();
-        
-        $user = $model->where('email', $email)->first();
+
+        $user = $model->where('email', $email)->get();
         if ($user) {
             return $user;
         }
 
-        return $model->create([
+        return $model::create([
             'name' => $oauthUser->getName(),
             'email' => $email,
-            'password' => bcrypt(str_random(16)),
+            'password' => Hasher::hash(Str::random(16)),
             'provider' => $provider,
             'provider_id' => $oauthUser->getId(),
         ]);
