@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database;
+namespace IronFlow\Database\Iron;
 
 use DateTime;
 use Exception;
+use IronFlow\Database\Connection;
 use IronFlow\Database\Iron\Collection;
 use IronFlow\Database\Iron\Query\Builder;
 use PDO;
