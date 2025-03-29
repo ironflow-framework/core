@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace IronFlow\CraftPanel\Controllers;
 
+use IronFlow\CraftPanel\Models\AdminUser;
+use IronFlow\CraftPanel\Contracts\CraftPanelControllerInterface;
 use IronFlow\Http\Controller;
+use IronFlow\Http\Redirect;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
+use IronFlow\View\View;
 use IronFlow\Support\Flash;
 use IronFlow\Support\Utils\Str;
 use IronFlow\Validation\Validator;
@@ -13,8 +19,205 @@ use IronFlow\Support\Config;
 use IronFlow\Support\Paginator;
 use IronFlow\Support\Excel;
 
-class CraftPanelController extends Controller
+/**
+ * Contrôleur de base pour le CraftPanel
+ * 
+ * Ce contrôleur fournit les fonctionnalités de base pour tous les contrôleurs
+ * du CraftPanel.
+ */
+abstract class CraftPanelController extends Controller implements CraftPanelControllerInterface
 {
+    /**
+     * L'utilisateur actuellement authentifié
+     *
+     * @var AdminUser|null
+     */
+    protected ?AdminUser $currentUser = null;
+
+    /**
+     * Le nom du template de base
+     *
+     * @var string
+     */
+    protected string $layout = 'craftpanel::layouts.default';
+
+    /**
+     * Constructeur
+     */
+    public function __construct()
+    {
+        $this->currentUser = $this->getAuthenticatedUser();
+    }
+
+    /**
+     * Récupère l'utilisateur actuellement authentifié
+     *
+     * @return AdminUser|null
+     */
+    protected function getAuthenticatedUser(): ?AdminUser
+    {
+        if (auth()->check('craftpanel')) {
+            return auth()->user('craftpanel');
+        }
+
+        return null;
+    }
+
+    /**
+     * Rend une vue avec le layout du CraftPanel
+     *
+     * @param string $view Nom de la vue
+     * @param array $data Données à passer à la vue
+     * @return Response
+     */
+    protected function view(string $view, array $data = []): Response
+    {
+        $viewData = array_merge($data, [
+            'user' => $this->currentUser,
+            'menu' => $this->getNavigationMenu(),
+            'appName' => config('craftpanel.name', 'CraftPanel'),
+            'appVersion' => config('craftpanel.version', '1.0.0'),
+        ]);
+
+        return parent::view($view, $viewData);
+    }
+
+    /**
+     * Rend une réponse JSON
+     *
+     * @param array $data Données à convertir en JSON
+     * @param int $status Code HTTP
+     * @return Response
+     */
+    protected function json(array $data, int $status = 200): Response
+    {
+        return new Response(json_encode($data), $status, [
+            'Content-Type' => 'application/json'
+        ]);
+    }
+
+    /**
+     * Redirige vers une route du CraftPanel
+     *
+     * @param string $route Nom de la route
+     * @param array $params Paramètres de la route
+     * @return Response
+     */
+    protected function redirect(string $route, array $params = []): Response
+    {
+        return parent::redirect('craftpanel.' . $route)->with($params as $key => $value);
+    }
+
+    /**
+     * Vérifie si l'utilisateur a une permission donnée
+     *
+     * @param string $permission Nom de la permission
+     * @return bool
+     */
+    protected function hasPermission(string $permission): bool
+    {
+        if (!$this->currentUser) {
+            return false;
+        }
+
+        return $this->currentUser->hasPermission($permission);
+    }
+
+    /**
+     * Génère le menu de navigation du CraftPanel
+     *
+     * @return array
+     */
+    protected function getNavigationMenu(): array
+    {
+        $menu = [
+            [
+                'title' => 'Tableau de bord',
+                'icon' => 'dashboard',
+                'route' => 'craftpanel.dashboard',
+                'permission' => 'dashboard.view'
+            ],
+            [
+                'title' => 'Utilisateurs',
+                'icon' => 'users',
+                'permission' => 'users.view',
+                'children' => [
+                    [
+                        'title' => 'Liste des utilisateurs',
+                        'route' => 'craftpanel.users.index',
+                        'permission' => 'users.view'
+                    ],
+                    [
+                        'title' => 'Ajouter un utilisateur',
+                        'route' => 'craftpanel.users.create',
+                        'permission' => 'users.create'
+                    ],
+                    [
+                        'title' => 'Rôles & Permissions',
+                        'route' => 'craftpanel.roles.index',
+                        'permission' => 'roles.view'
+                    ]
+                ]
+            ],
+            [
+                'title' => 'Paramètres',
+                'icon' => 'settings',
+                'permission' => 'settings.view',
+                'children' => [
+                    [
+                        'title' => 'Général',
+                        'route' => 'craftpanel.settings.general',
+                        'permission' => 'settings.general'
+                    ],
+                    [
+                        'title' => 'Apparence',
+                        'route' => 'craftpanel.settings.appearance',
+                        'permission' => 'settings.appearance'
+                    ],
+                    [
+                        'title' => 'Sécurité',
+                        'route' => 'craftpanel.settings.security',
+                        'permission' => 'settings.security'
+                    ]
+                ]
+            ]
+        ];
+
+        // Filtrer les éléments en fonction des permissions
+        return $this->filterMenuByPermissions($menu);
+    }
+
+    /**
+     * Filtre les éléments du menu en fonction des permissions de l'utilisateur
+     *
+     * @param array $menu Menu à filtrer
+     * @return array
+     */
+    protected function filterMenuByPermissions(array $menu): array
+    {
+        $filteredMenu = [];
+
+        foreach ($menu as $item) {
+            if (isset($item['permission']) && !$this->hasPermission($item['permission'])) {
+                continue;
+            }
+
+            if (isset($item['children'])) {
+                $children = $this->filterMenuByPermissions($item['children']);
+
+                if (empty($children)) {
+                    continue;
+                }
+
+                $item['children'] = $children;
+            }
+
+            $filteredMenu[] = $item;
+        }
+
+        return $filteredMenu;
+    }
+
     /**
      * Modèle actuellement géré
      * @var string|null

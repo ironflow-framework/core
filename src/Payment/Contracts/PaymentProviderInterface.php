@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace IronFlow\Payment\Contracts;
 
 use IronFlow\Payment\Models\Customer;
+use IronFlow\Payment\Models\PaymentIntent;
 use IronFlow\Payment\Models\PaymentMethod;
 use IronFlow\Payment\Models\Subscription;
 use IronFlow\Payment\Models\Transaction;
+use IronFlow\Payment\Models\Plan;
 
 /**
  * Interface principale pour les fournisseurs de paiement
@@ -21,6 +23,13 @@ interface PaymentProviderInterface
     * @return self
     */
    public function initialize(array $config): self;
+
+   /**
+    * Vérifie si le provider est correctement configuré
+    *
+    * @return bool
+    */
+   public function isConfigured(): bool;
 
    /**
     * Crée un client chez le fournisseur de paiement
@@ -56,12 +65,53 @@ interface PaymentProviderInterface
    public function deleteCustomer(string $customerId): bool;
 
    /**
+    * Crée une intention de paiement
+    * 
+    * @param array $intentData Données de l'intention de paiement
+    * @return PaymentIntent
+    */
+   public function createPaymentIntent(array $intentData): PaymentIntent;
+
+   /**
+    * Récupère une intention de paiement
+    * 
+    * @param string $intentId Identifiant de l'intention de paiement
+    * @return PaymentIntent|null
+    */
+   public function getPaymentIntent(string $intentId): ?PaymentIntent;
+
+   /**
+    * Confirme une intention de paiement
+    * 
+    * @param string $intentId Identifiant de l'intention de paiement
+    * @param array $options Options de confirmation
+    * @return PaymentIntent
+    */
+   public function confirmPaymentIntent(string $intentId, array $options = []): PaymentIntent;
+
+   /**
+    * Annule une intention de paiement
+    * 
+    * @param string $intentId Identifiant de l'intention de paiement
+    * @return bool
+    */
+   public function cancelPaymentIntent(string $intentId): bool;
+
+   /**
     * Crée une transaction de paiement
     *
     * @param array $transactionData Données de la transaction
     * @return Transaction
     */
    public function createTransaction(array $transactionData): Transaction;
+
+   /**
+    * Récupère une transaction de paiement
+    * 
+    * @param string $transactionId Identifiant de la transaction
+    * @return Transaction|null
+    */
+   public function getTransaction(string $transactionId): ?Transaction;
 
    /**
     * Confirme une transaction de paiement
@@ -114,6 +164,39 @@ interface PaymentProviderInterface
    public function deletePaymentMethod(string $paymentMethodId): bool;
 
    /**
+    * Crée un plan d'abonnement
+    * 
+    * @param array $planData Données du plan
+    * @return Plan
+    */
+   public function createPlan(array $planData): Plan;
+
+   /**
+    * Récupère un plan d'abonnement
+    * 
+    * @param string $planId Identifiant du plan
+    * @return Plan|null
+    */
+   public function getPlan(string $planId): ?Plan;
+
+   /**
+    * Met à jour un plan d'abonnement
+    * 
+    * @param string $planId Identifiant du plan
+    * @param array $planData Données du plan
+    * @return Plan
+    */
+   public function updatePlan(string $planId, array $planData): Plan;
+
+   /**
+    * Supprime un plan d'abonnement
+    * 
+    * @param string $planId Identifiant du plan
+    * @return bool
+    */
+   public function deletePlan(string $planId): bool;
+
+   /**
     * Crée un abonnement pour un client
     *
     * @param string $customerId Identifiant du client
@@ -157,4 +240,22 @@ interface PaymentProviderInterface
     * @return array Données traitées du webhook
     */
    public function handleWebhook(string $payload, array $headers): array;
+
+   /**
+    * Vérifie la signature d'un webhook
+    * 
+    * @param string $payload Contenu brut du webhook
+    * @param string $signature Signature du webhook
+    * @param string $secret Secret utilisé pour vérifier la signature
+    * @return bool
+    */
+   public function verifyWebhookSignature(string $payload, string $signature, string $secret): bool;
+
+   /**
+    * Génère un token de paiement côté client
+    * 
+    * @param array $options Options pour la génération du token
+    * @return string
+    */
+   public function generateClientToken(array $options = []): string;
 }

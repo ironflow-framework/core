@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/helpers.php';
 
-use IronFlow\Application\Application;
+use IronFlow\Foundation\Application;
 use IronFlow\Core\ErrorHandler;
-use IronFlow\Support\Config;
+use IronFlow\Support\Facades\Config;
 use IronFlow\View\TwigView;
 use IronFlow\Http\Response;
+use IronFlow\Support\Facades\Filesystem;
 
 // Création des répertoires nécessaires
 $directories = [
@@ -23,7 +24,7 @@ $directories = [
 ];
 
 foreach ($directories as $directory) {
-   if (!is_dir($directory)) {
+   if (!Filesystem::exists($directory)) {
       if (!mkdir($directory, 0755, true)) {
          throw new \RuntimeException("Impossible de créer le répertoire: {$directory}");
       }
@@ -31,7 +32,7 @@ foreach ($directories as $directory) {
 }
 
 // Initialisation de la configuration
-Config::load(config_path());
+Config::load();
 
 // Initialisation du moteur de vue
 $view = new TwigView(view_path());
@@ -40,15 +41,19 @@ Response::setView($view);
 // Enregistrement du gestionnaire d'erreurs
 ErrorHandler::register();
 
-$app = new Application();
+// Création de l'application
+$app = new Application(dirname(__DIR__));
 
-return $app->withBasePath(dirname(__DIR__))
-   ->configure(
-      require dirname(__DIR__) . '/config/app.php',
-      require dirname(__DIR__) . '/config/services.php'
-   )
-   ->withRoutes(
-      dirname(__DIR__) . '/routes/web.php',
-      dirname(__DIR__) . '/routes/api.php'
-   )
-   ->build();
+// Configuration de l'application
+$app->configure(require dirname(__DIR__) . '/config/app.php');
+
+// Chargement des fournisseurs de services
+$services = require dirname(__DIR__) . '/config/services.php';
+foreach ($services as $service) {
+   $app->register($service);
+}
+
+// Démarrage de l'application
+$app->boot();
+
+return $app;

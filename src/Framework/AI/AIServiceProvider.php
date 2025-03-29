@@ -2,14 +2,25 @@
 
 namespace IronFlow\Framework\AI;
 
-use IronFlow\Application\ServiceProvider;
+use IronFlow\Foundation\ServiceProvider;
 use IronFlow\Framework\AI\Providers\OpenAIProvider;
 use IronFlow\Framework\AI\Providers\AnthropicProvider;
 use IronFlow\Framework\AI\Providers\GoogleAIProvider;
 use IronFlow\Support\Facades\Config;
 
+/**
+ * Fournisseur de services pour le système d'intelligence artificielle
+ * 
+ * Ce fournisseur enregistre et configure les différents providers d'IA
+ * disponibles dans le framework (OpenAI, Anthropic, Google AI).
+ */
 class AIServiceProvider extends ServiceProvider
 {
+   /**
+    * Enregistre les services d'IA dans le container
+    * 
+    * @return void
+    */
    public function register(): void
    {
       $this->app->singleton('ai', function ($app) {
@@ -32,6 +43,11 @@ class AIServiceProvider extends ServiceProvider
       });
    }
 
+   /**
+    * Configure le système d'IA après son enregistrement
+    * 
+    * @return void
+    */
    public function boot(): void
    {
       $this->publishes([

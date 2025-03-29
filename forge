@@ -1,44 +1,35 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
 
-use IronFlow\Console\Kernel;
-use IronFlow\Console\Commands\SetupCommand;
-use IronFlow\Console\Commands\Generator\CraftPanelInstallCommand;
-use IronFlow\Console\Commands\Generator\MakeAdminCommand;
-use IronFlow\Console\Commands\ServeCommand;
-use IronFlow\Console\Commands\Generator\MakeModelCommand;
-use IronFlow\Console\Commands\Generator\MakeMigrationCommand;
-use IronFlow\Console\Commands\Generator\MakeSeederCommand;
-use IronFlow\Console\Commands\Generator\MakeFactoryCommand;
-use IronFlow\Console\Commands\Generator\MakeFormCommand;
-use IronFlow\Console\Commands\Generator\MakeComponentCommand;
-use IronFlow\Console\Commands\Generator\MakeValidatorCommand;
-use IronFlow\Console\Commands\Generator\MakeServiceCommand;
-use IronFlow\Console\Commands\Generator\MakeTestCommand;
-use IronFlow\Console\Commands\Generator\RegisterModelCommand;
-use IronFlow\Console\Commands\Generator\ScaffoldCommand;
+/**
+ * Console IronFlow
+ * 
+ * Ce fichier sert de point d'entrée pour les commandes en ligne de commande
+ * et met à disposition les utilitaires pour interagir avec le framework.
+ * 
+ * @author IronFlow Team
+ * @version 1.0.0
+ */
 
+// Définition du chemin de base
+define('BASE_PATH', __DIR__);
 
+// Chargement de l'autoloader
 require __DIR__ . '/vendor/autoload.php';
 
-$app = new Kernel();
+// Chargement des variables d'environnement
+if (file_exists(__DIR__ . '/.env')) {
+   $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+   $dotenv->safeLoad();
+}
 
-// Enregistrer les commandes
-$app->add(new SetupCommand());
-$app->add(new ServeCommand());
-$app->add(new MakeModelCommand());
-$app->add(new MakeMigrationCommand());
-$app->add(new MakeSeederCommand());
-$app->add(new MakeFactoryCommand());
-$app->add(new MakeFormCommand());
-$app->add(new MakeComponentCommand());
-$app->add(new MakeValidatorCommand());
-$app->add(new MakeServiceCommand());
-$app->add(new MakeTestCommand());
-$app->add(new ScaffoldCommand());
-$app->add(new CraftPanelInstallCommand());
-$app->add(new MakeAdminCommand());
-$app->add(new RegisterModelCommand());
+// Création et exécution de la console
+$kernel = new IronFlow\Console\Kernel('IronFlow Console', '1.0.0');
 
-$app->run();
+// Commande ServeCommand pré-enregistrée dans le Kernel
+// $kernel->addCommand(new IronFlow\Console\Commands\ServeCommand());
+
+// Exécution de la console
+$kernel->run();

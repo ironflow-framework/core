@@ -20,14 +20,19 @@ return [
       IronFlow\Providers\ViewServiceProvider::class,
       IronFlow\Providers\CacheServiceProvider::class,
       IronFlow\Providers\TranslationServiceProvider::class,
+
+      // Providers de fonctionnalités
+      IronFlow\Payment\PaymentServiceProvider::class,
+      IronFlow\Channel\ChannelServiceProvider::class,
+      IronFlow\Framework\AI\AIServiceProvider::class,
    ],
 
    'aliases' => [
-      'App' => IronFlow\Application\Application::class,
+      'App' => IronFlow\Foundation\Application::class,
       'Route' => IronFlow\Routing\Router::class,
       'DB' => IronFlow\Database\Connection::class,
       'View' => IronFlow\View\TwigView::class,
-      'Cache' => IronFlow\Cache\Cache::class,
+      'Cache' => IronFlow\Cache\Hammer\HammerManager::class,
       'Translator' => IronFlow\Support\Translator::class,
    ],
 

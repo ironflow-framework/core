@@ -2,22 +2,46 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Console\Commands;
+namespace IronFlow\Console\Commands\Auth;
 
-
+use IronFlow\Database\Connection;
 use IronFlow\Database\Migrations\Migration;
+use IronFlow\Database\Migrations\MigrationCreator;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
-class AuthInstallCommand
+class AuthInstallCommand extends Command
 {
-    protected string $signature = 'auth:install';
-    protected string $description = 'Install authentication system';
+    protected static $defaultName = 'auth:setup';
+    protected static $defaultDescription = 'Install authentication system';
 
-    public function handle(): void
+
+    public function configure(): void
     {
-        $this->info('Installing authentication system...');
+        $this->addOption('user-model', 'um', InputOption::VALUE_NONE, 'Modèle à utiliser pour l\'authentification');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $io->title('Configuration du système d\'authentification de IronFlow');
+
+        $model = $io->ask('Quel modèle souhaitez-vous utiliser pour l\'authentification ?', 'User');
+        if ($input->getOption('user-model')) {
+            $model = $input->getOption('user-model');
+        }
+        if (!class_exists($model)) {
+            $io->error("Le modèle {$model} n'existe pas. Veuillez le créer ou choisir un autre modèle.");
+            return Command::FAILURE;
+        }
+
+        $authSystem = $this->askAuthSystem($io, $model);
 
         // Create migrations
-        $this->createMigrations();
+        $this->createMigrations($io);
 
         // Copy views
         $this->copyViews();
@@ -28,15 +52,72 @@ class AuthInstallCommand
         // Add routes
         $this->addRoutes();
 
-        $this->info('Authentication system installed successfully.');
+        $io->success('Système d\'authentification installé avec succès.');
+
+        return Command::SUCCESS;
     }
 
-    protected function createMigrations(): void
+    private function askAuthSystem(SymfonyStyle $io, string $model): array
     {
-        $migration = new Migration();
-        
+        $driver = $io->choice('Quel type d\'authentification souhaitez-vous utiliser ?', [
+            'guard' => 'Guard (système avancé)',
+            'oauth' => 'OAuth (authentification sociale)'
+        ], 'session');
+
+        if ($driver === 'guard') {
+            $guard = $io->choice('Quel type de guard souhaitez-vous utiliser ?', [
+                'session' => 'Session (pour applications web)',
+                'jwt' => 'Token JWT (pour API)',
+            ], 'session');
+        } else {
+            $guard = null;
+        }
+
+        if ($driver === 'oauth') {
+            $io->note('Pour utiliser OAuth, vous devez configurer les clés API pour chaque fournisseur dans le fichier .env.');
+        }
+
+        $config = [
+            'enabled' => true,
+            'driver' => $driver,
+            'guard' => $guard,
+            'model' => $model,
+            'providers' => [],
+            'passwords' => [
+                'users' => [
+                    'provider' => 'users',
+                    'table' => 'password_resets',
+                    'expire' => 60,
+                ],
+            ],
+        ];
+
+        if ($driver === 'oauth') {
+            $providers = [];
+            foreach (['Google', 'GitHub', 'Facebook', 'Twitter'] as $provider) {
+                if ($io->confirm("Activer l'authentification via {$provider} ?", false)) {
+                    $providers[] = strtolower($provider);
+                }
+            }
+            $config['providers'] = $providers;
+        }
+
+        return $config;
+    }
+
+    protected function createMigrations(SymfonyStyle $io): void
+    {
+        $creator = new MigrationCreator(database_path('migrations/'));
+
+        $migration = $creator->create('create_users_tables', 'users', true);
+
+        $content = file_get_contents(database_path($path));
+
+        // Chercher la position après '$table->id();'
+        $pattern = '/\$table->id\(\);(\s*?)(\n|\r\n)/';
+
         // Create users table
-        $migration->create('users', function ($table) {
+        \IronFlow\Database\Schema\Schema::createTable('users', function ($table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
@@ -46,11 +127,13 @@ class AuthInstallCommand
         });
 
         // Create password resets table
-        $migration->create('password_resets', function ($table) {
+        \IronFlow\Database\Schema\Schema::createTable('password_resets', function ($table) {
             $table->string('email')->index();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
+
+        $io->success('Migrations créées avec succès.');
     }
 
     protected function copyViews(): void

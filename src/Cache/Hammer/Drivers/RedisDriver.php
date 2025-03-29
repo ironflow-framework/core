@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Hammer\Drivers;
+namespace IronFlow\Cache\Hammer\Drivers;
 
 use DateTime;
 use Redis;

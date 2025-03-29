@@ -80,17 +80,14 @@ class MigrationCreator
     */
    protected function getCreateTableStub(string $table): string
    {
-      $className = $this->getClassName($table, true);
-
       return <<<EOT
 <?php
-
-declare(strict_types=1);
 
 namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
-use IronFlow\Database\Schema\Blueprint;
+use Ironflow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Schema;
 
 return new class extends Migration
 {
@@ -101,7 +98,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        \$this->schema->create('{$table}', function (Blueprint \$table) {
+        Schema::createTable('{$table}', function (Anvil \$table) {
             \$table->id();
             // Ajoutez vos colonnes ici
             
@@ -116,7 +113,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        \$this->schema->dropIfExists('{$table}');
+        Schema::dropTableIfExists('{$table}');
     }
 };
 EOT;
@@ -130,17 +127,16 @@ EOT;
     */
    protected function getUpdateTableStub(string $table): string
    {
-      $className = $this->getClassName($table, false);
-
       return <<<EOT
 <?php
 
-declare(strict_types=1);
+namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
-use IronFlow\Database\Schema\Blueprint;
+use Ironflow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Schema;
 
-class {$className} extends Migration
+return new class extends Migration
 {
     /**
      * Exécute la migration
@@ -149,7 +145,7 @@ class {$className} extends Migration
      */
     public function up(): void
     {
-        \$this->schema->table('{$table}', function (Blueprint \$table) {
+        Schema::table('{$table}', function (Anvil \$table) {
             // Ajoutez vos colonnes ou modifications ici
         });
     }
@@ -161,31 +157,11 @@ class {$className} extends Migration
      */
     public function down(): void
     {
-        \$this->schema->table('{$table}', function (Blueprint \$table) {
+        Schema::table('{$table}', function (Anvil \$table) {
             // Annulez vos modifications ici
         });
     }
-}
+};
 EOT;
-   }
-
-   /**
-    * Génère un nom de classe pour la migration
-    *
-    * @param string $table Nom de la table
-    * @param bool $create Indique s'il s'agit d'une création de table
-    * @return string
-    */
-   protected function getClassName(string $table, bool $create): string
-   {
-      $prefix = $create ? 'Create' : 'Update';
-
-      // Formater le nom de la table en CamelCase
-      $table = str_replace('_', ' ', $table);
-      $table = ucwords($table);
-      $table = str_replace(' ', '', $table);
-
-      // Ajouter "Table" à la fin
-      return $prefix . $table . 'Table';
    }
 }

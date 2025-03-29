@@ -1,117 +1,225 @@
 <?php
 
+declare(strict_types=1);
+
 return [
-    // Configuration générale
-    'general' => [
-        'title' => env('CRAFTPANEL_TITLE', 'CraftPanel'),
-        'logo' => env('CRAFTPANEL_LOGO', 'img/logo.svg'),
-        'version' => env('CRAFTPANEL_VERSION', '1.0.0'),
-    ],
+    /*
+    |--------------------------------------------------------------------------
+    | Configuration générale du CraftPanel
+    |--------------------------------------------------------------------------
+    |
+    | Cette section définit les paramètres généraux du panneau d'administration.
+    |
+    */
+    'name' => env('APP_NAME', 'IronFlow') . ' Admin',
+    'version' => '1.0.0',
+    'url_prefix' => 'admin',
+    'middleware' => ['web', 'auth:craftpanel'],
 
-    // Configuration des routes
-    'routes' => [
-        'prefix' => env('CRAFTPANEL_PREFIX', 'craftpanel'),
-        'middleware' => [
-            'web',
-            'auth',
-            'auth.craftpanel',
+    /*
+    |--------------------------------------------------------------------------
+    | Authentification
+    |--------------------------------------------------------------------------
+    |
+    | Configuration de l'authentification pour le panneau d'administration.
+    |
+    */
+    'auth' => [
+        'guard' => 'craftpanel',
+        'model' => \IronFlow\CraftPanel\Models\AdminUser::class,
+        'password_timeout' => 10800, // 3 heures
+        'login_throttle' => [
+            'enabled' => true,
+            'max_attempts' => 5,
+            'decay_minutes' => 10,
+        ],
+        'two_factor' => [
+            'enabled' => false,
+            'provider' => 'sms', // 'sms', 'email', 'totp'
         ],
     ],
 
-    // Configuration du thème
-    'theme' => [
-        'default' => env('CRAFTPANEL_THEME', 'light'),
-        'options' => ['light', 'dark'],
-        'custom_css' => env('CRAFTPANEL_CUSTOM_CSS', 'css/custom.css'),
+    /*
+    |--------------------------------------------------------------------------
+    | Interface utilisateur
+    |--------------------------------------------------------------------------
+    |
+    | Personnalisation de l'interface utilisateur du panneau d'administration.
+    |
+    */
+    'ui' => [
+        'theme' => 'light', // 'light', 'dark', 'auto'
+        'primary_color' => '#4f46e5', // Indigo
+        'logo' => null, // Chemin vers le logo (null pour utiliser le texte)
+        'favicon' => null, // Chemin vers le favicon
+        'show_breadcrumbs' => true,
+        'show_help_button' => true,
+        'enable_animations' => true,
+        'sidenav_condensed' => false,
     ],
 
-    // Configuration des permissions
-    'permissions' => [
-        'base' => [
-            'view' => 'view-craftpanel',
-            'manage' => 'manage-craftpanel',
+    /*
+    |--------------------------------------------------------------------------
+    | Fonctionnalités
+    |--------------------------------------------------------------------------
+    |
+    | Activation ou désactivation des fonctionnalités du panneau d'administration.
+    |
+    */
+    'features' => [
+        'activity_log' => true,
+        'file_manager' => true,
+        'backups' => true,
+        'api_tokens' => true,
+        'notifications' => true,
+        'search' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Localisations
+    |--------------------------------------------------------------------------
+    |
+    | Configuration des langues disponibles dans le panneau d'administration.
+    |
+    */
+    'locales' => [
+        'fr' => [
+            'name' => 'Français',
+            'flag' => '🇫🇷',
         ],
-        'models' => [
-            // Les permissions des modèles seront définies directement dans les modèles
+        'en' => [
+            'name' => 'English',
+            'flag' => '🇬🇧',
         ],
     ],
+    'default_locale' => 'fr',
 
-    // Configuration de la pagination
-    'pagination' => [
-        'items_per_page' => 15,
-        'max_items_per_page' => 100,
-    ],
-
-    // Configuration des vues
-    'views' => [
-        'layout' => 'CraftPanel::layouts.app',
-        'components' => [
-            'navbar' => 'CraftPanel::components.navbar',
-            'sidebar' => 'CraftPanel::components.sidebar',
-            'header' => 'CraftPanel::components.header',
-            'footer' => 'CraftPanel::components.footer',
-        ],
-    ],
-
-    // Configuration des composants
-    'components' => [
-        'form' => [
-            'default' => 'CraftPanel::components.form',
-            'fields' => [
-                'text' => 'CraftPanel::components.form.text',
-                'textarea' => 'CraftPanel::components.form.textarea',
-                'select' => 'CraftPanel::components.form.select',
-                'checkbox' => 'CraftPanel::components.form.checkbox',
-                'radio' => 'CraftPanel::components.form.radio',
-                'file' => 'CraftPanel::components.form.file',
+    /*
+    |--------------------------------------------------------------------------
+    | Navigation
+    |--------------------------------------------------------------------------
+    |
+    | Configuration des éléments de navigation supplémentaires.
+    | Le menu principal est défini dans le CraftPanelController.
+    |
+    */
+    'navigation' => [
+        'external_links' => [
+            [
+                'title' => 'Documentation',
+                'url' => '/docs',
+                'icon' => 'book',
+                'target' => '_blank',
+            ],
+            [
+                'title' => 'Site web',
+                'url' => '/',
+                'icon' => 'globe',
+                'target' => '_blank',
             ],
         ],
-        'table' => [
-            'default' => 'CraftPanel::components.table',
-            'columns' => [
-                'text' => 'CraftPanel::components.table.columns.text',
-                'number' => 'CraftPanel::components.table.columns.number',
-                'date' => 'CraftPanel::components.table.columns.date',
-                'actions' => 'CraftPanel::components.table.columns.actions',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permissions par défaut
+    |--------------------------------------------------------------------------
+    |
+    | Liste des permissions par défaut à créer lors de l'installation.
+    |
+    */
+    'default_permissions' => [
+        // Tableau de bord
+        'dashboard.view' => [
+            'name' => 'Voir le tableau de bord',
+            'group' => 'Tableau de bord',
+        ],
+
+        // Utilisateurs
+        'users.view' => [
+            'name' => 'Voir les utilisateurs',
+            'group' => 'Utilisateurs',
+        ],
+        'users.create' => [
+            'name' => 'Créer des utilisateurs',
+            'group' => 'Utilisateurs',
+        ],
+        'users.edit' => [
+            'name' => 'Modifier des utilisateurs',
+            'group' => 'Utilisateurs',
+        ],
+        'users.delete' => [
+            'name' => 'Supprimer des utilisateurs',
+            'group' => 'Utilisateurs',
+        ],
+
+        // Rôles et permissions
+        'roles.view' => [
+            'name' => 'Voir les rôles',
+            'group' => 'Rôles et permissions',
+        ],
+        'roles.create' => [
+            'name' => 'Créer des rôles',
+            'group' => 'Rôles et permissions',
+        ],
+        'roles.edit' => [
+            'name' => 'Modifier des rôles',
+            'group' => 'Rôles et permissions',
+        ],
+        'roles.delete' => [
+            'name' => 'Supprimer des rôles',
+            'group' => 'Rôles et permissions',
+        ],
+
+        // Paramètres
+        'settings.general' => [
+            'name' => 'Gérer les paramètres généraux',
+            'group' => 'Paramètres',
+        ],
+        'settings.appearance' => [
+            'name' => 'Gérer l\'apparence',
+            'group' => 'Paramètres',
+        ],
+        'settings.security' => [
+            'name' => 'Gérer la sécurité',
+            'group' => 'Paramètres',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rôles par défaut
+    |--------------------------------------------------------------------------
+    |
+    | Liste des rôles par défaut à créer lors de l'installation.
+    |
+    */
+    'default_roles' => [
+        'super-admin' => [
+            'name' => 'Super Administrateur',
+            'description' => 'Accès complet à toutes les fonctionnalités',
+            'permissions' => '*', // Toutes les permissions
+        ],
+        'admin' => [
+            'name' => 'Administrateur',
+            'description' => 'Accès à la plupart des fonctionnalités d\'administration',
+            'permissions' => [
+                'dashboard.view',
+                'users.view',
+                'users.create',
+                'users.edit',
+                'roles.view',
+                'settings.general',
+                'settings.appearance',
             ],
         ],
-        'card' => [
-            'default' => 'CraftPanel::components.card',
-            'types' => [
-                'default' => 'CraftPanel::components.card.default',
-                'stat' => 'CraftPanel::components.card.stat',
+        'editor' => [
+            'name' => 'Éditeur',
+            'description' => 'Gestion du contenu uniquement',
+            'permissions' => [
+                'dashboard.view',
             ],
-        ],
-    ],
-
-    // Configuration des assets
-    'assets' => [
-        'css' => [
-            'tailwind' => 'css/craftpanel.css',
-            'custom' => env('CRAFTPANEL_CUSTOM_CSS', 'css/custom.css'),
-        ],
-        'js' => [
-            'alpine' => 'js/alpine.js',
-            'custom' => 'js/custom.js',
-        ],
-    ],
-
-    // Configuration des filtres
-    'filters' => [
-        'default' => [
-            'search' => true,
-            'date_range' => true,
-            'status' => true,
-        ],
-    ],
-
-    // Configuration des actions
-    'actions' => [
-        'default' => [
-            'create' => true,
-            'edit' => true,
-            'delete' => true,
-            'export' => true,
         ],
     ],
 ];

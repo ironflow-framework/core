@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Hammer\Contracts;
+namespace IronFlow\Cache\Hammer\Contracts;
 
 interface CacheDriverInterface
 {

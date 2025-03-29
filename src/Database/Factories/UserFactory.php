@@ -21,6 +21,31 @@ class UserFactory extends Factory
    protected string $model = User::class;
 
    /**
+    * États disponibles pour cette factory
+    */
+   protected array $states = [];
+
+   /**
+    * Initialisation des états
+    */
+   protected function configure(): void
+   {
+      $this->states = [
+         'admin' => function () {
+            return [
+               'role' => 'admin',
+               'is_admin' => true,
+            ];
+         },
+         'unverified' => function () {
+            return [
+               'email_verified_at' => null,
+            ];
+         },
+      ];
+   }
+
+   /**
     * Définit les attributs par défaut pour le modèle User
     *
     * @return array
@@ -58,21 +83,4 @@ class UserFactory extends Factory
    {
       return $this->state('unverified');
    }
-
-   /**
-    * États disponibles pour cette factory
-    */
-   protected array $states = [
-      'admin' => function () {
-         return [
-            'role' => 'admin',
-            'is_admin' => true,
-         ];
-      },
-      'unverified' => function () {
-         return [
-            'email_verified_at' => null,
-         ];
-      },
-   ];
 }

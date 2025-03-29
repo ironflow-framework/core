@@ -2,6 +2,24 @@
 
 ## [29/03/25]
 
+### Restructuration
+
+- Refonte de l'architecture du framework pour éliminer les doublons
+  - Suppression du namespace `IronFlow\Application` au profit de `IronFlow\Foundation`
+  - Déplacement et amélioration de `Container` vers le namespace `Foundation`
+  - Suppression des classes redondantes `ContainerProvider` et `ServiceProvider` dans `Providers`
+  - Amélioration de la documentation PhpDoc sur toutes les classes de base
+  - Déplacement des classes de service vers `Foundation\Service`
+- Correction et amélioration du système de paiement
+  - Implémentation des providers de paiement (Stripe, PayPal, Mollie)
+  - Correction des namespaces pour les modèles liés au paiement
+  - Amélioration de la gestion des exceptions
+  - Documentation complète des classes de paiement
+- Correction des problèmes de dépendances
+  - Correction des conflits de namespace entre les classes dupliquées
+  - Mise à jour des imports dans les classes affectées
+  - Harmonisation des conventions de nommage
+
 ### Améliorations du système de composants
 
 - Mise à jour complète des composants existants avec un style cohérent
@@ -59,7 +77,6 @@
   - Harmonisation avec le style des autres commandes CLI
   - Options avancées pour la configuration de l'authentification
   - Support des différents types de guards
-
 
 ### Corrections du système Vibe et améliorations
 

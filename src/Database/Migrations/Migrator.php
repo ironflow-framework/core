@@ -6,7 +6,8 @@ namespace IronFlow\Database\Migrations;
 
 use PDO;
 use Exception;
-use IronFlow\Database\Schema\SchemaBuilder as Builder;
+use IronFlow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Schema;
 
 /**
  * Classe pour exécuter les migrations
@@ -210,22 +211,20 @@ class Migrator
          throw new Exception("Le fichier de migration '$migration' n'existe pas.");
       }
 
-      // Charger le fichier de migration
-      require_once $file;
-
-      // Extraire le nom de la classe (en supposant que le nom du fichier correspond à la classe)
-      $className = $this->getClassFromFile($file);
-
-      if (!class_exists($className)) {
-         throw new Exception("La classe de migration '$className' n'a pas été trouvée dans '$file'.");
-      }
-
-      /** @var Migration $instance */
-      $instance = new $className($this->connection);
-
       try {
-         $instance->runUp();
+         // Charger la migration (avec return new class extends...)
+         $migrationInstance = require $file;
+
+         if (!$migrationInstance instanceof Migration) {
+            throw new Exception("Le fichier de migration '$migration' ne retourne pas une instance de Migration.");
+         }
+
+         // Exécuter la migration
+         $migrationInstance->runUp();
+
+         // Enregistrer la migration
          $this->logMigration($migration);
+
          return true;
       } catch (Exception $e) {
          throw new Exception("Erreur lors de l'exécution de la migration '$migration': " . $e->getMessage(), 0, $e);
@@ -246,22 +245,20 @@ class Migrator
          throw new Exception("Le fichier de migration '$migration' n'existe pas.");
       }
 
-      // Charger le fichier de migration
-      require_once $file;
-
-      // Extraire le nom de la classe
-      $className = $this->getClassFromFile($file);
-
-      if (!class_exists($className)) {
-         throw new Exception("La classe de migration '$className' n'a pas été trouvée dans '$file'.");
-      }
-
-      /** @var Migration $instance */
-      $instance = new $className($this->connection);
-
       try {
-         $instance->runDown();
+         // Charger la migration (avec return new class extends...)
+         $migrationInstance = require $file;
+
+         if (!$migrationInstance instanceof Migration) {
+            throw new Exception("Le fichier de migration '$migration' ne retourne pas une instance de Migration.");
+         }
+
+         // Annuler la migration
+         $migrationInstance->runDown();
+
+         // Supprimer l'entrée de la migration
          $this->removeMigrationLog($migration);
+
          return true;
       } catch (Exception $e) {
          throw new Exception("Erreur lors de l'annulation de la migration '$migration': " . $e->getMessage(), 0, $e);
@@ -269,7 +266,7 @@ class Migrator
    }
 
    /**
-    * Enregistre l'exécution d'une migration dans la base de données
+    * Enregistre une migration comme exécutée
     *
     * @param string $migration Nom de la migration
     * @return void
@@ -281,14 +278,13 @@ class Migrator
       $stmt = $this->connection->prepare(
          "INSERT INTO {$this->migrationsTable} (migration, batch) VALUES (:migration, :batch)"
       );
-
       $stmt->bindValue(':migration', $migration);
-      $stmt->bindValue(':batch', $batch, PDO::PARAM_INT);
+      $stmt->bindValue(':batch', $batch);
       $stmt->execute();
    }
 
    /**
-    * Supprime l'enregistrement d'une migration dans la base de données
+    * Supprime une migration de la table de migrations
     *
     * @param string $migration Nom de la migration
     * @return void
@@ -298,7 +294,6 @@ class Migrator
       $stmt = $this->connection->prepare(
          "DELETE FROM {$this->migrationsTable} WHERE migration = :migration"
       );
-
       $stmt->bindValue(':migration', $migration);
       $stmt->execute();
    }
@@ -311,50 +306,31 @@ class Migrator
    protected function getNextBatchNumber(): int
    {
       $stmt = $this->connection->prepare(
-         "SELECT MAX(batch) as max_batch FROM {$this->migrationsTable}"
+         "SELECT MAX(batch) as batch FROM {$this->migrationsTable}"
       );
-
       $stmt->execute();
       $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-      return ($result['max_batch'] ?? 0) + 1;
+      return ($result['batch'] ?? 0) + 1;
    }
 
    /**
-    * S'assure que la table des migrations existe
+    * S'assure que la table de migrations existe
     *
     * @return void
     */
    protected function ensureMigrationsTableExists(): void
    {
-      $schema = new Builder($this->connection);
+      $driver = $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+      Schema::setDefaultConnection($this->connection);
 
-      if (!$schema->hasTable($this->migrationsTable)) {
-         $schema->create($this->migrationsTable, function ($table) {
+      if (!Schema::hasTable($this->migrationsTable)) {
+         Schema::createTable($this->migrationsTable, function (Anvil $table) {
             $table->id();
             $table->string('migration');
             $table->integer('batch');
-            $table->timestamp('created_at')->default('CURRENT_TIMESTAMP');
+            $table->timestamps();
          });
       }
-   }
-
-   /**
-    * Extrait le nom de la classe à partir du fichier
-    *
-    * @param string $file Chemin du fichier
-    * @return string
-    */
-   protected function getClassFromFile(string $file): string
-   {
-      $content = file_get_contents($file);
-      $pattern = '/class\s+([a-zA-Z0-9_]+)/';
-
-      if (preg_match($pattern, $content, $matches)) {
-         return $matches[1];
-      }
-
-      // Fallback: on utilise le nom du fichier
-      return pathinfo($file, PATHINFO_FILENAME);
    }
 }

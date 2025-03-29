@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Database\Seeder;
 
 use PDO;
+use IronFlow\Database\Connection;
 
 /**
  * Classe de base pour les seeders de base de données
@@ -21,11 +22,17 @@ abstract class Seeder
    /**
     * Constructeur
     *
-    * @param PDO $connection Connexion à la base de données
+    * @param PDO|Connection $connection Connexion à la base de données
     */
-   public function __construct(PDO $connection)
+   public function __construct($connection)
    {
-      $this->connection = $connection;
+      if ($connection instanceof Connection) {
+         $this->connection = $connection->getConnection();
+      } elseif ($connection instanceof PDO) {
+         $this->connection = $connection;
+      } else {
+         throw new \InvalidArgumentException("Le paramètre de connexion doit être une instance de PDO ou Connection");
+      }
    }
 
    /**

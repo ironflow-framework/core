@@ -5,9 +5,20 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\View\TwigView;
+use IronFlow\Foundation\ServiceProvider;
 
+/**
+ * Fournisseur de services pour le système de vues
+ * 
+ * Ce service provider initialise et configure le système de templates Twig.
+ */
 class ViewServiceProvider extends ServiceProvider
 {
+   /**
+    * Enregistre les services liés aux vues
+    *
+    * @return void
+    */
    public function register(): void
    {
       $this->app->singleton('view', function ($app) {
@@ -15,6 +26,11 @@ class ViewServiceProvider extends ServiceProvider
       });
    }
 
+   /**
+    * Configure le système de vues après son enregistrement
+    *
+    * @return void
+    */
    public function boot(): void
    {
       // Configuration des vues

@@ -5,8 +5,21 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\Routing\Router;
+use IronFlow\Foundation\ServiceProvider;
+
+/**
+ * Fournisseur de services pour le système de routage
+ * 
+ * Ce service provider initialise et configure le router de l'application
+ * et charge les fichiers de définition des routes.
+ */
 class RouteServiceProvider extends ServiceProvider
 {
+   /**
+    * Enregistre les services liés au routage
+    *
+    * @return void
+    */
    public function register(): void
    {
       $this->app->singleton('router', function ($app) {
@@ -14,12 +27,22 @@ class RouteServiceProvider extends ServiceProvider
       });
    }
 
+   /**
+    * Configure le système de routage après son enregistrement
+    *
+    * @return void
+    */
    public function boot(): void
    {
       // Chargement des routes
       $this->loadRoutes();
    }
 
+   /**
+    * Charge les fichiers de définition des routes
+    *
+    * @return void
+    */
    protected function loadRoutes(): void
    {
       $router = $this->app['router'];

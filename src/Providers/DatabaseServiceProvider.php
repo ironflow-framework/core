@@ -3,14 +3,27 @@
 declare(strict_types=1);
 
 namespace IronFlow\Providers;
-use IronFlow\Database\DatabaseManager;
 
+use IronFlow\Foundation\ServiceProvider;
+use IronFlow\Database\Iron\IronManager;
+
+/**
+ * Fournisseur de services pour le système de base de données
+ * 
+ * Ce service provider initialise et configure le système d'ORM Iron.
+ */
 class DatabaseServiceProvider extends ServiceProvider
 {
+   /**
+    * Enregistre les services liés à la base de données
+    * 
+    * @return void
+    */
    public function register(): void
    {
       $this->app->singleton('db', function ($app) {
-         return new DatabaseManager($app['config']['database']);
+         // Configuration à partir du fichier de configuration
+         return new IronManager();
       });
    }
 

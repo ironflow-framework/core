@@ -6,7 +6,7 @@ namespace IronFlow\Database\Migrations;
 
 use PDO;
 use Exception;
-use IronFlow\Database\Schema\SchemaBuilder as Builder;
+use IronFlow\Database\Schema\Schema;
 
 /**
  * Classe de base pour les migrations
@@ -21,13 +21,6 @@ abstract class Migration
    protected PDO $connection;
 
    /**
-    * Instance du constructeur de schéma
-    *
-    * @var Builder
-    */
-   protected Builder $schema;
-
-   /**
     * Constructeur
     *
     * @param PDO $connection Connexion à la base de données
@@ -35,7 +28,9 @@ abstract class Migration
    public function __construct(PDO $connection)
    {
       $this->connection = $connection;
-      $this->schema = new Builder($connection);
+
+      // Configurer la connexion statique dans Schema si elle n'est pas déjà configurée
+      Schema::setDefaultConnection($connection);
    }
 
    /**

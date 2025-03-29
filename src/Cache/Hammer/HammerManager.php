@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Hammer;
+namespace IronFlow\Cache\Hammer;
 
 use InvalidArgumentException;
 use IronFlow\Hammer\Contracts\CacheDriverInterface;

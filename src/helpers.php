@@ -128,10 +128,10 @@ if (!function_exists('config')) {
    function config(?string $key = null, mixed $default = null): mixed
    {
       if (is_null($key)) {
-         return IronFlow\Support\Config::all();
+         return IronFlow\Support\Facades\Config::all();
       }
 
-      return IronFlow\Support\Config::get($key, $default);
+      return IronFlow\Support\Facades\Config::get($key, $default);
    }
 }
 
@@ -175,11 +175,11 @@ if (!function_exists('collect')) {
     * Crée une nouvelle instance de collection à partir des éléments donnés
     * 
     * @param mixed $items
-    * @return IronFlow\Database\Iron\Collection
+    * @return IronFlow\Database\Collection
     */
-   function collect($items = []): IronFlow\Database\Iron\Collection
+   function collect($items = []): IronFlow\Database\Collection
    {
-      return new IronFlow\Database\Iron\Collection($items);
+      return new IronFlow\Database\Collection($items);
    }
 }
 
@@ -317,7 +317,7 @@ if (!function_exists('trans')) {
     */
    function trans(string $key, array $parameters = [], ?string $domain = null, ?string $locale = null): string
    {
-      return IronFlow\Support\Translator::trans($key, $parameters, $domain, $locale);
+      return IronFlow\Support\Facades\Trans::trans($key, $parameters, $domain, $locale);
    }
 }
 
@@ -325,11 +325,11 @@ if (!function_exists('excel')) {
    /**
     * Retourne l'instance de Excel.
     *
-    * @return IronFlow\Support\Excel
+    * @return IIronFlow\Support\Facades\Excel
     */
-   function excel(): IronFlow\Support\Excel
+   function excel(): IronFlow\Support\Facades\Excel
    {
-      return new IronFlow\Support\Excel();
+      return new IronFlow\Support\Facades\Excel();
    }
 }
 
@@ -348,4 +348,4 @@ if (!function_exists('url')) {
 }
 
 // Initialisation des classes statiques
-IronFlow\Support\Storage::initialize();
+IronFlow\Support\Facades\Storage::initialize();

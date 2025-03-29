@@ -3,7 +3,7 @@
 namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
-use Ironflow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Anvil;
 use IronFlow\Database\Schema\Schema;
 
 return new class extends Migration

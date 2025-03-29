@@ -2,18 +2,28 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
-use IronFlow\Support\Filesystem;
+use IronFlow\Database\Migrations\MigrationCreator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+/**
+ * Commande de génération de migration
+ * 
+ * Cette commande permet de créer des fichiers de migration pour la base de données.
+ */
 class MakeMigrationCommand extends Command
 {
    protected static $defaultName = 'make:migration';
    protected static $defaultDescription = 'Crée une nouvelle migration';
 
+   /**
+    * Configure la commande
+    *
+    * @return void
+    */
    protected function configure(): void
    {
       $this
@@ -22,6 +32,13 @@ class MakeMigrationCommand extends Command
          ->addArgument('columns', InputArgument::OPTIONAL, 'Les colonnes (format: nom:type,options)');
    }
 
+   /**
+    * Exécute la commande
+    *
+    * @param InputInterface $input
+    * @param OutputInterface $output
+    * @return int
+    */
    protected function execute(InputInterface $input, OutputInterface $output): int
    {
       $io = new SymfonyStyle($input, $output);
@@ -29,80 +46,77 @@ class MakeMigrationCommand extends Command
       $table = $input->getArgument('table');
       $columns = $input->getArgument('columns') ? explode(',', $input->getArgument('columns')) : [];
 
-      $timestamp = date('Y_m_d_His');
-      $migrationContent = $this->generateMigrationContent($$table, $columns);
-      $migrationPath = database_path("migrations/{$timestamp}_{$name}.php");
+      // Utiliser le MigrationCreator pour générer le fichier
+      $creator = new MigrationCreator(database_path('migrations'));
 
-      if (!Filesystem::exists(dirname($migrationPath))) {
-         Filesystem::makeDirectory(dirname($migrationPath), 0755, true);
+      // Détecter si c'est une création de table (par défaut: oui)
+      $isCreateTable = true;
+      if (strpos($name, 'update_') === 0 || strpos($name, 'alter_') === 0 || strpos($name, 'modify_') === 0) {
+         $isCreateTable = false;
       }
 
-      Filesystem::put($migrationPath, $migrationContent);
-      $io->success("La migration {$name} a été créée avec succès !");
+      try {
+         // Créer le fichier de migration
+         $path = $creator->create($name, $table, $isCreateTable);
 
-      return Command::SUCCESS;
+         // Si la migration est une création de table et que des colonnes sont spécifiées
+         // nous allons modifier le fichier pour inclure ces colonnes
+         if ($isCreateTable && !empty($columns)) {
+            $this->addColumnsToMigration($path, $table, $columns);
+         }
+
+         $io->success("La migration {$name} a été créée avec succès : " . basename($path));
+         return Command::SUCCESS;
+      } catch (\Exception $e) {
+         $io->error("Erreur lors de la création de la migration : " . $e->getMessage());
+         return Command::FAILURE;
+      }
    }
 
-   protected function generateMigrationContent(string $table, array $columns): string
+   /**
+    * Ajoute des colonnes spécifiées à un fichier de migration existant
+    *
+    * @param string $path Chemin du fichier de migration
+    * @param string $table Nom de la table
+    * @param array $columns Colonnes à ajouter
+    * @return void
+    */
+   protected function addColumnsToMigration(string $path, string $table, array $columns): void
    {
-      $upContent = $this->generateUpContent($table, $columns);
-      $downContent = $this->generateDownContent($table);
+      // Lire le contenu du fichier
+      $content = file_get_contents($path);
 
-      return <<<PHP
-<?php
+      // Chercher la position après '$table->id();'
+      $pattern = '/\$table->id\(\);(\s*?)(\n|\r\n)/';
 
-namespace Database\Migrations;
-
-use IronFlow\Database\Migrations\Migration;
-use Ironflow\Database\Schema\Anvil;
-use IronFlow\Database\Schema\Schema;
-
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        {$upContent}
-    }
-
-    public function down(): void
-    {
-        {$downContent}
-    }
-};
-PHP;
-   }
-
-   protected function generateUpContent(string $table, array $columns): string
-   {
-      $content = "Schema::createTable('{$table}', function (Anvil \$table) {\n";
-      $content .= "            \$table->id();\n";
-
+      // Préparer le contenu des colonnes
+      $columnLines = '';
       foreach ($columns as $column) {
          $parts = explode(':', $column);
          $name = $parts[0];
          $type = $parts[1] ?? 'string';
          $options = isset($parts[2]) ? explode('|', $parts[2]) : [];
 
-         $content .= "            \$table->{$type}('{$name}'";
+         $columnLine = "            \$table->{$type}('{$name}'";
 
          if (!empty($options)) {
-            $content .= ", " . implode(', ', array_map(function ($option) {
+            $columnLine .= ", " . implode(', ', array_map(function ($option) {
                return is_numeric($option) ? $option : "'{$option}'";
             }, $options));
          }
 
-         $content .= ");\n";
+         $columnLine .= ");\n";
+         $columnLines .= $columnLine;
       }
 
-      $content .= "            \$table->timestamps();\n";
-      $content .= "        });";
+      // Faire le remplacement
+      $content = preg_replace(
+         $pattern,
+         "\$table->id();\$1\$2$columnLines",
+         $content
+      );
 
-      return $content;
-   }
-
-   protected function generateDownContent(string $table): string
-   {
-      return "Schema::dropTableIfExists('{$table}');";
+      // Écrire le fichier mis à jour
+      file_put_contents($path, $content);
    }
 }

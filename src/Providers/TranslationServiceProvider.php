@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\Support\Translator;
+use IronFlow\Foundation\ServiceProvider;
 
 /**
  * Service Provider pour l'internationalisation
+ * 
+ * Ce service provider initialise et configure le système de traduction
+ * pour permettre l'internationalisation de l'application.
  */
 class TranslationServiceProvider extends ServiceProvider
 {
    /**
     * Enregistre les services liés à l'internationalisation.
+    *
+    * @return void
     */
    public function register(): void
    {

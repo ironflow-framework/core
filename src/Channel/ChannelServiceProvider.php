@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Channel;
 
-use IronFlow\Application\Application;
-use IronFlow\Application\ServiceProvider;
+use IronFlow\Foundation\Application;
+use IronFlow\Foundation\ServiceProvider;
 use IronFlow\Support\Facades\Config;
 use IronFlow\Support\Facades\Log;
 
