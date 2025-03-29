@@ -14,7 +14,7 @@
 
 ### Le système de Middleware
 
-[] Revoir le système de middleware
+[x] Revoir le système de middleware
 
 ### Application
 
@@ -33,20 +33,20 @@
 
 ### Classe Request et Response
 
-[] Mettre à jour ces classes en ajoutant des methodes utiles
+[x] Mettre à jour ces classes en ajoutant des methodes utiles
 
 ### Système de component
 
-[] Reorganise le système de composant  
-[] Ajoute des composants  
+[x] Reorganise le système de composant  
+[x] Ajoute des composants  
 [] Mets à jour les components existants (Par défaut, le style des components sera proche de celui de la forge comme le style du framework. L'utilisateur pourra bien sûr modifie le style s'il veut)
 
 ### Système de gestion des uploads et média
 
-[] Mettre en place un système de gestion des uploads et media appelé 'Vibe'  
-[] Mettre en place des composants de lecture des médias audio et vidéo  
-[] Mettre en place aussi un système d'upload des fichiers
-[] Harmoniser le système avec ce qui est déjà present dans le framework
+[x] Mettre en place un système de gestion des uploads et media appelé 'Vibe'  
+[x] Mettre en place des composants de lecture des médias audio et vidéo  
+[x] Mettre en place aussi un système d'upload des fichiers
+[x] Harmoniser le système avec ce qui est déjà present dans le framework
 
 ### Console
 
@@ -113,7 +113,7 @@
 ### Integration une IA
 
 [] Mettre en place un système d'integration IA
-[] Integrer claude et chatgpt  
+[] Integrer claude et chatgpt
 
 #### Autres services
 

@@ -1,0 +1,52 @@
+<div class="theme-switcher">
+    <button 
+        class="btn btn-ghost btn-sm rounded-btn"
+        onclick="toggleTheme()"
+        aria-label="{{ __('Toggle theme') }}"
+    >
+        <i class="ti ti-moon dark-icon" aria-hidden="true"></i>
+        <i class="ti ti-sun light-icon" aria-hidden="true"></i>
+    </button>
+</div>
+
+<style>
+    .theme-switcher .dark-icon {
+        display: var(--display-dark-icon, inline-flex);
+    }
+    
+    .theme-switcher .light-icon {
+        display: var(--display-light-icon, none);
+    }
+    
+    [data-theme="dark"] .theme-switcher .dark-icon {
+        display: none;
+    }
+    
+    [data-theme="dark"] .theme-switcher .light-icon {
+        display: inline-flex;
+    }
+</style>
+
+<script>
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Envoyer une requête pour sauvegarder le thème dans la session
+        fetch('{{ route("craftpanel.set-theme") }}?theme=' + newTheme, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    }
+    
+    // Initialiser le thème au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme') || '{{ current_theme|default("light") }}';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    });
+</script> 

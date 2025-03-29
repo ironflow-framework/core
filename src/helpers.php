@@ -332,3 +332,20 @@ if (!function_exists('excel')) {
       return new IronFlow\Support\Excel();
    }
 }
+
+if (!function_exists('url')) {
+   /**
+    * Génère une URL vers le chemin donné.
+    *
+    * @param string $path
+    * @return string
+    */
+   function url(string $path = ''): string
+   {
+      $base = config('app.url', '');
+      return rtrim($base, '/') . '/' . ltrim($path, '/');
+   }
+}
+
+// Initialisation des classes statiques
+IronFlow\Support\Storage::initialize();

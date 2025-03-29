@@ -1,5 +1,99 @@
 # Historique des Changements
 
+## [30/03/25]
+
+### Corrections du système Vibe et améliorations
+
+- Implémentation complète de la classe `MediaManager` (auparavant vide)
+  - Ajout du modèle Singleton pour assurer une instance unique
+  - Méthodes robustes pour la validation, le téléversement et la suppression des fichiers
+  - Extraction avancée des métadonnées pour différents types de médias (images, vidéos, audio)
+  - Gestion automatique des miniatures avec différentes tailles
+  - Détection intelligente des types de médias basée sur l'extension et le MIME type
+- Création d'un contrôleur `MediaController` complet
+  - Endpoints RESTful pour la gestion des médias (liste, affichage, téléversement, téléchargement, suppression)
+  - Gestion appropriée des erreurs avec des messages explicites
+  - Support des requêtes AJAX pour une expérience utilisateur fluide
+- Configuration des routes dédiées pour le système de médias
+  - Routes sécurisées avec middleware web
+  - Nomenclature cohérente et intuitive
+- Création de vues Twig pour l'interface utilisateur
+  - Interface moderne pour la liste des médias avec aperçus par type
+  - Formulaire d'upload avec support de glisser-déposer via Dropzone.js
+  - Page de détails des médias avec affichage adapté au type (images, vidéos, audio, documents)
+  - Intégration du lecteur Plyr pour une expérience média optimale
+- Harmonisation du système Vibe avec le reste du framework
+  - Suivi des conventions de nommage et de structure
+  - Documentation complète avec PHPDoc
+  - Gestion des exceptions spécifiques au module
+
+### Sécurité
+
+- Renforcement de la sécurité du système de médias
+  - Validation rigoureuse des fichiers téléversés
+  - Vérification des tailles et types de fichiers autorisés
+  - Génération de noms de fichiers sécurisés pour éviter les conflits
+  - Protection contre les chemins traversants et autres attaques
+
+## [29/03/25]
+
+### Système de gestion des médias (Vibe)
+
+- Création du système de gestion de médias "Vibe"
+  - Implémentation de `MediaManager` pour gérer les fichiers et médias
+  - Développement du modèle `Media` pour stocker les métadonnées
+  - Création de la commande `vibe:create-table` pour générer la table de base de données
+  - Implémentation de méthodes pour l'upload, le stockage et la gestion des fichiers
+  - Support pour différents types de médias (image, vidéo, audio, document, etc.)
+  - Génération automatique de miniatures pour les images
+  - Extraction des métadonnées (EXIF, dimensions, etc.)
+- Création de composants pour faciliter l'utilisation des médias
+  - `MediaPlayer` pour la lecture des fichiers audio et vidéo
+  - `FileUploader` pour l'upload de fichiers avec support de glisser-déposer
+  - Intégration avec des bibliothèques JavaScript modernes (Dropzone.js, Plyr, etc.)
+- Développement d'une architecture flexible avec plusieurs disques de stockage
+  - Support pour le stockage local
+  - Configuration préparée pour d'autres providers (S3, etc.)
+
+### Classes HTTP (Request et Response)
+
+- Amélioration complète de la classe `Request` :
+
+  - Ajout de PHPDoc à toutes les méthodes
+  - Correction des bugs dans les méthodes existantes (notamment `query()` et `isSecure()`)
+  - Ajout de méthodes pour les fichiers uploadés : `file()` et `hasFile()`
+  - Ajout de méthodes pour l'analyse des URLs : `url()` et `fullUrl()`
+  - Implémentation de méthodes pour vérifier le type de requête : `isMethod()`, `isAjax()`, etc.
+  - Support amélioré pour les requêtes JSON
+  - Intégration avec la nouvelle classe `Collection`
+
+- Amélioration complète de la classe `Response` :
+  - Ajout de PHPDoc à toutes les méthodes
+  - Ajout de plusieurs méthodes pour créer des réponses spécifiques : `file()`, `download()`, `status()`
+  - Ajout de méthodes pour les codes d'état courants : `notFound()`, `forbidden()`, `unauthorized()`, etc.
+  - Amélioration de la méthode `json()` pour accepter des objets
+  - Ajout de méthodes pour les messages flash : `withSuccess()`, `withError()`, etc.
+  - Ajout de méthodes pour la gestion des en-têtes HTTP
+
+### Support
+
+- Ajout de la classe `Collection` pour manipuler des collections de données :
+  - Implémentation des interfaces `ArrayAccess`, `Countable`, `IteratorAggregate` et `JsonSerializable`
+  - Méthodes fluides pour toutes les opérations
+  - Méthodes pour la manipulation des collections : `filter()`, `map()`, `sort()`, etc.
+  - Implémentation propre et complète inspirée des meilleures pratiques
+
+### CraftPanel (Améliorations)
+
+- Ajout de nouveaux middlewares pour renforcer la sécurité du CraftPanel
+  - `CraftPanelCsrfMiddleware` pour la protection contre les attaques CSRF
+  - `CraftPanelThemeMiddleware` pour la gestion du thème (clair/sombre)
+- Amélioration de l'interface utilisateur avec support des thèmes
+- Meilleure intégration avec le système d'internationalisation
+- Optimisation des performances du tableau de bord
+- Renforcement de la sécurité avec validation des formulaires
+- Support amélioré pour les permissions granulaires
+
 ## [28/03/25]
 
 - Ajout du système d'internationalisation avec Symfony Translation

@@ -1,0 +1,108 @@
+{% extends 'layouts/app.twig' %}
+
+{% block title %}Gestion des médias{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Gestion des médias</h1>
+        <a href="{{ route('media.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Ajouter un média
+        </a>
+    </div>
+
+    {% if media|length > 0 %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for item in media %}
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="h-48 overflow-hidden">
+                        {% if item.isImage() %}
+                            <img src="{{ item.getUrl('medium') }}" alt="{{ item.alt|default(item.name) }}" class="w-full h-full object-cover">
+                        {% elseif item.isVideo() %}
+                            <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        {% elseif item.isAudio() %}
+                            <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        {% elseif item.isDocument() %}
+                            <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                <svg class="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold truncate mb-1">{{ item.name }}</h3>
+                        <p class="text-sm text-gray-500 mb-2">{{ item.getFormattedSizeAttribute() }} - {{ item.mime_type }}</p>
+                        <div class="flex justify-between">
+                            <a href="{{ route('media.show', {'id': item.id}) }}" class="text-blue-600 hover:underline">Voir</a>
+                            <a href="{{ route('media.download', {'id': item.id}) }}" class="text-green-600 hover:underline">Télécharger</a>
+                            <button 
+                                data-media-id="{{ item.id }}" 
+                                class="text-red-600 hover:underline delete-media"
+                            >
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="bg-gray-100 p-8 rounded-lg text-center">
+            <p class="text-gray-600 mb-4">Aucun média n'a été trouvé.</p>
+            <a href="{{ route('media.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                Ajouter votre premier média
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion de la suppression des médias
+    document.querySelectorAll('.delete-media').forEach(button => {
+        button.addEventListener('click', function() {
+            const mediaId = this.getAttribute('data-media-id');
+            
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce média ?')) {
+                // Effectuer une requête DELETE
+                fetch(`/media/${mediaId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Recharger la page ou supprimer l'élément du DOM
+                        window.location.reload();
+                    } else {
+                        alert(data.error || 'Une erreur s\'est produite lors de la suppression');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Une erreur s\'est produite lors de la suppression');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

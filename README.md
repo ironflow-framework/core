@@ -26,7 +26,6 @@
 - [Contribuer](#contribuer)
 - [License](#license)
 
-
 ## À propos
 
 IronFlow est un framework PHP moderne et performant, conçu pour simplifier le développement d'applications web tout en offrant une base solide et extensible. Inspiré des meilleures pratiques de l'industrie, il combine puissance et simplicité pour accélérer votre développement.
@@ -34,24 +33,28 @@ IronFlow est un framework PHP moderne et performant, conçu pour simplifier le d
 ## 🌟 Fonctionnalités Clés
 
 ### Performance
+
 - Architecture légère et optimisée
 - Système de cache intégré
 - Chargement différé des composants
 - Optimisation automatique des requêtes
 
 ### Sécurité
+
 - Protection CSRF intégrée
 - Validation des données robuste
 - Échappement automatique des sorties
 - Gestion sécurisée des sessions
 
 ### Développement
+
 - ORM puissant avec relations fluides
 - Système de routage intuitif
 - Gestionnaire de dépendances intégré
 - Support natif des tests unitaires
 
 ### Extensibilité
+
 - Architecture modulaire
 - Système de plugins
 - Hooks et événements personnalisables
@@ -146,6 +149,7 @@ mon-projet/
 ## ⚙️ Configuration
 
 ### Base de données
+
 ```ini
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -168,6 +172,7 @@ MAIL_FROM_ADDRESS=hello@example.com
 ```
 
 ### Cache
+
 ```ini
 CACHE_DRIVER=file
 CACHE_PREFIX=ironflow_
@@ -177,6 +182,7 @@ CACHE_TTL=3600
 ## 🛠️ Commandes Forge
 
 ### Génération de Code
+
 ```bash
 # Création de contrôleurs
 php forge make:controller UserController
@@ -192,6 +198,7 @@ php forge make:seeder UserSeeder
 ```
 
 ### Base de données
+
 ```bash
 # Exécution des migrations
 php forge migrate
@@ -207,6 +214,7 @@ php forge migrate:fresh --seed
 ```
 
 ### Maintenance
+
 ```bash
 # Nettoyage du cache
 php forge cache:clear
@@ -274,7 +282,7 @@ class Article extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
-    
+
     public function author()
     {
         return $this->belongsTo(User::class, 'author_id');
@@ -320,6 +328,7 @@ php artisan migrate
 La documentation complète est disponible sur [https://ironflow.dev/docs](https://ironflow.dev/docs)
 
 ### Sections principales
+
 - [Guide de démarrage](https://ironflow.dev/docs/getting-started)
 - [Architecture](https://ironflow.dev/docs/architecture)
 - [Base de données](https://ironflow.dev/docs/database)
@@ -337,6 +346,7 @@ Nous accueillons chaleureusement les contributions ! Voici comment participer :
 5. Ouvrez une Pull Request
 
 ### Standards de Code
+
 - Suivez les standards PSR-12
 - Ajoutez des tests unitaires
 - Mettez à jour la documentation
@@ -368,9 +378,55 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 - [Ruby On Rail](https://rubyonrails.org/) - Inspiration pour certaines fonctionnalités
 - [Django](https://www.djangoproject.com/) - Inspiration pour certaines fonctionnalités
 
-
 ---
 
 <div align="center">
 Forgé avec passion et ❤️ by the IronFlow Team
-</div> 
+</div>
+
+# Correction de l'erreur "Undefined type 'IronFlow\Support\Storage'"
+
+Nous avons créé les classes suivantes pour résoudre le problème :
+
+1. `src/Support/Storage.php` - Une classe utilitaire pour gérer le stockage de fichiers
+2. `src/Support/Facades/Storage.php` - Une façade qui redirige les appels statiques vers la classe Storage
+3. Mise à jour de `src/helpers.php` avec la fonction `url()` et l'initialisation de la classe Storage
+
+## Actions supplémentaires nécessaires
+
+Pour résoudre complètement les erreurs restantes dans `src/Vibe/MediaManager.php`, il faut :
+
+1. Installer la bibliothèque Intervention/Image :
+
+   ```
+   composer require intervention/image
+   ```
+
+2. Créer ou mettre à jour le fichier de configuration pour les systèmes de fichiers dans `config/filesystems.php` :
+
+   ```php
+   <?php
+
+   return [
+       'default' => 'local',
+       'disks' => [
+           'local' => [
+               'root' => storage_path('app'),
+               'url' => '/storage/app',
+           ],
+           'public' => [
+               'root' => storage_path('app/public'),
+               'url' => '/storage/app/public',
+           ],
+       ],
+   ];
+   ```
+
+3. Vérifier que la classe `Media` dans `src/Vibe/Models/Media.php` implémente correctement les propriétés et méthodes utilisées dans MediaManager :
+   - `$media->save()`
+   - `$media->disk`
+   - `$media->path`
+   - `$media->id`
+   - `$media->isImage()`
+
+Ces modifications résoudront l'erreur initiale "Undefined type 'IronFlow\Support\Storage'" ainsi que les autres erreurs liées dans le fichier MediaManager.php.

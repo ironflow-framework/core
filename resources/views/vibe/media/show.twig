@@ -1,0 +1,190 @@
+{% extends 'layouts/app.twig' %}
+
+{% block title %}{{ media.name }}{% endblock %}
+
+{% block head %}
+    {{ parent() }}
+    {% if media.isVideo() or media.isAudio() %}
+        {% if config('vibe.player.use_plyr', true) %}
+            <link rel="stylesheet" href="{{ config('vibe.player.plyr_cdn', 'https://cdn.plyr.io/3.6.8/plyr.css') }}">
+            <script src="{{ config('vibe.player.plyr_js_cdn', 'https://cdn.plyr.io/3.6.8/plyr.js') }}"></script>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold mb-2">{{ media.name }}</h1>
+                <a href="{{ route('media.index') }}" class="text-blue-600 hover:underline">
+                    &larr; Retour à la liste des médias
+                </a>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{{ route('media.download', {'id': media.id}) }}" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                    Télécharger
+                </a>
+                <button 
+                    data-media-id="{{ media.id }}" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 delete-media"
+                >
+                    Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 bg-white rounded-lg shadow-md p-6">
+            {% if media.isImage() %}
+                <img src="{{ media.getUrl() }}" alt="{{ media.alt|default(media.name) }}" class="max-w-full mx-auto">
+            {% elseif media.isVideo() %}
+                <div class="plyr__video-embed" id="player">
+                    <video controls crossorigin playsinline>
+                        <source src="{{ media.getUrl() }}" type="{{ media.mime_type }}">
+                    </video>
+                </div>
+            {% elseif media.isAudio() %}
+                <div id="player">
+                    <audio controls>
+                        <source src="{{ media.getUrl() }}" type="{{ media.mime_type }}">
+                    </audio>
+                </div>
+            {% elseif media.isDocument() %}
+                {% if media.mime_type == 'application/pdf' %}
+                    <embed src="{{ media.getUrl() }}" type="application/pdf" width="100%" height="600px">
+                {% else %}
+                    <div class="text-center py-12 bg-gray-100 rounded-lg">
+                        <svg class="w-16 h-16 mx-auto text-gray-500 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                        </svg>
+                        <p class="text-gray-600">Aperçu non disponible pour ce type de document</p>
+                        <a href="{{ route('media.download', {'id': media.id}) }}" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Télécharger pour visualiser
+                        </a>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-12 bg-gray-100 rounded-lg">
+                    <svg class="w-16 h-16 mx-auto text-gray-500 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-gray-600">Aperçu non disponible pour ce type de fichier</p>
+                    <a href="{{ route('media.download', {'id': media.id}) }}" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Télécharger
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Informations</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Nom</h3>
+                    <p>{{ media.name }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Type</h3>
+                    <p>{{ media.mime_type }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Taille</h3>
+                    <p>{{ media.getFormattedSizeAttribute() }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Date d'ajout</h3>
+                    <p>{{ media.created_at|date('d/m/Y H:i') }}</p>
+                </div>
+                
+                {% if media.metadata|length > 0 %}
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">Métadonnées</h3>
+                        <div class="bg-gray-50 p-3 rounded text-sm">
+                            {% if media.isImage() and media.metadata.width and media.metadata.height %}
+                                <div class="mb-2">
+                                    <span class="font-medium">Dimensions:</span> {{ media.metadata.width }}×{{ media.metadata.height }} px
+                                </div>
+                            {% endif %}
+                            
+                            {% if media.isAudio() or media.isVideo() %}
+                                {% if media.metadata.duration %}
+                                    <div class="mb-2">
+                                        <span class="font-medium">Durée:</span> {{ media.metadata.duration|round(2) }} secondes
+                                    </div>
+                                {% endif %}
+                                
+                                {% if media.metadata.bitrate %}
+                                    <div class="mb-2">
+                                        <span class="font-medium">Débit:</span> {{ (media.metadata.bitrate / 1000)|round }} kbps
+                                    </div>
+                                {% endif %}
+                                
+                                {% if media.isAudio() and media.metadata.title %}
+                                    <div class="mb-2">
+                                        <span class="font-medium">Titre:</span> {{ media.metadata.title }}
+                                    </div>
+                                    
+                                    {% if media.metadata.artist %}
+                                        <div class="mb-2">
+                                            <span class="font-medium">Artiste:</span> {{ media.metadata.artist }}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if media.metadata.album %}
+                                        <div class="mb-2">
+                                            <span class="font-medium">Album:</span> {{ media.metadata.album }}
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation de Plyr pour les médias audio/vidéo
+    {% if (media.isVideo() or media.isAudio()) and config('vibe.player.use_plyr', true) %}
+        const player = new Plyr('#player');
+    {% endif %}
+    
+    // Gestion de la suppression du média
+    document.querySelector('.delete-media')?.addEventListener('click', function() {
+        const mediaId = this.getAttribute('data-media-id');
+        
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce média ?')) {
+            fetch(`/media/${mediaId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "{{ route('media.index') }}";
+                } else {
+                    alert(data.error || 'Une erreur s\'est produite lors de la suppression');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Une erreur s\'est produite lors de la suppression');
+            });
+        }
+    });
+});
+</script>
+{% endblock %} 

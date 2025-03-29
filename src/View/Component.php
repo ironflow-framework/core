@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\View\Components;
+namespace IronFlow\View;
 
+/**
+ * Classe de base pour tous les composants du framework
+ */
 abstract class Component
 {
    protected array $attributes = [];
@@ -15,8 +18,6 @@ abstract class Component
    {
       $this->attributes = $attributes;
    }
-
-   abstract public function render(): string;
 
    public function setContent(string $content): self
    {
@@ -54,5 +55,22 @@ abstract class Component
    protected function getSlot(string $key, $default = null)
    {
       return $this->slots[$key] ?? $default;
+   }
+
+   /**
+    * Génère le rendu du composant
+    *
+    * @return string
+    */
+   abstract public function render(): string;
+
+   /**
+    * Convertit le composant en chaîne
+    *
+    * @return string
+    */
+   public function __toString(): string
+   {
+      return $this->render();
    }
 }
