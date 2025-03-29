@@ -35,17 +35,19 @@ abstract class Controller
          ->setHeader('Content-Type', 'application/json');
    }
 
-   protected function redirect(?string $url = null)
+   protected function redirect(?string $url = null): Response
    {
       if ($url) {
          return $this->response
             ->setStatusCode(302)
             ->setHeader('Location', $url);
       }
-      return $this;
+
+      // Retourne une réponse vide avec code 302 si aucune URL n'est fournie
+      return $this->response->setStatusCode(302);
    }
 
-   public function route(string $name, array $parameters = []): self
+   public function route(string $name, array $parameters = []): Response
    {
       $router = new Router();
       $url = $router->url($name, $parameters);
@@ -54,16 +56,22 @@ abstract class Controller
 
    public function with(string $key, mixed $value): self
    {
+      if (!session_status() === PHP_SESSION_ACTIVE) {
+         session_start();
+      }
+
+      $_SESSION['_flash'][$key] = $value;
       $this->response->with($key, $value);
+
       return $this;
    }
 
-   protected function abort(int $status, string $message = "Page non trouvée")
-    {
+   protected function abort(int $status, string $message = "Page non trouvée"): void
+   {
       $this->response->setStatusCode($status)->setContent($message);
       $this->response->send();
       exit;
-   }   
+   }
 
    protected function response(): Response
    {
@@ -72,12 +80,53 @@ abstract class Controller
 
    protected function back(): Response
    {
-      return $this->redirect($_SERVER['HTTP_REFERER'] ?? '/');
+      $referer = $_SERVER['HTTP_REFERER'] ?? '/';
+      return $this->redirect($referer);
    }
 
-   protected function validate(array $data, array $rules): bool
+   /**
+    * Valide les données selon les règles spécifiées
+    * 
+    * @param array $data Les données à valider
+    * @param array $rules Les règles de validation
+    * @return array|bool Retourne true si la validation réussit, sinon un tableau d'erreurs
+    */
+   protected function validate(array $data, array $rules): array|bool
    {
       $validator = new Validator($data, $rules);
-      return $validator->validate();
+
+      if ($validator->validate()) {
+         return true;
+      }
+
+      return $validator->errors();
+   }
+
+   /**
+    * Valide les données et redirige avec les erreurs si la validation échoue
+    * 
+    * @param array $data Les données à valider
+    * @param array $rules Les règles de validation
+    * @param string|null $redirectTo URL de redirection en cas d'échec
+    * @return bool Retourne true si la validation réussit
+    */
+   protected function validateOrFail(array $data, array $rules, ?string $redirectTo = null): bool
+   {
+      $result = $this->validate($data, $rules);
+
+      if ($result !== true) {
+         $this->with('errors', $result);
+         $this->with('old', $data);
+
+         if ($redirectTo) {
+            $this->redirect($redirectTo)->send();
+         } else {
+            $this->back()->send();
+         }
+
+         exit;
+      }
+
+      return true;
    }
 }

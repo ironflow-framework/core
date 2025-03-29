@@ -5,8 +5,12 @@
 ### Global
 
 [x] Pour les commandes cli toujours suivre ce qui fait dans le dossier Console/Commands  
-[] Avoir un framework assez sécurité, si le framework n'est pas sécurisé le sécurisé  
+[x] Avoir un framework assez sécurité, si le framework n'est pas sécurisé le sécurisé  
 [] Internaliser le framework en integrant le multi language (tu peux ajouter des dependances si possible)
+
+### Channel système
+
+[] Mettre en place un système de channel
 
 ### Internationalisation
 
@@ -19,7 +23,7 @@
 ### Application
 
 [] Revoir les fichiers du dossier Application
-[] Revoir le container de service  
+[x] Revoir le container de service  
 [] Revoir aussi le dossier Providers
 
 ### Database
@@ -29,7 +33,7 @@
 
 ### Controller
 
-[] Cooriger les bugs presents dans la classe Controller
+[x] Cooriger les bugs presents dans la classe Controller
 
 ### Classe Request et Response
 
@@ -39,7 +43,7 @@
 
 [x] Reorganise le système de composant  
 [x] Ajoute des composants  
-[] Mets à jour les components existants (Par défaut, le style des components sera proche de celui de la forge comme le style du framework. L'utilisateur pourra bien sûr modifie le style s'il veut)
+[x] Mets à jour les components existants (Par défaut, le style des components sera proche de celui de la forge comme le style du framework. L'utilisateur pourra bien sûr modifie le style s'il veut)
 
 ### Système de gestion des uploads et média
 
@@ -50,9 +54,9 @@
 
 ### Console
 
-[] Revoir la commande MakeModel et MakeForm en adaptant la commande MakeForm aux différents cas : associé à un model ou non  
+[x] Revoir la commande MakeModel et MakeForm en adaptant la commande MakeForm aux différents cas : associé à un model ou non  
 [] Analyser toutes les commandes du dossier Console/Commands et mettre à jour les commandes qui necessite des ajustements et/ou des mises à jour
-[] Ajouter des commandes  
+[x] Ajouter des commandes  
 [] Creer une commande l'installateur interactive comme avec Next ou Adonis afin de permettre à l'utilisateur de déjà choisir certaines config telle que :
 
 - le nom de l'app
@@ -65,7 +69,7 @@
 
 ### Système d'authentification
 
-[] Revoir la partie command cli et l'adapte sous le forme des autres commandes du dossier Console/Commands
+[x] Revoir la partie command cli et l'adapte sous le forme des autres commandes du dossier Console/Commands
 
 ### CraftPanel
 
@@ -89,8 +93,8 @@
 
 ### Refactoring
 
-[] Bonne pratique et harmonisation en respectant la modularité  
-[] Repartir les responsabilités  
+[x] Bonne pratique et harmonisation en respectant la modularité  
+[x] Repartir les responsabilités  
 [] Code facile à maintenir  
 [] Système de log
 [] Avoir un système scalable et sécurisé
@@ -118,3 +122,12 @@
 #### Autres services
 
 [] Ajouter d'autres services si possible
+
+### Exemple cas d'usage dans un projet du framework
+
+[] Créer une application de démonstration complète
+[] Développer un blog avec authentification et gestion des médias
+[] Créer une API RESTful sécurisée pour une application mobile
+[] Développer un système de e-commerce avec panier et paiement
+[] Créer une application de gestion de tâches avec drag-and-drop
+[] Mettre en place une documentation détaillée avec exemples

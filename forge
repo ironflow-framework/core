@@ -1,7 +1,9 @@
 #!/usr/bin/env php
 <?php
 
-use IronFlow\Console\Application;
+
+use IronFlow\Console\Kernel;
+use IronFlow\Console\Commands\SetupCommand;
 use IronFlow\Console\Commands\Generator\CraftPanelInstallCommand;
 use IronFlow\Console\Commands\Generator\MakeAdminCommand;
 use IronFlow\Console\Commands\ServeCommand;
@@ -16,15 +18,14 @@ use IronFlow\Console\Commands\Generator\MakeServiceCommand;
 use IronFlow\Console\Commands\Generator\MakeTestCommand;
 use IronFlow\Console\Commands\Generator\RegisterModelCommand;
 use IronFlow\Console\Commands\Generator\ScaffoldCommand;
-use IronFlow\Console\Commands\InstallCommand;
 
 
 require __DIR__ . '/vendor/autoload.php';
 
-$app = new Application();
+$app = new Kernel();
 
 // Enregistrer les commandes
-$app->add(new InstallCommand());
+$app->add(new SetupCommand());
 $app->add(new ServeCommand());
 $app->add(new MakeModelCommand());
 $app->add(new MakeMigrationCommand());

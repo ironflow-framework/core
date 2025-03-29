@@ -6,6 +6,12 @@
 
 ## ARCHIVER ET REALISER - MARS 2025
 
+### Sécurité [Done]
+
+[x] Avoir un framework assez sécurité, si le framework n'est pas sécurisé le sécurisé
+[x] Audit complet et correction des vulnérabilités
+[x] Implémentation de mécanismes de protection avancés
+
 ### Classe Request et Response [Done]
 
 [x] Mettre à jour ces classes en ajoutant des methodes utiles
@@ -21,6 +27,26 @@
 
 [x] Reorganise le système de composant  
 [x] Ajoute des composants
+[x] Mets à jour les components existants (style cohérent avec la forge)
+
+### Controller [Done]
+
+[x] Corriger les bugs présents dans la classe Controller
+
+### Console et CLI [Done]
+
+[x] Revoir la commande MakeModel et MakeForm en adaptant la commande MakeForm aux différents cas
+[x] Revoir la partie command CLI d'authentification et l'adapter à la forme des autres commandes
+[x] Harmoniser la structure des commandes dans le dossier Console/Commands
+
+### Refactoring [Partial Done]
+
+[x] Bonne pratique et harmonisation en respectant la modularité  
+[x] Répartir les responsabilités
+
+### Application [Partial Done]
+
+[x] Revoir le container de service
 
 ## ARCHIVER ET REALISER
 

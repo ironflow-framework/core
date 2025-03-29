@@ -1,0 +1,160 @@
+<?php
+
+declare(strict_types=1);
+
+namespace IronFlow\Payment\Contracts;
+
+use IronFlow\Payment\Models\Customer;
+use IronFlow\Payment\Models\PaymentMethod;
+use IronFlow\Payment\Models\Subscription;
+use IronFlow\Payment\Models\Transaction;
+
+/**
+ * Interface principale pour les fournisseurs de paiement
+ */
+interface PaymentProviderInterface
+{
+   /**
+    * Initialise le provider avec les informations d'API
+    *
+    * @param array $config Configuration du provider
+    * @return self
+    */
+   public function initialize(array $config): self;
+
+   /**
+    * Crée un client chez le fournisseur de paiement
+    *
+    * @param array $customerData Données du client
+    * @return Customer
+    */
+   public function createCustomer(array $customerData): Customer;
+
+   /**
+    * Récupère un client depuis le fournisseur de paiement
+    *
+    * @param string $customerId Identifiant du client
+    * @return Customer|null
+    */
+   public function getCustomer(string $customerId): ?Customer;
+
+   /**
+    * Met à jour un client chez le fournisseur de paiement
+    *
+    * @param string $customerId Identifiant du client
+    * @param array $customerData Nouvelles données du client
+    * @return Customer
+    */
+   public function updateCustomer(string $customerId, array $customerData): Customer;
+
+   /**
+    * Supprime un client chez le fournisseur de paiement
+    *
+    * @param string $customerId Identifiant du client
+    * @return bool
+    */
+   public function deleteCustomer(string $customerId): bool;
+
+   /**
+    * Crée une transaction de paiement
+    *
+    * @param array $transactionData Données de la transaction
+    * @return Transaction
+    */
+   public function createTransaction(array $transactionData): Transaction;
+
+   /**
+    * Confirme une transaction de paiement
+    *
+    * @param string $transactionId Identifiant de la transaction
+    * @return Transaction
+    */
+   public function confirmTransaction(string $transactionId): Transaction;
+
+   /**
+    * Annule une transaction de paiement
+    *
+    * @param string $transactionId Identifiant de la transaction
+    * @return bool
+    */
+   public function cancelTransaction(string $transactionId): bool;
+
+   /**
+    * Rembourse une transaction de paiement
+    *
+    * @param string $transactionId Identifiant de la transaction
+    * @param float|null $amount Montant à rembourser (null pour rembourser la totalité)
+    * @return Transaction
+    */
+   public function refundTransaction(string $transactionId, ?float $amount = null): Transaction;
+
+   /**
+    * Crée une méthode de paiement pour un client
+    *
+    * @param string $customerId Identifiant du client
+    * @param array $paymentMethodData Données de la méthode de paiement
+    * @return PaymentMethod
+    */
+   public function createPaymentMethod(string $customerId, array $paymentMethodData): PaymentMethod;
+
+   /**
+    * Récupère les méthodes de paiement d'un client
+    *
+    * @param string $customerId Identifiant du client
+    * @return array
+    */
+   public function getPaymentMethods(string $customerId): array;
+
+   /**
+    * Supprime une méthode de paiement
+    *
+    * @param string $paymentMethodId Identifiant de la méthode de paiement
+    * @return bool
+    */
+   public function deletePaymentMethod(string $paymentMethodId): bool;
+
+   /**
+    * Crée un abonnement pour un client
+    *
+    * @param string $customerId Identifiant du client
+    * @param string $planId Identifiant du plan
+    * @param array $options Options supplémentaires
+    * @return Subscription
+    */
+   public function createSubscription(string $customerId, string $planId, array $options = []): Subscription;
+
+   /**
+    * Récupère un abonnement
+    *
+    * @param string $subscriptionId Identifiant de l'abonnement
+    * @return Subscription|null
+    */
+   public function getSubscription(string $subscriptionId): ?Subscription;
+
+   /**
+    * Met à jour un abonnement
+    *
+    * @param string $subscriptionId Identifiant de l'abonnement
+    * @param array $data Données à mettre à jour
+    * @return Subscription
+    */
+   public function updateSubscription(string $subscriptionId, array $data): Subscription;
+
+   /**
+    * Annule un abonnement
+    *
+    * @param string $subscriptionId Identifiant de l'abonnement
+    * @param bool $atPeriodEnd Annuler à la fin de la période de facturation
+    * @return bool
+    */
+   public function cancelSubscription(string $subscriptionId, bool $atPeriodEnd = true): bool;
+
+   /**
+    * Gère un webhook entrant
+    *
+    * @param string $payload Contenu brut du webhook
+    * @param array $headers En-têtes de la requête
+    * @return array Données traitées du webhook
+    */
+   public function handleWebhook(string $payload, array $headers): array;
+}

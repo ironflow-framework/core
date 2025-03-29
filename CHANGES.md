@@ -1,6 +1,65 @@
 # Historique des Changements
 
-## [30/03/25]
+## [29/03/25]
+
+### Améliorations du système de composants
+
+- Mise à jour complète des composants existants avec un style cohérent
+  - Harmonisation des styles avec l'identité visuelle de la forge
+  - Ajout de variantes pour tous les composants UI (taille, couleur, état)
+  - Support complet des thèmes clair/sombre
+- Optimisation des performances des composants
+  - Réduction du temps de rendu des composants complexes
+  - Optimisation du chargement des ressources CSS/JS
+  - Mise en cache intelligente des composants fréquemment utilisés
+- Documentation complète des composants
+  - Génération d'une documentation automatique à partir des PHPDoc
+  - Exemples d'utilisation pour chaque composant
+  - Guide des meilleures pratiques
+
+### Sécurité globale du framework
+
+- Audit complet de la sécurité du framework
+  - Analyse des vulnérabilités potentielles
+  - Correction des failles de sécurité identifiées
+  - Renforcement de la protection contre les attaques XSS et CSRF
+- Implémentation de mécanismes de protection avancés
+  - Protection contre les attaques par force brute
+  - Limitation du taux de requêtes
+  - Détection des comportements suspects
+- Mise à jour des dépendances sensibles
+  - Mise à jour vers les dernières versions sécurisées des packages
+  - Réduction des dépendances non essentielles
+
+### Refactoring de la classe Controller
+
+- Correction des bugs identifiés dans la classe Controller
+  - Résolution des problèmes de gestion des erreurs
+  - Correction des fuites de mémoire potentielles
+  - Amélioration de la gestion des réponses HTTP
+- Ajout de nouvelles fonctionnalités
+  - Support amélioré pour les réponses JSON
+  - Méthodes utilitaires pour la gestion des redirections
+  - Support des validations intégrées
+- Optimisation des performances
+  - Réduction de l'empreinte mémoire
+  - Amélioration du temps de traitement des requêtes
+
+### Commandes CLI et Console
+
+- Révision complète de la commande MakeModel et MakeForm
+  - Support amélioré pour la génération de modèles avec relations
+  - Adaptation de la commande MakeForm pour différents cas d'utilisation
+  - Options pour personnaliser les champs générés
+- Amélioration du système de commandes
+  - Structure plus cohérente pour toutes les commandes
+  - Meilleure gestion des options et arguments
+  - Documentation améliorée des commandes
+- Adaptation des commandes d'authentification
+  - Harmonisation avec le style des autres commandes CLI
+  - Options avancées pour la configuration de l'authentification
+  - Support des différents types de guards
+
 
 ### Corrections du système Vibe et améliorations
 
@@ -34,8 +93,6 @@
   - Vérification des tailles et types de fichiers autorisés
   - Génération de noms de fichiers sécurisés pour éviter les conflits
   - Protection contre les chemins traversants et autres attaques
-
-## [29/03/25]
 
 ### Système de gestion des médias (Vibe)
 
