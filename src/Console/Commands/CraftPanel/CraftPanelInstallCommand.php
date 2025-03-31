@@ -1,13 +1,15 @@
 <?php
 
-namespace IronFlow\Console\Commands\Generator;
+namespace IronFlow\Console\Commands\CraftPanel;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Support\Filesystem;
+use IronFlow\Support\Facades\Filesystem;
+use IronFlow\Support\Facades\Config;
+use IronFlow\Support\Facades\DB;
 
 class CraftPanelInstallCommand extends Command
 {
@@ -17,163 +19,215 @@ class CraftPanelInstallCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Forcer l\'installation même si le CraftPanel existe déjà')
-            ->addOption('config', 'c', InputOption::VALUE_NONE, 'Générer uniquement la configuration')
-            ->addOption('routes', 'r', InputOption::VALUE_NONE, 'Générer uniquement les routes')
-            ->addOption('views', 'v', InputOption::VALUE_NONE, 'Générer uniquement les vues')
-            ->addOption('components', 'cp', InputOption::VALUE_NONE, 'Générer uniquement les composants');
+            ->addOption('db-name', null, InputOption::VALUE_OPTIONAL, 'Nom de la base de données', 'craftpanel')
+            ->addOption('db-user', null, InputOption::VALUE_OPTIONAL, 'Utilisateur de la base de données', 'root')
+            ->addOption('db-password', null, InputOption::VALUE_OPTIONAL, 'Mot de passe de la base de données', '')
+            ->addOption('theme', null, InputOption::VALUE_OPTIONAL, 'Thème à utiliser (light/dark)', 'light')
+            ->addOption('security-level', null, InputOption::VALUE_OPTIONAL, 'Niveau de sécurité (low/medium/high)', 'medium')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Forcer l\'installation même si le CraftPanel existe déjà');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $force = $input->getOption('force');
-        $configOnly = $input->getOption('config');
-        $routesOnly = $input->getOption('routes');
-        $viewsOnly = $input->getOption('views');
-        $componentsOnly = $input->getOption('components');
+        $io->title('Installation du CraftPanel');
 
-        // Vérifier si le CraftPanel est déjà installé
-        if (!$force && $this->isInstalled()) {
-            $io->error('Le CraftPanel est déjà installé. Utilisez --force pour réinstaller.');
+        // Vérification des prérequis
+        if (!$this->checkPrerequisites($io)) {
             return Command::FAILURE;
         }
 
-        // Déterminer les étapes à réaliser
-        $completeInstall = !($configOnly || $routesOnly || $viewsOnly || $componentsOnly);
+        // Configuration de la base de données
+        if (!$this->setupDatabase($io, $input)) {
+            return Command::FAILURE;
+        }
+
+        // Installation des fichiers
+        if (!$this->installFiles($io)) {
+            return Command::FAILURE;
+        }
+
+        // Configuration de l'authentification
+        if (!$this->setupAuthentication($io)) {
+            return Command::FAILURE;
+        }
+
+        // Installation des assets
+        if (!$this->installAssets($io, $input)) {
+            return Command::FAILURE;
+        }
+
+        $io->success('Installation du CraftPanel terminée avec succès !');
+        return Command::SUCCESS;
+    }
+
+    protected function checkPrerequisites(SymfonyStyle $io): bool
+    {
+        $io->section('Vérification des prérequis');
+
+        // Vérifier PHP version
+        if (version_compare(PHP_VERSION, '8.2.0', '<')) {
+            $io->error('PHP 8.2 ou supérieur est requis.');
+            return false;
+        }
+
+        // Vérifier les extensions PHP nécessaires
+        $requiredExtensions = ['pdo', 'pdo_mysql', 'json', 'mbstring'];
+        foreach ($requiredExtensions as $extension) {
+            if (!extension_loaded($extension)) {
+                $io->error("L'extension PHP {$extension} est requise.");
+                return false;
+            }
+        }
+
+        $io->success('✓ Prérequis vérifiés avec succès.');
+        return true;
+    }
+
+    protected function setupDatabase(SymfonyStyle $io, InputInterface $input): bool
+    {
+        $io->section('Configuration de la base de données');
+
+        $dbName = $input->getOption('db-name') ?? env('DB_DATABASE', 'ironflow');
 
         try {
-            if ($completeInstall || $configOnly) {
-                $this->generateConfig($io);
-            }
+            // Création de la base de données si elle n'existe pas
+            DB::getInstance()->query("CREATE DATABASE IF NOT EXISTS {$dbName}");
+            DB::getInstance()->query("USE {$dbName}");
 
-            if ($completeInstall || $routesOnly) {
-                $this->createRoutes($io);
-            }
+            // Création des tables nécessaires
+            $this->createTables();
 
-            if ($completeInstall || $viewsOnly) {
-                $this->createViews($io);
-            }
-
-            if ($completeInstall || $componentsOnly) {
-                $this->createComponents($io);
-            }
-
-            if ($completeInstall) {
-                $this->createDirectories($io);
-                $this->publishAssets($io);
-            }
-
-            $io->success('Installation du CraftPanel terminée avec succès !');
-            return Command::SUCCESS;
+            $io->success('✓ Base de données configurée avec succès.');
+            return true;
         } catch (\Exception $e) {
-            $io->error('Erreur lors de l\'installation : ' . $e->getMessage());
-            return Command::FAILURE;
+            $io->error("Erreur lors de la configuration de la base de données : " . $e->getMessage());
+            return false;
         }
     }
 
-    protected function isInstalled(): bool
+    protected function createTables(): void
     {
-        return file_exists(base_path('config/craftpanel.php'));
+        // Création des tables pour le CraftPanel
+        $query = "
+            CREATE TABLE IF NOT EXISTS craftpanel_settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                key_name VARCHAR(255) NOT NULL,
+                value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        ";
+        $stmt = DB::getInstance()->getConnection()->prepare($query);
+        $stmt->execute();
     }
 
-    protected function createDirectories(SymfonyStyle $io): void
+    protected function installFiles(SymfonyStyle $io): bool
     {
-        $directories = [
-            'config',
-            'resources/css/craftpanel',
-            'resources/js/craftpanel',
-            'resources/views/craftpanel/layouts',
-            'resources/views/craftpanel/components',
+        $io->section('Installation des fichiers');
+
+        $authConfigFile = config_path('auth.php');
+        if (file_exists($authConfigFile)) {
+            $authConfig = require $authConfigFile;
+            $authConfig['providers']['roles']['driver'] = 'database';
+            $authConfig['providers']['roles']['model'] = App\Models\Role::class;
+            $authConfig['providers']['permissions']['driver'] = 'database';
+            $authConfig['providers']['permissions']['model'] = App\Models\Permission::class;
+            file_put_contents($authConfigFile, '<?php return ' . var_export($authConfig, true) . ';');
+        } else {
+            $io->error("Erreur lors de la mise à jour du fichier {$authConfigFile}.");
+            
+        }
+
+        $files = [
+            'config/craftpanel.php' => base_path('config/craftpanel.php'),
+            'resources/views/craftpanel' => resource_path('views/craftpanel'),
+            'routes/craftpanel.php' => base_path('routes/craftpanel.php'),
         ];
 
-        foreach ($directories as $directory) {
-            Filesystem::ensureDirectoryExists(base_path($directory));
+        foreach ($files as $source => $destination) {
+            try {
+                Filesystem::copyDirectory($source, $destination);
+                $io->text("✓ Fichier {$destination} installé.");
+            } catch (\Exception $e) {
+                $io->error("Erreur lors de l'installation du fichier {$destination} : " . $e->getMessage());
+                return false;
+            }
         }
 
-        $io->note('Répertoires du CraftPanel créés.');
+        $io->success('✓ Fichiers installés avec succès.');
+
+        return true;
     }
 
-    protected function generateConfig(SymfonyStyle $io): void
+    protected function setupAuthentication(SymfonyStyle $io): bool
     {
-        $config = $this->generateConfigContent();
+        $io->section('Configuration de l\'authentification');
 
-        $configPath = base_path('config/craftpanel.php');
-        Filesystem::put($configPath, $config);
+        try {
+            // Intégration avec le système d'authentification existant
+            $authConfig = [
+                'guard' => 'craftpanel',
+                'provider' => 'users',
+                'middleware' => ['web', 'auth'],
+            ];
 
-        $io->success("Fichier de configuration CraftPanel généré à {$configPath}");
+            Config::set('auth.guards.craftpanel', $authConfig);
+
+            $io->success('✓ Authentification configurée avec succès.');
+            return true;
+        } catch (\Exception $e) {
+            $io->error("Erreur lors de la configuration de l'authentification : " . $e->getMessage());
+            return false;
+        }
     }
 
-    protected function generateConfigContent(): string
+    protected function installAssets(SymfonyStyle $io, InputInterface $input): bool
     {
-        return <<<PHP
-<?php
+        $io->section('Installation des assets');
 
-return [
-    'title' => env('APP_NAME', 'CraftPanel'),
-    'prefix' => 'craftpanel',
-    'middleware' => ['web', 'auth'],
-    // Configuration personnalisable
-];
-PHP;
+        try {
+            $theme = $input->getOption('theme');
+            $securityLevel = $input->getOption('security-level');
+
+            // Copie des assets selon le thème choisi
+            Filesystem::copyDirectory(
+                __DIR__ . '/../../../resources/assets/craftpanel/themes/' . $theme,
+                public_path('assets/craftpanel')
+            );
+
+            // Configuration de la sécurité
+            $this->configureSecurity($securityLevel);
+
+            $io->success('✓ Assets installés avec succès.');
+            return true;
+        } catch (\Exception $e) {
+            $io->error("Erreur lors de l'installation des assets : " . $e->getMessage());
+            return false;
+        }
     }
 
-    protected function publishAssets(SymfonyStyle $io): void
+    protected function configureSecurity(string $level): void
     {
-        Filesystem::copy(
-            __DIR__ . '/../../Resources/assets',
-            public_path('craftpanel')
-        );
+        $securityConfig = [
+            'low' => [
+                'session_lifetime' => 120,
+                'password_min_length' => 8,
+                'require_2fa' => false,
+            ],
+            'medium' => [
+                'session_lifetime' => 60,
+                'password_min_length' => 12,
+                'require_2fa' => true,
+            ],
+            'high' => [
+                'session_lifetime' => 30,
+                'password_min_length' => 16,
+                'require_2fa' => true,
+                'require_strong_password' => true,
+            ],
+        ];
 
-        $io->note('Assets du CraftPanel publiés.');
-    }
-
-    protected function createRoutes(SymfonyStyle $io): void
-    {
-        $routesContent = $this->generateRoutesContent();
-        $routesPath = base_path('routes/craftpanel.php');
-
-        Filesystem::put($routesPath, $routesContent);
-
-        $io->success("Routes du CraftPanel générées à {$routesPath}");
-    }
-
-    protected function generateRoutesContent(): string
-    {
-        return <<<'ROUTES'
-<?php
-
-use IronFlow\Http\Routing\Router;
-use IronFlow\CraftPanel\Controllers\CraftPanelController;
-
-Router::prefix('craftpanel')
-    ->middleware(['web', 'auth'])
-    ->group(function () {
-        Router::get('/', [CraftPanelController::class, 'dashboard'])
-            ->name('craftpanel.dashboard');
-
-        Router::resourceRoutes('models', CraftPanelController::class);
-    });
-ROUTES;
-    }
-
-    protected function createViews(SymfonyStyle $io): void
-    {
-        Filesystem::copy(
-            __DIR__ . '/../../Resources/views',
-            resource_path('views/craftpanel')
-        );
-
-        $io->note('Vues du CraftPanel créées.');
-    }
-
-    protected function createComponents(SymfonyStyle $io): void
-    {
-        Filesystem::copy(
-            __DIR__ . '/../../Resources/views/components',
-            resource_path('views/craftpanel/components')
-        );
-
-        $io->note('Composants du CraftPanel créés.');
+        Config::set('craftpanel.security', $securityConfig[$level]);
     }
 }

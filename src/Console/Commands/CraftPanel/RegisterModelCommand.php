@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Console\Commands\Generator;
+namespace IronFlow\Console\Commands\CraftPanel;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use IronFlow\Support\Filesystem;
-use IronFlow\Support\Str;
+use IronFlow\Support\Facades\Str;
 
 class RegisterModelCommand extends Command
 {

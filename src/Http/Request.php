@@ -4,11 +4,18 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
+use IronFlow\Session\SessionManager;
 use IronFlow\Validation\Validator;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
+use IronFlow\Support\Facades\Collection;
 use IronFlow\Support\Facades\Session;
-use IronFlow\Support\Collection;
 
+
+/**
+ * Classe Request
+ * 
+ * Cette classe étend SymfonyRequest et ajoute des fonctionnalités supplémentaires pour faciliter le traitement des requêtes HTTP.
+ */
 class Request extends SymfonyRequest
 {
    protected array $routeParameters = [];
@@ -23,6 +30,16 @@ class Request extends SymfonyRequest
       return static::createFromGlobals();
    }
 
+   /**
+    * Récupère le user agent du client
+    * 
+    * @return string|null
+    */
+   public function userAgent(): ?string
+   {
+      return $this->headers->get('User-Agent');
+   }
+   
    /**
     * Définit les paramètres de route
     *
@@ -103,6 +120,41 @@ class Request extends SymfonyRequest
    public function input(string $key, mixed $default = null): mixed
    {
       return $this->request->get($key, $this->query->get($key, $default));
+   }
+
+   /**
+    * Récupère les anciennes données de la requête
+    *
+    * @param string $key
+    * @param mixed $default
+    * @return mixed
+    */
+   public function old(?string $key = null, mixed $default = null): mixed
+   {
+      if ($key) {
+         return $this->session()->get('old', $key, $default);
+      }
+
+      return $this->session()->all();
+   }
+
+   /**
+    * Vérifie si un paramètre de la requête est rempli
+    *
+    * @param string $key
+    * @return bool
+    */
+   public function filled(string $key): bool
+   {
+      if ($this->request->has($key) && $this->request->get($key) !== null) {
+         return true;
+      }
+
+      if ($this->query->has($key) && $this->query->get($key) !== null) {
+         return true;
+      }
+
+      return false;
    }
 
    /**
@@ -239,6 +291,16 @@ class Request extends SymfonyRequest
    }
 
    /**
+    * Récupère la session
+    *
+    * @return SessionManager
+    */
+   public function session(): SessionManager
+   {
+      return Session::getInstance();
+   }
+
+   /**
     * Valide les données de la requête
     *
     * @param array $rules
@@ -306,16 +368,6 @@ class Request extends SymfonyRequest
    public function ip(): string
    {
       return $this->getClientIp();
-   }
-
-   /**
-    * Récupère le user agent du client
-    *
-    * @return string|null
-    */
-   public function userAgent(): ?string
-   {
-      return $this->headers->get('User-Agent');
    }
 
    /**

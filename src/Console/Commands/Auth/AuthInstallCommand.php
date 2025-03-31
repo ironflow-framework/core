@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Console\Commands\Auth;
 
-use IronFlow\Database\Connection;
 use IronFlow\Database\Migrations\Migration;
-use IronFlow\Database\Migrations\MigrationCreator;
+use IronFlow\Support\Facades\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -40,6 +39,8 @@ class AuthInstallCommand extends Command
 
         $authSystem = $this->askAuthSystem($io, $model);
 
+        $this->recap($io, $authSystem);
+
         // Create migrations
         $this->createMigrations($io);
 
@@ -53,8 +54,22 @@ class AuthInstallCommand extends Command
         $this->addRoutes();
 
         $io->success('Système d\'authentification installé avec succès.');
+        $io->note('Veuillez taper la commande suivante pour executer les migrations :');
+        $io->writeln('php forge migrate');
 
         return Command::SUCCESS;
+    }
+
+    private function recap(SymfonyStyle $io, array $authSystem)
+    {
+        $io->section('Récapitulatif');
+        $io->table(['Option', 'Valeur'], $authSystem);
+
+        if ($io->confirm('Voulez-vous continuer ?')) {
+            return;
+        }
+
+        return Command::FAILURE;
     }
 
     private function askAuthSystem(SymfonyStyle $io, string $model): array
@@ -82,7 +97,12 @@ class AuthInstallCommand extends Command
             'driver' => $driver,
             'guard' => $guard,
             'model' => $model,
-            'providers' => [],
+            'providers' => [
+                'users' => [
+                    'driver' => 'database',
+                    'model' => $model,
+                ], 
+            ],
             'passwords' => [
                 'users' => [
                     'provider' => 'users',
@@ -107,33 +127,37 @@ class AuthInstallCommand extends Command
 
     protected function createMigrations(SymfonyStyle $io): void
     {
-        $creator = new MigrationCreator(database_path('migrations/'));
-
-        $migration = $creator->create('create_users_tables', 'users', true);
-
-        $content = file_get_contents(database_path($path));
-
-        // Chercher la position après '$table->id();'
-        $pattern = '/\$table->id\(\);(\s*?)(\n|\r\n)/';
-
         // Create users table
-        \IronFlow\Database\Schema\Schema::createTable('users', function ($table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->string('remember_token')->nullable();
-            $table->timestamps();
-        });
+        $migration = <<<PHP
+         <?php
 
-        // Create password resets table
-        \IronFlow\Database\Schema\Schema::createTable('password_resets', function ($table) {
-            $table->string('email')->index();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+         use IronFlow\Database\Migrations\Migration;
+         use IronFlow\Database\Schema\Schema;
+         use IronFlow\Database\Schema\Anvil;
+
+         return new class extends Migration {
+            Schema::createTable('users', function (Anvil \$table) {
+                \$table->id();
+                \$table->string('name');
+                \$table->string('email')->unique();
+                \$table->string('password');
+                \$table->string('remember_token')->nullable();
+                \$table->timestamps();
+            });
+
+            Schema::createTable('password_resets', function (Anvil \$table) {
+                \$table->string('email')->index();
+                \$table->string('token');
+                \$table->timestamp('created_at')->nullable();
+            });
+
+        };
+PHP;
+
+        $file = Filesystem::put(base_path('database/migrations/' . now()->format('Y_m_d_His') . '_create_users_table.php'), $migration);
 
         $io->success('Migrations créées avec succès.');
+
     }
 
     protected function copyViews(): void
@@ -174,10 +198,10 @@ class AuthInstallCommand extends Command
 
     protected function addRoutes(): void
     {
-        $routes = file_get_contents(base_path('routes/web.php'));
-        $authRoutes = file_get_contents(__DIR__ . '/stubs/auth/routes.stub');
+        $routes = Filesystem::get(base_path('routes/web.php'));
+        $authRoutes = Filesystem::get(__DIR__ . '/stubs/auth/routes.stub');
 
-        file_put_contents(
+        Filesystem::put(
             base_path('routes/web.php'),
             $routes . "\n" . $authRoutes
         );
@@ -185,11 +209,11 @@ class AuthInstallCommand extends Command
 
     protected function copyStub(string $stub, string $target): void
     {
-        if (!file_exists(dirname($target))) {
-            mkdir(dirname($target), 0755, true);
+        if (Filesystem::exists(base_path($target))) {
+            Filesystem::makeDirectory(dirname($target), 0755, true);
         }
 
-        copy(
+        Filesystem::copy(
             __DIR__ . '/' . $stub,
             base_path($target)
         );

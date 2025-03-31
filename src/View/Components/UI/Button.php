@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\View\Components\UI;
 
-use IronFlow\View\Components\Component;
+use IronFlow\View\Component;
 
 class Button extends Component
 {

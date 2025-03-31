@@ -3,40 +3,29 @@
 declare(strict_types=1);
 
 return [
-   'name' => 'IronFlow',
+   'name' => env('APP_NAME', 'IronFlow'),
    'env' => env('APP_ENV', 'production'),
    'debug' => env('APP_DEBUG', false),
    'url' => env('APP_URL', 'http://localhost'),
-   'timezone' => 'Europe/Paris',
-   'locale' => 'fr',
+   'timezone' => env('APP_TIMEZONE', 'Europe/Paris'),
+   'locale' => env('APP_LOCALE', 'fr'),
    'key' => env('APP_KEY'),
    'version' => env('APP_VERSION', '1.0.0'),
 
    'providers' => [
-      // Providers système
-      IronFlow\Providers\AppServiceProvider::class,
-      IronFlow\Providers\RouteServiceProvider::class,
-      IronFlow\Providers\DatabaseServiceProvider::class,
-      IronFlow\Providers\ViewServiceProvider::class,
-      IronFlow\Providers\CacheServiceProvider::class,
-      IronFlow\Providers\TranslationServiceProvider::class,
-
-      // Providers de fonctionnalités
-      IronFlow\Payment\PaymentServiceProvider::class,
-      IronFlow\Channel\ChannelServiceProvider::class,
-      IronFlow\Framework\AI\AIServiceProvider::class,
+      config('services.providers'),
    ],
 
    'aliases' => [
-      'App' => IronFlow\Foundation\Application::class,
+      'App' => IronFlow\Core\Application::class,
       'Route' => IronFlow\Routing\Router::class,
       'DB' => IronFlow\Database\Connection::class,
       'View' => IronFlow\View\TwigView::class,
       'Cache' => IronFlow\Cache\Hammer\HammerManager::class,
-      'Translator' => IronFlow\Support\Translator::class,
+      'Translator' => IronFlow\Support\Facades\Trans::class,
    ],
 
-   'fallback_locale' => 'en',
-   'faker_locale' => 'fr_FR',
-   'cipher' => 'AES-256-CBC',
+   'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+   'faker_locale' => env('APP_FAKER_LOCALE', 'fr_FR'),
+   'cipher' => env('APP_CIPHER', 'AES-256-CBC'),
 ];

@@ -1,9 +1,0 @@
-<?php
-
-declare(strict_types=1);
-
-namespace IronFlow\Foundation\Exceptions;
-
-use Psr\Container\NotFoundExceptionInterface;
-
-class NotFoundException extends \Exception implements NotFoundExceptionInterface {}

@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-use IronFlow\Routing\Router;
+use IronFlow\Support\Facades\Route;
 
-$router = new Router();
-
-// Routes API
-$router->get('/api/health', function () {
+Route::get('/api/health', function () {
    return ['status' => 'ok'];
 });
 
-return $router;
+

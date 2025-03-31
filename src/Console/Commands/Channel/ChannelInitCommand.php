@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace IronFlow\Console\Commands\Channel;
 
-use IronFlow\Console\Command;
+
+use IronFlow\Support\Filesystem;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Support\Facades\Config;
-use IronFlow\Support\Filesystem;
+use Symfony\Component\Console\Command\Command;
 
 /**
  * Commande pour initialiser le système de channel
@@ -31,10 +31,7 @@ class ChannelInitCommand extends Command
     */
    protected function configure(): void
    {
-      $this
-         ->setName(self::$defaultName)
-         ->setDescription(self::$defaultDescription)
-         ->setHelp('Cette commande initialise le système de channel avec les providers et les configurations nécessaires.');
+      $this->setHelp('Cette commande initialise le système de channel avec les providers et les configurations nécessaires.');
    }
 
    /**
@@ -518,7 +515,7 @@ WEBSOCKET_SECURE=false
 # SOCKETIO_PATH=/socket.io
 EOT;
 
-      Filesystem::append($envFile, $envVars);
+      Filesystem::put($envFile, $envVars);
       $io->success('Fichier .env mis à jour avec succès !');
    }
 }

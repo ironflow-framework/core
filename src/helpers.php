@@ -261,11 +261,11 @@ if (!function_exists('session')) {
    /**
     * Retourne l'instance de session.
     *
-    * @return IronFlow\Http\Session
+    * @return IronFlow\Session\SessionManager
     */
-   function session(): IronFlow\Http\Session
+   function session(): IronFlow\Session\SessionManager
    {
-      return new IronFlow\Http\Session();
+      return IronFlow\Support\Facades\Session::getInstance();
    }
 }
 
@@ -297,11 +297,11 @@ if (!function_exists('logger')) {
    /**
     * Retourne l'instance de Log.
     *
-    * @return IronFlow\Logger\Log
+    * @return IronFlow\Core\Logger\LogManager
     */
-   function logger(): IronFlow\Logger\Log
+   function logger(): IronFlow\Core\Logger\LogManager
    {
-      return IronFlow\Logger\Log::getInstance();
+      return IronFlow\Support\Facades\Log::getInstance();
    }
 }
 
@@ -346,6 +346,45 @@ if (!function_exists('url')) {
       return rtrim($base, '/') . '/' . ltrim($path, '/');
    }
 }
+
+if (!function_exists('now')) {
+   /**
+    * Retourne la date et l'heure actuelles.
+    *
+    * @return Carbon\Carbon
+    */
+   function now(): Carbon\Carbon
+   {
+      return Carbon\Carbon::now();
+   }
+}
+
+if (!function_exists('Carbon')) {
+   /**
+    * Retourne l'instance de Carbon.
+    *
+    * @return Carbon\Carbon
+    */
+   function Carbon(): Carbon\Carbon
+   {
+      return new Carbon\Carbon();
+   }
+}
+
+if (!function_exists('request')) {
+   /**
+    * Retourne l'instance de la requête.
+    *
+    * @return IronFlow\Http\Request
+    */
+   function request(): IronFlow\Http\Request
+   {
+      return new IronFlow\Http\Request();
+   }
+}
+
+
+
 
 // Initialisation des classes statiques
 IronFlow\Support\Facades\Storage::initialize();

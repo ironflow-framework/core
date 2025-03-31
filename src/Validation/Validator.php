@@ -5,33 +5,74 @@ declare(strict_types=1);
 namespace IronFlow\Validation;
 
 use IronFlow\Support\Utils\Str;
+use IronFlow\Validation\Rules\Email;
 
-class Validator
+abstract class Validator
 {
    protected array $data = [];
    protected array $rules = [];
    protected array $messages = [];
    protected array $errors = [];
    protected array $customRules = [];
+   protected array $ruleClasses = [];
 
    public function __construct(array $data = [], array $rules = [], array $messages = [])
    {
       $this->data = $data;
-      $this->rules = $rules;
-      $this->messages = $messages;
+      $this->rules = $rules ?: $this->rules();
+      $this->messages = $messages ?: $this->messages();
+      $this->registerDefaultRules();
    }
 
+   abstract public function rules(): array;
+
+   abstract public function messages(): array;
+
+   /**
+    * Enregistre les règles par défaut
+    */
+   protected function registerDefaultRules(): void
+   {
+      $this->ruleClasses = [
+         'required' => Rules\Required::class,
+         'email' => Rules\Email::class,
+         'numeric' => Rules\Number::class,
+         'min' => Rules\StringLength::class,
+         'max' => Rules\StringLength::class,
+         'date' => Rules\Date::class,
+         'regex' => Rules\Regex::class,
+         'in_array' => Rules\InArray::class,
+         'match' => Rules\IsMatch::class,
+         'color' => Rules\ColorValidator::class,
+         'file' => Rules\FileValidator::class,
+      ];
+   }
+
+   /**
+    * Crée une instance de Validator
+    *
+    * @param array $data Données du formulaire
+    * @param array $rules Règles de validation
+    * @param array $messages Messages de validation
+    * @return self
+    */
    public static function make(array $data = [], array $rules = [], array $messages = []): self
    {
-      return new self($data, $rules, $messages);
+      return new static($data, $rules, $messages);
    }
 
-   public function validate($value = null, array $data = []): bool
+   /**
+    * Valide les données
+    *
+    * @param array|null $data Données à valider (optionnel)
+    * @return bool True si la validation réussit, false sinon
+    */
+   public function validate(?array $data = null): bool
    {
       $this->errors = [];
 
-      if ($value !== null) {
-         return $this->validateValue($value, $data);
+      if ($data !== null) {
+         $this->data = $data;
       }
 
       foreach ($this->rules as $field => $rules) {
@@ -47,14 +88,18 @@ class Validator
                }
             }
 
-            $method = 'validate' . ucfirst($rule);
+            $ruleClass = $this->getRuleClass($rule);
 
-            if (method_exists($this, $method)) {
-               if (!$this->$method($field, $parameters)) {
-                  $this->addError($field, $rule, $parameters);
+            if ($ruleClass) {
+               $ruleInstance = new $ruleClass($parameters);
+               $ruleInstance->setAttribute('field', $field);
+               $ruleInstance->setAttribute('value', $this->getValue($field));
+
+               if (!$ruleInstance->validate($field, $this->getValue($field), $parameters, $this->data)) {
+                  $this->addError($field, $rule, $parameters, $ruleInstance);
                }
             } elseif (isset($this->customRules[$rule])) {
-               if (!$this->customRules[$rule]($field, $this->getValue($field), $parameters)) {
+               if (!$this->customRules[$rule]($field, $this->getValue($field), $parameters, $this->data)) {
                   $this->addError($field, $rule, $parameters);
                }
             }
@@ -64,37 +109,81 @@ class Validator
       return empty($this->errors);
    }
 
-   protected function validateValue($value, array $data = []): bool
+   /**
+    * Récupère la classe de règle correspondante
+    */
+   protected function getRuleClass(string $rule): ?string
    {
-      $this->data = $data;
-      return $this->validate($value);
+      return $this->ruleClasses[$rule] ?? null;
    }
 
-   public function addRule(string $name, callable $callback): self
+   /**
+    * Enregistre une nouvelle règle personnalisée
+    */
+   public function addRule(string $name, string $class): self
+   {
+      $this->ruleClasses[$name] = $class;
+      return $this;
+   }
+
+   /**
+    * Enregistre une règle personnalisée avec une fonction de callback
+    */
+   public function addCustomRule(string $name, callable $callback): self
    {
       $this->customRules[$name] = $callback;
       return $this;
    }
 
+   /**
+    * Renvoie toutes les erreurs
+    */
    public function errors(): array
    {
       return $this->errors;
    }
 
+   /**
+    * Récupère la valeur d'un champ
+    */
    protected function getValue(string $field)
    {
       return $this->data[$field] ?? null;
    }
 
-   protected function addError(string $field, string $rule, array $parameters = []): void
+   /**
+    * Ajoute une erreur pour un champ
+    */
+   protected function addError(string $field, string $rule, array $parameters = [], ?object $ruleInstance = null): void
    {
       $message = $this->messages[$field . '.' . $rule]
          ?? $this->messages[$field]
-         ?? $this->getDefaultMessage($field, $rule, $parameters);
+         ?? ($ruleInstance && method_exists($ruleInstance, 'getMessage') ? $ruleInstance->getMessage() : $this->getDefaultMessage($field, $rule, $parameters));
 
-      $this->errors[$field][] = $message;
+      $this->errors[$field][] = $this->formatMessage($message, $field, $parameters);
    }
 
+   /**
+    * Formate un message d'erreur en remplaçant les variables
+    */
+   protected function formatMessage(string $message, string $field, array $parameters): string
+   {
+      $replacements = [
+         ':field' => $field,
+         ':min' => $parameters[0] ?? '',
+         ':max' => $parameters[0] ?? '',
+      ];
+
+      foreach ($replacements as $key => $value) {
+         $message = str_replace($key, $value, $message);
+      }
+
+      return $message;
+   }
+
+   /**
+    * Obtient le message d'erreur par défaut pour une règle
+    */
    protected function getDefaultMessage(string $field, string $rule, array $parameters): string
    {
       $messages = [
@@ -108,74 +197,69 @@ class Validator
          'url' => 'Le champ :field doit être une URL valide.',
          'confirmed' => 'La confirmation du champ :field ne correspond pas.',
          'date' => 'Le champ :field doit être une date valide.',
+         'regex' => 'Le format du champ :field est invalide.',
+         'in_array' => 'La valeur sélectionnée pour :field est invalide.',
+         'match' => 'Le champ :field ne correspond pas.',
+         'color' => 'Le champ :field doit être une couleur valide.',
+         'file' => 'Le champ :field doit être un fichier valide.',
       ];
 
-      $message = $messages[$rule] ?? 'Le champ :field est invalide.';
-      $replacements = [
-         ':field' => $field,
-         ':min' => $parameters[0] ?? '',
-         ':max' => $parameters[0] ?? '',
-      ];
-
-      return Str::replace($message, ':field', $replacements[':field']);
+      return $messages[$rule] ?? 'Le champ :field est invalide.';
    }
 
-   // Règles de validation de base
-   protected function validateRequired(string $field): bool
+   /**
+    * Vérifie si le champ existe dans les données
+    */
+   public function hasField(string $field): bool
    {
-      $value = $this->getValue($field);
-      return !empty($value) || $value === '0' || $value === 0;
+      return isset($this->data[$field]);
    }
 
-   protected function validateEmail(string $field): bool
+   /**
+    * Vérifie si le champ est vide
+    */
+   public function isEmpty(string $field): bool
    {
-      return filter_var($this->getValue($field), FILTER_VALIDATE_EMAIL) !== false;
+      return empty($this->data[$field]);
    }
 
-   protected function validateMin(string $field, array $parameters): bool
+   /**
+    * Récupère la valeur d'un champ avec une valeur par défaut
+    */
+   public function get(string $field, $default = null)
    {
-      $value = $this->getValue($field);
-      $min = $parameters[0] ?? 0;
-      return strlen($value) >= $min;
+      return $this->data[$field] ?? $default;
    }
 
-   protected function validateMax(string $field, array $parameters): bool
+   /**
+    * Vérifie si la validation a échoué
+    */
+   public function fails(): bool
    {
-      $value = $this->getValue($field);
-      $max = $parameters[0] ?? PHP_INT_MAX;
-      return strlen($value) <= $max;
+      return !$this->validate();
    }
 
-   protected function validateNumeric(string $field): bool
+   /**
+    * Vérifie si la validation a réussi
+    */
+   public function passes(): bool
    {
-      return is_numeric($this->getValue($field));
+      return $this->validate();
    }
 
-   protected function validateAlpha(string $field): bool
+   /**
+    * Récupère le premier message d'erreur pour un champ
+    */
+   public function first(string $field): ?string
    {
-      return ctype_alpha($this->getValue($field));
+      return $this->errors[$field][0] ?? null;
    }
 
-   protected function validateAlphaNum(string $field): bool
+   /**
+    * Récupère tous les messages d'erreur pour un champ
+    */
+   public function getErrors(string $field): array
    {
-      return ctype_alnum($this->getValue($field));
-   }
-
-   protected function validateUrl(string $field): bool
-   {
-      return filter_var($this->getValue($field), FILTER_VALIDATE_URL) !== false;
-   }
-
-   protected function validateConfirmed(string $field): bool
-   {
-      $value = $this->getValue($field);
-      $confirmation = $this->getValue($field . '_confirmation');
-      return $value === $confirmation;
-   }
-
-   protected function validateDate(string $field): bool
-   {
-      $value = $this->getValue($field);
-      return strtotime($value) !== false;
+      return $this->errors[$field] ?? [];
    }
 }

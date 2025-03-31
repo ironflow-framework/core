@@ -235,7 +235,7 @@ class Anvil
     */
    public function enum(string $name, array $values): Column
    {
-      return $this->addColumn("enum('" . implode("','", $values) . "')", $name );
+      return $this->addColumn("enum('" . implode("','", $values) . "')", $name);
    }
 
 

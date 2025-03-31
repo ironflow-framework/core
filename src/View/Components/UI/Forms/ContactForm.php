@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Forms;
+namespace IronFlow\View\Components\UI\Forms;
 
-use IronFlow\Furnace\Form;
-use IronFlow\Furnace\Components\Input;
-use IronFlow\Furnace\Components\Textarea;
+use IronFlow\Forms\Furnace\Form;
+use IronFlow\Forms\Furnace\Components\Input;
+use IronFlow\Forms\Furnace\Components\Textarea;
 
 class ContactForm extends Form
 {

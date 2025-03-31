@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace;
+namespace IronFlow\Forms\Furnace;
 
-use IronFlow\View\Components\Component;
+use IronFlow\View\Component;
 
 abstract class Field extends Component
 {

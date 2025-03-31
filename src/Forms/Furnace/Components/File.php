@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Components;
+namespace IronFlow\Forms\Furnace\Components;
 
-use IronFlow\Furnace\Field;
+use IronFlow\Forms\Furnace\Field;
 
 class File extends Field
 {

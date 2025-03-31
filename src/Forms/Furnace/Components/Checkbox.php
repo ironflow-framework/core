@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Components;
+namespace IronFlow\Forms\Furnace\Components;
 
-use IronFlow\Furnace\ChoiceField;
+use IronFlow\Forms\Furnace\ChoiceField;
 
 class Checkbox extends ChoiceField
 {

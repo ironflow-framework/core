@@ -1,13 +1,13 @@
 <?php
 
-namespace IronFlow\Console\Commands\Generator;
+namespace IronFlow\Console\Commands\CraftPanel;
 
-use IronFlow\Support\Config;
+use IronFlow\Support\Facades\Config;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Support\Hasher;
+use IronFlow\Support\Security\Hasher as SecurityHasher;
 use IronFlow\Validation\Validator;
 
 class MakeAdminCommand extends Command
@@ -58,19 +58,14 @@ class MakeAdminCommand extends Command
         } while (!$validator->validate('name', $name));
 
         // Confirmation
-        $io->section('Récapitulatif');
-        $confirm = $io->confirm(sprintf(
-            "Voulez-vous créer un administrateur avec les détails suivants ?\n- Email: %s\n- Nom: %s",
-            $email,
-            $name
-        ), false);
-
-        if (!$confirm) {
-            $io->warning('Création de l\'administrateur annulée.');
-            return Command::FAILURE;
-        }
+        $this->recap($io, [
+            ['Email', $email],
+            ['Nom', $name],
+            ['Mot de passe', $password]
+        ]);
 
         try {
+            $this->createRole('admin', $io);
             $user = $this->createAdmin($email, $password, $name);
             $this->assignAdminPermissions($user);
 
@@ -92,6 +87,32 @@ class MakeAdminCommand extends Command
         }
     }
 
+    private function recap(SymfonyStyle $io, array $admin)
+    {
+        $io->section('Récapitulatif');
+        $io->table(['Champ', 'Valeur'], $admin);
+
+        if ($io->confirm('Voulez-vous continuer ?')) {
+            $io->warning('Création de l\'administrateur annulée.');
+            return;
+        }
+
+        return Command::FAILURE;
+    }
+
+    private function createRole(string $name, SymfonyStyle $io)
+    {
+        $roleClass = Config::get('auth.providers.roles.model');
+
+        if (!$roleClass) {
+            $io->error('Le modèle de rôle n\'est pas configuré.');
+            return;
+        }
+
+        $roleClass::create([
+            'name' => $name,
+        ]);
+    }
 
     private function createAdmin(string $email, string $password, string $name)
     {
@@ -100,7 +121,7 @@ class MakeAdminCommand extends Command
         return $userClass::create([
             'name' => $name,
             'email' => $email,
-            'password' => Hasher::hash($password),
+            'password' => SecurityHasher::hash($password),
             'role' => 'admin'
         ]);
     }

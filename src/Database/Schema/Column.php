@@ -66,6 +66,27 @@ class Column
    protected ?string $comment = null;
 
    /**
+    * Table référencée par la colonne
+    *
+    * @var string|null
+    */
+   protected ?string $constrained = null;
+
+   /**
+    * Action à effectuer lors de la suppression de la colonne
+    *
+    * @var string|null
+    */
+   protected ?string $onDelete = null;
+   
+   /**
+    * Action à effectuer lors de la mise à jour de la colonne
+    *
+    * @var string|null
+    */
+   protected ?string $onUpdate = null;
+
+   /**
     * Constructeur
     *
     * @param string $type Type de la colonne
@@ -127,6 +148,42 @@ class Column
    }
 
    /**
+    * Définit la table référencée par la colonne
+    *
+    * @param array|null $reference [table, column]
+    * @return $this
+    */
+   public function constrained(?array $reference = null): self
+   {
+      $this->constrained = $reference;
+      return $this;
+   }
+
+   /**
+    * Définit l'action à effectuer lors de la suppression de la colonne
+    *
+    * @param string $action Action à effectuer
+    * @return $this
+    */
+   public function onDelete(string $action): self
+   {
+      $this->onDelete = $action;
+      return $this;
+   }
+
+   /**
+    * Définit l'action à effectuer lors de la mise à jour de la colonne
+    *
+    * @param string $action Action à effectuer
+    * @return $this
+    */
+   public function onUpdate(string $action): self
+   {
+      $this->onUpdate = $action;
+      return $this;
+   }
+
+   /**
     * Convertit la colonne en définition SQL
     *
     * @param string $driver Type de base de données
@@ -169,6 +226,11 @@ class Column
       // Ajouter un commentaire si applicable
       if ($this->comment !== null && $driver === 'mysql') {
          $sql .= " COMMENT '" . addslashes($this->comment) . "'";
+      }
+
+
+      if ($this->constrained !== null) {
+         $sql .= " REFERENCES {$this->constrained[0]}({$this->constrained[1]})";
       }
 
       return $sql;

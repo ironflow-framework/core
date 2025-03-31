@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\View;
 
-use IronFlow\Application\Application;
-use IronFlow\Support\Config;
+use IronFlow\Support\Facades\Config;
 use IronFlow\View\Twig\ViteExtension;
 use IronFlow\View\Twig\RouteExtension;
 use Twig\Environment;
@@ -91,15 +90,13 @@ class TwigView implements ViewInterface
          $templatePath = str_replace('.', '/', $template) . '.twig';
          error_log("Chemin complet du template: " . $templatePath);
          error_log("Loader disponible: " . ($this->twig->getLoader() ? 'Oui' : 'Non'));
-         error_log("Dossiers de recherche du loader: " . print_r($this->twig->getLoader()->getPaths(), true));
+         error_log("Dossiers de recherche du loader: " . print_r($this->twig->getLoader()->getSourceContext($templatePath)->getPath(), true));
 
          if (!$this->twig->getLoader()->exists($templatePath)) {
             error_log("ERREUR: Le template n'existe pas: " . $templatePath);
             error_log("Liste des templates disponibles:");
-            $paths = $this->twig->getLoader()->getPaths();
-            foreach ($paths as $path) {
-               error_log("- " . $path);
-            }
+            $paths = $this->twig->getLoader()->getSourceContext($templatePath)->getPath();
+            error_log("- " . $paths);
             throw new \RuntimeException("Le template n'existe pas: " . $templatePath);
          }
 

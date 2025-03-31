@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
-use IronFlow\Support\Flash;
+use IronFlow\Support\Facades\Flash;
 use IronFlow\View\TwigView;
 
 class Response
@@ -328,7 +328,7 @@ class Response
     */
    public function withSuccess(string $message): self
    {
-      Flash::success($message);
+      flash('success', $message);
       return $this;
    }
 
@@ -338,9 +338,9 @@ class Response
     * @param string $message
     * @return self
     */
-   public function withError(string $message): self
+   public function withErrors(array $errors): self
    {
-      Flash::error($message);
+      flash('errors', $errors);
       return $this;
    }
 
@@ -352,7 +352,7 @@ class Response
     */
    public function withInfo(string $message): self
    {
-      Flash::info($message);
+      flash('info', $message);
       return $this;
    }
 
@@ -364,7 +364,18 @@ class Response
     */
    public function withWarning(string $message): self
    {
-      Flash::warning($message);
+      flash('warning', $message);
+      return $this;
+   }
+
+   /**
+    * Stocke les données de la requête en session flash
+    *
+    * @return self
+    */
+   public function withInput(): self
+   {
+      flash('input', $_POST);
       return $this;
    }
 

@@ -233,9 +233,9 @@ class SetupCommand extends Command
       string $cacheSystem,
       bool $useCraftPanel,
       array $additionalOptions,
-      OutputInterface $output = null
+      ?OutputInterface $output = null
    ): void {
-      $io->section('Application de la configuration...');
+      $io->section('Configuration de l\'application...');
 
       // Mise à jour du fichier .env
       $this->updateEnvFile($io, $appName, $appType, $dbConfig, $authSystem, $cacheSystem, $additionalOptions);
@@ -321,14 +321,7 @@ class SetupCommand extends Command
    {
       $io->text('Mise à jour de la configuration de l\'application...');
 
-      $configPath = config_path('app.php');
-      $config = include $configPath;
-
-      // Mise à jour de la configuration
-      $config['name'] = $appName;
-      $config['locale'] = $additionalOptions['i18n'] ? ($additionalOptions['default_locale'] ?? 'fr') : 'fr';
-
-      Filesystem::put($configPath, "<?php\n\nreturn " . var_export($config, true) . ";\n");
+      Filesystem::put(config_path('app.php'), $this->getAppConfigStub());
    }
 
    private function updateDatabaseConfig(SymfonyStyle $io, array $dbConfig): void
@@ -467,7 +460,44 @@ class SetupCommand extends Command
       $io->text('Génération de la structure de base pour l\'application web...');
 
       // Création des fichiers de base (contrôleurs, vues, routes)
+      Filesystem::makeDirectory(base_path('app/Components'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Controllers'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Helpers'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Models'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Middleware'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Services'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Validation'), 0755, true);
+      Filesystem::makeDirectory(base_path('app/Providers'), 0755, true);
+
+      Filesystem::makeDirectory(base_path('bootstrap'), 0755, true);
+      Filesystem::makeDirectory(base_path('cache'), 0755, true);
+      Filesystem::makeDirectory(base_path('config'), 0755, true);
+      Filesystem::makeDirectory(base_path('database/migrations'), 0755, true);
+      Filesystem::makeDirectory(base_path('database/seeders'), 0755, true);
+      Filesystem::makeDirectory(base_path('database/factories'), 0755, true);
+
+      Filesystem::makeDirectory(base_path('resources/css'), 0755, true);
+      Filesystem::makeDirectory(base_path('resources/js'), 0755, true);
+      Filesystem::makeDirectory(base_path('resources/views'), 0755, true);
+      Filesystem::makeDirectory(base_path('resources/views/layouts'), 0755, true);
+      Filesystem::makeDirectory(base_path('resources/views/components'), 0755, true);
+      Filesystem::makeDirectory(base_path('resources/views/errors'), 0755, true);
+
+      Filesystem::makeDirectory(base_path('routes'), 0755, true);
+      Filesystem::makeDirectory(base_path('public/assets'), 0755, true);
+      Filesystem::makeDirectory(base_path('storage/'), 0755, true);
+      Filesystem::makeDirectory(base_path('storage/uploads'), 0755, true);
+      Filesystem::makeDirectory(base_path('storage/logs'), 0755, true);
+      Filesystem::makeDirectory(base_path('storage/sessions'), 0755, true);
+      Filesystem::makeDirectory(base_path('storage/cache'), 0755, true);
+
+      Filesystem::makeDirectory(base_path('tests'), 0755, true);
+      Filesystem::makeDirectory(base_path('tests/Feature'), 0755, true);
+      Filesystem::makeDirectory(base_path('tests/Unit'), 0755, true);
+
       // Code pour générer les fichiers web de base
+      Filesystem::put(app_path('Controllers/WelcomeController.php'), $this->getWelcomeControllerStub());
+      Filesystem::put(base_path('routes/web.php'), $this->getWebRoutesStub());
    }
 
    private function generateApiBase(SymfonyStyle $io): void
@@ -475,7 +505,7 @@ class SetupCommand extends Command
       $io->text('Génération de la structure de base pour l\'API...');
 
       // Création des fichiers de base pour l'API (contrôleurs, routes, etc.)
-      // Code pour générer les fichiers API de base
+      Filesystem::put(base_path('routes/api.php'), $this->getApiRoutesStub());
    }
 
    private function generateAuthFiles(SymfonyStyle $io, string $driver): void
@@ -492,5 +522,114 @@ class SetupCommand extends Command
 
       // Génération des fichiers pour le CraftPanel
       // Code pour générer les fichiers CraftPanel
+   }
+
+   private function getAppConfigStub(): string
+   {
+      return <<<PHP
+      <?php
+
+      return [
+      'name' => env('APP_NAME', 'IronFlow'),
+      'env' => env('APP_ENV', 'production'),
+      'debug' => env('APP_DEBUG', false),
+      'url' => env('APP_URL', 'http://localhost'),
+      'timezone' => env('APP_TIMEZONE', 'Europe/Paris'),
+      'locale' => env('APP_LOCALE', 'fr'),
+      'key' => env('APP_KEY'),
+      'version' => env('APP_VERSION', '1.0.0'),
+
+      'providers' => [
+         // Providers système
+         IronFlow\Providers\AppServiceProvider::class,
+         IronFlow\Providers\RouteServiceProvider::class,
+         IronFlow\Providers\DatabaseServiceProvider::class,
+         IronFlow\Providers\ViewServiceProvider::class,
+         IronFlow\Providers\CacheServiceProvider::class,
+         IronFlow\Providers\TranslationServiceProvider::class,
+
+         // Providers de fonctionnalités
+         IronFlow\Payment\PaymentServiceProvider::class,
+         IronFlow\Channel\ChannelServiceProvider::class,
+         IronFlow\Services\AI\AIServiceProvider::class,
+      ],
+
+      'aliases' => [
+         'App' => IronFlow\Core\Application::class,
+         'Route' => IronFlow\Routing\Router::class,
+         'DB' => IronFlow\Database\Connection::class,
+         'View' => IronFlow\View\TwigView::class,
+         'Cache' => IronFlow\Cache\Hammer\HammerManager::class,
+         'Translator' => IronFlow\Support\Facades\Trans::class,
+      ],
+
+      'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+      'faker_locale' => env('APP_FAKER_LOCALE', 'fr_FR'),
+      'cipher' => env('APP_CIPHER', 'AES-256-CBC'),
+   ];
+PHP;
+   }
+
+
+   private function getWelcomeControllerStub(): string
+   {
+      return <<<PHP
+      <?php
+
+namespace App\Controllers;
+
+use IronFlow\Http\Controller;
+use IronFlow\Http\Response;
+
+class WelcomeController extends Controller
+{
+   /**
+    * Affiche la page d'accueil
+    *
+    * @return \IronFlow\Http\Response
+    */
+   public function index(): Response
+   {
+      return \$this->view('welcome'); // Affiche la vue resources/views/welcome.twig
+   }
+}
+   
+}
+PHP;
+   }
+
+   private function getWebRoutesStub(): string
+   {
+      return <<<PHP
+      <?php
+
+      use App\Controllers\WelcomeController;
+      use IronFlow\Routing\Router;
+
+      Router::get('/', [WelcomeController::class, 'index']);
+      
+      // Ajoutez d'autres routes ici...
+
+      PHP;
+   }
+
+   private function getApiRoutesStub(): string
+   {
+      return <<<PHP
+      <?php
+
+      use IronFlow\Routing\Router;
+
+      Router::get('/api', function () {
+         return 'Hello, World!';
+      });
+
+      Router::get('/api/health', function () {
+         return 'OK';
+      });
+
+      // Ajoutez d'autres routes ici...
+
+      PHP;
    }
 }

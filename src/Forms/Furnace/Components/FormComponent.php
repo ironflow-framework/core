@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Components;
+namespace IronFlow\Forms\Furnace\Components;
 
 abstract class FormComponent
 {

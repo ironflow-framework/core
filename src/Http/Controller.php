@@ -66,6 +66,24 @@ abstract class Controller
       return $this;
    }
 
+   protected function withErrors(array $errors): self
+   {
+      $this->with('errors', $errors);
+      return $this;
+   }
+
+   protected function withOld(array $old): self
+   {
+      $this->with('old', $old);
+      return $this;
+   }
+
+   protected function withInput(): self
+   {
+      $this->withOld($_POST);
+      return $this;
+   }
+
    protected function abort(int $status, string $message = "Page non trouvée"): void
    {
       $this->response->setStatusCode($status)->setContent($message);

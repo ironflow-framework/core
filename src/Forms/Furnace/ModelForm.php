@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace;
+namespace IronFlow\Forms\Furnace;
 
-use IronFlow\View\Components\Component;
+use IronFlow\View\Component;
 
 use IronFlow\Database\Model;
 use IronFlow\Support\Helpers;
 use IronFlow\Furnace\Traits\HasForm;
 
-use IronFlow\Furnace\Components\Checkbox;
-use IronFlow\Furnace\Components\ColorPicker;
-use IronFlow\Furnace\Components\DatePicker;
-use IronFlow\Furnace\Components\File;
-use IronFlow\Furnace\Components\Input;
-use IronFlow\Furnace\Components\Radio;
-use IronFlow\Furnace\Components\Select;
-use IronFlow\Furnace\Components\Textarea;
+use IronFlow\Forms\Furnace\Components\Checkbox;
+use IronFlow\Forms\Furnace\Components\ColorPicker;
+use IronFlow\Forms\Furnace\Components\DatePicker;
+use IronFlow\Forms\Furnace\Components\File;
+use IronFlow\Forms\Furnace\Components\Input;
+use IronFlow\Forms\Furnace\Components\Radio;
+use IronFlow\Forms\Furnace\Components\Select;
+use IronFlow\Forms\Furnace\Components\Textarea;
 use IronFlow\View\Components\UI\Button;
 
 class ModelForm extends Component
