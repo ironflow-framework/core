@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Forms\Checkout;
+namespace IronFlow\View\Components\UI\Forms\Checkout;
 
-use IronFlow\Furnace\Form;
-use IronFlow\Furnace\Components\Input;
-use IronFlow\Furnace\Components\Select;
+
+use IronFlow\Forms\Furnace\Components\Input;
+use IronFlow\Forms\Furnace\Components\Select;
+use IronFlow\Forms\Furnace\Form;
 
 class CheckoutForm extends Form
 {

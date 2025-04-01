@@ -50,9 +50,64 @@ abstract class ServiceProvider
    /**
     * Publie des fichiers depuis le fournisseur vers l'application
     */
-   protected function publishes(array $paths, string $group = null): void
+   protected function publishes(array $paths, ?string $group = null): void
    {
-      // TODO: Implement publishes() method.
+      if (empty($paths)) {
+         return;
+      }
+
+      $publishPath = $this->app->basePath('vendor/publishes');
+
+      if (!is_dir($publishPath)) {
+         mkdir($publishPath, 0755, true);
+      }
+
+      foreach ($paths as $from => $to) {
+         $fromPath = $this->packagePath($from);
+         $toPath = $publishPath . DIRECTORY_SEPARATOR . $to;
+
+         if (is_dir($fromPath)) {
+            $this->copyDirectory($fromPath, $toPath);
+         } else {
+            $this->copyFile($fromPath, $toPath);
+         }
+      }
+   }
+
+   /**
+    * Copie un répertoire et son contenu
+    */
+   private function copyDirectory(string $from, string $to): void
+   {
+      if (!is_dir($to)) {
+         mkdir($to, 0755, true);
+      }
+
+      $files = new \RecursiveIteratorIterator(
+         new \RecursiveDirectoryIterator($from, \RecursiveDirectoryIterator::SKIP_DOTS),
+         \RecursiveIteratorIterator::SELF_FIRST
+      );
+
+      foreach ($files as $file) {
+         if ($file->isDir()) {
+            mkdir($to . DIRECTORY_SEPARATOR . $file->getRelativePathname(), 0755, true);
+         } else {
+            copy($file->getPathname(), $to . DIRECTORY_SEPARATOR . $file->getRelativePathname());
+         }
+      }
+   }
+
+   /**
+    * Copie un fichier
+    */
+   private function copyFile(string $from, string $to): void
+   {
+      $directory = dirname($to);
+      if (!is_dir($directory)) {
+         mkdir($directory, 0755, true);
+      }
+
+      copy($from, $to);
    }
 
    /**

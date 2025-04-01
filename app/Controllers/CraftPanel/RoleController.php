@@ -1,47 +1,34 @@
 <?php
 
-namespace App\Http\Controllers\CraftPanel;
+namespace App\Controllers\CraftPanel;
 
-use App\Http\Controllers\Controller;
+use IronFlow\Http\Controller;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
 use App\Models\Role;
 use App\Models\Permission;
-use IronFlow\Support\Facades\View;
-use IronFlow\Support\Facades\Redirect;
-use IronFlow\Support\Facades\Request;
-use IronFlow\Support\Facades\Validator;
+use IronFlow\Validation\Validator;
 
 class RoleController extends Controller
 {
-   /**
-    * Affiche la liste des rôles
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function index()
+
+   public function index(Request $request): Response
    {
       $roles = Role::with('permissions')->paginate(10);
-      return View::make('craftpanel.roles.index', compact('roles'));
+      return $this->view('craftpanel.roles.index', compact('roles'));
    }
 
-   /**
-    * Affiche le formulaire de création de rôle
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function create()
+
+   public function create(Request $request): Response
    {
       $permissions = Permission::all();
-      return View::make('craftpanel.roles.create', compact('permissions'));
+      return $this->view('craftpanel.roles.create', compact('permissions'));
    }
 
-   /**
-    * Enregistre un nouveau rôle
-    *
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function store()
+
+   public function store(Request $request): Response
    {
-      $validator = Validator::make(Request::all(), [
+      $validator = Validator::make($request->all(), [
          'name' => 'required|string|max:255|unique:roles',
          'description' => 'nullable|string',
          'permissions' => 'array',
@@ -49,48 +36,34 @@ class RoleController extends Controller
       ]);
 
       if ($validator->fails()) {
-         return Redirect::back()
-            ->withErrors($validator)
-            ->withInput();
+         return $this->redirect()->back()->withErrors($validator->errors())->withInput();
       }
 
       $role = Role::create([
-         'name' => Request::input('name'),
-         'description' => Request::input('description'),
+         'name' => $request->input('name'),
+         'description' => $request->input('description'),
       ]);
 
-      if (Request::has('permissions')) {
-         $role->permissions()->sync(Request::input('permissions'));
+      if ($request->has('permissions')) {
+         $role->permissions()->sync($request->input('permissions'));
       }
 
-      return Redirect::route('craftpanel.roles.index')
-         ->with('success', 'Le rôle a été créé avec succès.');
+      return $this->redirect('craftpanel.roles.index')->with('success', 'Le rôle a été créé avec succès.');
    }
 
-   /**
-    * Affiche le formulaire de modification de rôle
-    *
-    * @param  int  $id
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function edit($id)
+   public function edit(Request $request, $id): Response
    {
       $role = Role::findOrFail($id);
       $permissions = Permission::all();
-      return View::make('craftpanel.roles.edit', compact('role', 'permissions'));
+      return $this->view('craftpanel.roles.edit', compact('role', 'permissions'));
    }
 
-   /**
-    * Met à jour un rôle
-    *
-    * @param  int  $id
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function update($id)
+
+   public function update(Request $request, $id): Response
    {
       $role = Role::findOrFail($id);
 
-      $validator = Validator::make(Request::all(), [
+      $validator = Validator::make($request->all(), [
          'name' => 'required|string|max:255|unique:roles,name,' . $id,
          'description' => 'nullable|string',
          'permissions' => 'array',
@@ -98,70 +71,52 @@ class RoleController extends Controller
       ]);
 
       if ($validator->fails()) {
-         return Redirect::back()
-            ->withErrors($validator)
-            ->withInput();
+         return $this->redirect()->back()->withErrors($validator->errors())->withInput();
       }
 
       $role->update([
-         'name' => Request::input('name'),
-         'description' => Request::input('description'),
+         'name' => $request->input('name'),
+         'description' => $request->input('description'),
       ]);
 
-      if (Request::has('permissions')) {
-         $role->permissions()->sync(Request::input('permissions'));
+      if ($request->has('permissions')) {
+         $role->permissions()->sync($request->input('permissions'));
       }
 
-      return Redirect::route('craftpanel.roles.index')
-         ->with('success', 'Le rôle a été mis à jour avec succès.');
+      return $this->redirect('craftpanel.roles.index')->with('success', 'Le rôle a été mis à jour avec succès.');
    }
 
-   /**
-    * Supprime un rôle
-    *
-    * @param  int  $id
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function destroy($id)
+
+   public function destroy(Request $request, $id): Response
    {
       $role = Role::findOrFail($id);
 
       // Vérifier si le rôle est utilisé
       if ($role->users()->count() > 0) {
-         return Redirect::back()
-            ->with('error', 'Ce rôle ne peut pas être supprimé car il est attribué à des utilisateurs.');
+         return $this->redirect()->back()->with('error', 'Ce rôle ne peut pas être supprimé car il est attribué à des utilisateurs.');
       }
 
       $role->delete();
 
-      return Redirect::route('craftpanel.roles.index')
-         ->with('success', 'Le rôle a été supprimé avec succès.');
-   }
+      return $this->redirect('craftpanel.roles.index')->with('success', 'Le rôle a été supprimé avec succès.');
+   } 
 
-   /**
-    * Met à jour les permissions d'un rôle
-    *
-    * @param  int  $id
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function updatePermissions($id)
+
+   public function updatePermissions(Request $request, $id): Response
    {
       $role = Role::findOrFail($id);
 
-      $validator = Validator::make(Request::all(), [
+      $validator = Validator::make($request->all(), [
          'permissions' => 'array',
          'permissions.*' => 'exists:permissions,id',
       ]);
 
       if ($validator->fails()) {
-         return Redirect::back()
-            ->withErrors($validator)
-            ->withInput();
+         return $this->redirect()->back()->withErrors($validator->errors())->withInput();
       }
 
-      $role->permissions()->sync(Request::input('permissions', []));
+      $role->permissions()->sync($request->input('permissions', []));
 
-      return Redirect::back()
-         ->with('success', 'Les permissions ont été mises à jour avec succès.');
+      return $this->redirect()->back()->with('success', 'Les permissions ont été mises à jour avec succès.');
    }
 }

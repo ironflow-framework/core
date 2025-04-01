@@ -17,7 +17,15 @@ abstract class Controller
 
    public function __construct(?ViewInterface $view = null)
    {
-      $this->view = $view ?? new TwigView(dirname(__DIR__, 2) . '/resources/views');
+      if ($view === null) {
+         $viewPath = view_path();
+         if (!is_dir($viewPath)) {
+            throw new \RuntimeException("Le répertoire des vues n'existe pas: {$viewPath}");
+         }
+         $this->view = new TwigView($viewPath);
+      } else {
+         $this->view = $view;
+      }
       $this->response = new Response();
    }
 

@@ -123,6 +123,18 @@ class Request extends SymfonyRequest
    }
 
    /**
+    * Vérifie si un paramètre est un booléen
+    *
+    * @param string $key
+    * @param mixed $default
+    * @return bool
+    */
+   public function boolean(string $key, mixed $default = null): bool
+   {
+      return filter_var($this->input($key, $default), FILTER_VALIDATE_BOOLEAN);
+   }
+
+   /**
     * Récupère les anciennes données de la requête
     *
     * @param string $key

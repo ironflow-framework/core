@@ -1,39 +1,29 @@
 <?php
 
-namespace App\Http\Controllers\CraftPanel;
+namespace App\Controllers\CraftPanel;
 
-use App\Http\Controllers\Controller;
+use IronFlow\Http\Controller;    
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
 use IronFlow\Support\Facades\Auth;
-use IronFlow\Support\Facades\View;
-use IronFlow\Support\Facades\Redirect;
-use IronFlow\Support\Facades\Request;
-use IronFlow\Support\Facades\Session;
+
 
 class AuthController extends Controller
 {
-   /**
-    * Affiche le formulaire de connexion
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function showLoginForm()
+   
+   public function showLoginForm(): Response
    {
       if (Auth::guard('craftpanel')->check()) {
-         return Redirect::route('craftpanel.dashboard');
+         return $this->redirect('craftpanel.dashboard');
       }
 
-      return View::make('craftpanel.auth.login');
+      return $this->view('craftpanel.auth.login');
    }
 
-   /**
-    * Authentifie l'utilisateur
-    *
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function login()
+   public function login(Request $request): Response
    {
-      $credentials = Request::only('email', 'password');
-      $remember = Request::boolean('remember', false);
+      $credentials = $request->only(['email', 'password']);
+      $remember = $request->boolean('remember', false);
 
       if (Auth::guard('craftpanel')->attempt($credentials, $remember)) {
          $user = Auth::guard('craftpanel')->user();

@@ -22,7 +22,7 @@ if (!function_exists('config_path')) {
     */
    function config_path(string $path = ''): string
    {
-      return app_path('config' . ($path ? DIRECTORY_SEPARATOR . $path : $path));
+      return base_path('config' . ($path ? DIRECTORY_SEPARATOR . $path : $path));
    }
 }
 
@@ -145,9 +145,9 @@ if (!function_exists('env')) {
     */
    function env(string $key, mixed $default = null): mixed
    {
-      $value = getenv($key) || $_ENV[$key];
+      $value = getenv($key) ?? $_ENV[$key] ?? null;
 
-      if ($value === false) {
+      if ($value === null) {
          return $default;
       }
 

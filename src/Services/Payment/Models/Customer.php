@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Models;
+namespace IronFlow\Services\Payment\Models;
 
 use IronFlow\Database\Model;
-use IronFlow\Database\Relations\HasMany;
+use IronFlow\Database\Iron\Relations\HasMany;
 
 /**
  * Modèle représentant un client de paiement

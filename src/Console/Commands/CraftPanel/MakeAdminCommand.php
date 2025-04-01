@@ -7,7 +7,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Support\Security\Hasher as SecurityHasher;
+use IronFlow\Support\Security\Hasher;
 use IronFlow\Validation\Validator;
 
 class MakeAdminCommand extends Command
@@ -29,33 +29,33 @@ class MakeAdminCommand extends Command
 
         do {
             $email = $io->ask('Entrez l\'adresse email de l\'administrateur', null, function ($email) use ($validator, $io) {
-                if (!$validator->validate('email', $email)) {
+                if (!$validator->validate(['email', $email])) {
                     $io->error($validator->errors());
                     return null;
                 }
                 return $email;
             });
-        } while (!$validator->validate('email', $email));
+        } while (!$validator->validate(['email', $email]));
 
         do {
             $password = $io->askHidden('Entrez le mot de passe', function ($password) use ($validator, $io) {
-                if (!$validator->validate('password', $password)) {
+                if (!$validator->validate(['password', $password])) {
                     $io->error($validator->errors());
                     return null;
                 }
                 return $password;
             });
-        } while (!$validator->validate('password', $password));
+        } while (!$validator->validate(['password', $password]));
 
         do {
             $name = $io->ask("Nom de l\'administrateur", null, function ($name) use ($validator, $io) {
-                if (!$validator->validate('name', $name)) {
+                if (!$validator->validate(['name', $name])) {
                     $io->error($validator->errors());
                     return null;
                 }
                 return $name;
             });
-        } while (!$validator->validate('name', $name));
+        } while (!$validator->validate(['name', $name]));
 
         // Confirmation
         $this->recap($io, [
@@ -121,7 +121,7 @@ class MakeAdminCommand extends Command
         return $userClass::create([
             'name' => $name,
             'email' => $email,
-            'password' => SecurityHasher::hash($password),
+            'password' => Hasher::hash($password),
             'role' => 'admin'
         ]);
     }

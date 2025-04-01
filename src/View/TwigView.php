@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\View;
 
 use IronFlow\Support\Facades\Config;
+use IronFlow\Support\Facades\Filesystem;
+use IronFlow\Support\Facades\Str;
 use IronFlow\View\Twig\ViteExtension;
 use IronFlow\View\Twig\RouteExtension;
 use Twig\Environment;
@@ -17,6 +19,7 @@ class TwigView implements ViewInterface
 
    public function __construct(string $viewsPath)
    {
+      error_log("=== Début de l'initialisation de TwigView ===");
       error_log("Type de viewsPath: " . gettype($viewsPath));
       error_log("Valeur de viewsPath: " . $viewsPath);
       error_log("Chemin absolu du fichier: " . __FILE__);
@@ -49,13 +52,20 @@ class TwigView implements ViewInterface
       error_log("FilesystemLoader créé avec succès");
       error_log("Dossiers de recherche du loader: " . print_r($loader->getPaths(), true));
 
-      $cachePath = dirname(__DIR__, 2) . '/storage/cache/twig';
+      $cachePath = storage_path('cache/twig');
+      error_log("Chemin du cache: " . $cachePath);
+
       if (!is_dir($cachePath)) {
          error_log("Création du répertoire de cache...");
          if (!mkdir($cachePath, 0777, true)) {
             throw new \RuntimeException("Impossible de créer le répertoire de cache: " . $cachePath);
          }
          error_log("Répertoire de cache créé avec succès");
+      }
+
+      if (!is_writable($cachePath)) {
+         error_log("ERREUR: Le répertoire de cache n'est pas accessible en écriture: " . $cachePath);
+         throw new \RuntimeException("Le répertoire de cache n'est pas accessible en écriture: " . $cachePath);
       }
 
       $this->twig = new Environment($loader, [
@@ -79,33 +89,55 @@ class TwigView implements ViewInterface
 
       error_log("TwigView initialisé avec succès");
       error_log("Cache path: " . $cachePath);
+      error_log("=== Fin de l'initialisation de TwigView ===");
    }
 
    public function render(string $template, array $data = []): string
    {
-      error_log("Rendu du template: " . $template);
+      error_log("=== Début du rendu du template ===");
+      error_log("Template demandé: " . $template);
       error_log("Données passées: " . print_r($data, true));
 
       try {
-         $templatePath = str_replace('.', '/', $template) . '.twig';
+         // Si le template commence par un point, on le retire
+         $template = ltrim($template, '.');
+
+         // Si le template ne contient pas de point, on ajoute .twig directement
+         if (!str_contains($template, '.')) {
+            $templatePath = $template . '.twig';
+         } else {
+            // Sinon on remplace les points par des slashes
+            $templatePath = str_replace('.', '/', $template) . '.twig';
+         }
+
          error_log("Chemin complet du template: " . $templatePath);
          error_log("Loader disponible: " . ($this->twig->getLoader() ? 'Oui' : 'Non'));
-         error_log("Dossiers de recherche du loader: " . print_r($this->twig->getLoader()->getSourceContext($templatePath)->getPath(), true));
 
          if (!$this->twig->getLoader()->exists($templatePath)) {
             error_log("ERREUR: Le template n'existe pas: " . $templatePath);
             error_log("Liste des templates disponibles:");
-            $paths = $this->twig->getLoader()->getSourceContext($templatePath)->getPath();
-            error_log("- " . $paths);
+            $loader = $this->twig->getLoader();
+            if ($loader instanceof \Twig\Loader\FilesystemLoader) {
+               $paths = $loader->getPaths();
+               foreach ($paths as $path) {
+                  error_log("- " . $path);
+               }
+            }
             throw new \RuntimeException("Le template n'existe pas: " . $templatePath);
          }
 
-         $content = $this->twig->render($templatePath, $data);
+         // Fusionner les données globales avec les données du template
+         $mergedData = array_merge($this->globalData, $data);
+         error_log("Données fusionnées: " . print_r($mergedData, true));
+
+         $content = $this->twig->render($templatePath, $mergedData);
          error_log("Rendu réussi");
+         error_log("=== Fin du rendu du template ===");
          return $content;
       } catch (\Exception $e) {
-         error_log("Erreur lors du rendu: " . $e->getMessage());
+         error_log("ERREUR lors du rendu: " . $e->getMessage());
          error_log("Trace: " . $e->getTraceAsString());
+         error_log("=== Fin du rendu du template (avec erreur) ===");
          throw $e;
       }
    }

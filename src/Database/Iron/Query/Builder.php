@@ -382,6 +382,20 @@ class Builder
    }
 
    /**
+    * Pagine les résultats
+    * 
+    * @param int $perPage Nombre d'éléments par page
+    * @param int $page Numéro de page
+    * @return self
+    */
+   public function paginate(int $perPage = 10, int $page = 1): self
+   {
+      $this->limit($perPage);
+      $this->offset(($page - 1) * $perPage);
+      return $this;
+   }
+
+   /**
     * Construit et retourne la requête SQL
     * 
     * @return string

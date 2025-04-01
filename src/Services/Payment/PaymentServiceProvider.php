@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment;
+namespace IronFlow\Services\Payment;
 
-use IronFlow\Foundation\ServiceProvider;
-use IronFlow\Payment\Providers\StripeProvider;
-use IronFlow\Payment\Providers\PayPalProvider;
-use IronFlow\Payment\Providers\MollieProvider;
-use IronFlow\Payment\Http\Controllers\WebhookController;
+use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Services\Payment\Providers\StripeProvider;
+use IronFlow\Services\Payment\Providers\PayPalProvider;
+use IronFlow\Services\Payment\Providers\MollieProvider;
+use IronFlow\Services\Payment\Http\Controllers\WebhookController;
 use IronFlow\Support\Facades\Config;
-use IronFlow\Support\Facades\Route;
 
 /**
  * Fournisseur de services pour le système de paiement

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Http\Controllers;
+namespace IronFlow\Services\Payment\Http\Controllers;
 
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Payment\Facades\Payment;
+use IronFlow\Services\Payment\Facades\Payment;
 use IronFlow\Support\Facades\Log;
-use IronFlow\Payment\Exceptions\PaymentException;
+use IronFlow\Services\Payment\Exceptions\PaymentException;
 
 /**
  * Contrôleur pour gérer les webhooks de paiement
@@ -42,12 +42,12 @@ class WebhookController extends Controller
             'result' => $result,
          ]);
 
-         return response()->json([
+         return $this->json([
             'status' => 'success',
             'message' => 'Webhook traité avec succès',
             'data' => $result,
          ]);
-      } catch (PaymentException $e) {
+      } catch (PaymentException $e)    {
          // Journaliser l'erreur
          Log::error("Erreur lors du traitement du webhook", [
             'provider' => $provider,
@@ -55,7 +55,7 @@ class WebhookController extends Controller
             'context' => $e->getContext(),
          ]);
 
-         return response()->json([
+         return $this->json([
             'status' => 'error',
             'message' => $e->getMessage(),
          ], 400);
@@ -68,7 +68,7 @@ class WebhookController extends Controller
             'line' => $e->getLine(),
          ]);
 
-         return response()->json([
+         return $this->json([
             'status' => 'error',
             'message' => 'Erreur inattendue lors du traitement du webhook',
          ], 500);
@@ -83,7 +83,7 @@ class WebhookController extends Controller
       $sessionId = $request->query->get('session_id');
       $paymentIntentId = $request->query->get('payment_intent');
 
-      return view('payment.success', [
+      return $this->view('payment.success', [
          'session_id' => $sessionId,
          'payment_intent_id' => $paymentIntentId,
       ]);
@@ -96,7 +96,7 @@ class WebhookController extends Controller
    {
       $sessionId = $request->query->get('session_id');
 
-      return view('payment.cancel', [
+      return $this->view('payment.cancel', [
          'session_id' => $sessionId,
       ]);
    }

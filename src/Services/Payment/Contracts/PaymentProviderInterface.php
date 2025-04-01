@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Contracts;
+namespace IronFlow\Services\Payment\Contracts;
 
-use IronFlow\Payment\Models\Customer;
-use IronFlow\Payment\Models\PaymentIntent;
-use IronFlow\Payment\Models\PaymentMethod;
-use IronFlow\Payment\Models\Subscription;
-use IronFlow\Payment\Models\Transaction;
-use IronFlow\Payment\Models\Plan;
+use IronFlow\Services\Payment\Models\Customer;
+use IronFlow\Services\Payment\Models\PaymentIntent;
+use IronFlow\Services\Payment\Models\PaymentMethod;
+use IronFlow\Services\Payment\Models\Subscription;
+use IronFlow\Services\Payment\Models\Transaction;
+use IronFlow\Services\Payment\Models\Plan;
 
 /**
  * Interface principale pour les fournisseurs de paiement

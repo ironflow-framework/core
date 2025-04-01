@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\View\TwigView;
-use IronFlow\Foundation\ServiceProvider;
+use IronFlow\Core\Providers\ServiceProvider;
 
 /**
  * Fournisseur de services pour le système de vues
@@ -22,7 +22,7 @@ class ViewServiceProvider extends ServiceProvider
    public function register(): void
    {
       $this->app->singleton('view', function ($app) {
-         return new TwigView($app->getBasePath() . '/resources/views');
+         return new TwigView(view_path() ?? $app->getBasePath() . '/resources/views');
       });
    }
 

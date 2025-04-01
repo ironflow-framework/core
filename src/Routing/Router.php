@@ -165,20 +165,32 @@ class Router
       [$class, $method] = $handler;
 
       return function (Request $request) use ($class, $method) {
+         error_log("=== Début de la résolution du contrôleur ===");
+         error_log("Classe: " . $class);
+         error_log("Méthode: " . $method);
+
          $controller = new $class();
          $reflection = new \ReflectionMethod($class, $method);
          $parameters = $reflection->getParameters();
+
+         error_log("Paramètres de la méthode: " . print_r($parameters, true));
 
          $args = [];
          foreach ($parameters as $parameter) {
             $type = $parameter->getType();
             if ($type && $type->getName() === Request::class) {
                $args[] = $request;
+               error_log("Paramètre Request ajouté");
             } else {
                $routeParams = $request->getRouteParameters();
-               $args[] = $routeParams[$parameter->getName()] ?? null;
+               $paramName = $parameter->getName();
+               $args[] = $routeParams[$paramName] ?? null;
+               error_log("Paramètre {$paramName} ajouté: " . ($routeParams[$paramName] ?? 'null'));
             }
          }
+
+         error_log("Arguments finaux: " . print_r($args, true));
+         error_log("=== Fin de la résolution du contrôleur ===");
 
          return $controller->$method(...$args);
       };

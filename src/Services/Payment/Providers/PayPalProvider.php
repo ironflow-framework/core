@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Providers;
+namespace IronFlow\Services\Payment\Providers;
 
-use IronFlow\Payment\Contracts\PaymentProviderInterface;
-use IronFlow\Payment\Exceptions\PaymentException;
-use IronFlow\Payment\Models\Customer;
-use IronFlow\Payment\Models\PaymentIntent;
-use IronFlow\Payment\Models\PaymentMethod;
-use IronFlow\Payment\Models\Plan;
-use IronFlow\Payment\Models\Subscription;
-use IronFlow\Payment\Models\Transaction;
+use IronFlow\Services\Payment\Contracts\PaymentProviderInterface;
+use IronFlow\Services\Payment\Exceptions\PaymentException;
+use IronFlow\Services\Payment\Models\Customer;
+use IronFlow\Services\Payment\Models\PaymentIntent;
+use IronFlow\Services\Payment\Models\PaymentMethod;
+use IronFlow\Services\Payment\Models\Plan;
+use IronFlow\Services\Payment\Models\Subscription;
+use IronFlow\Services\Payment\Models\Transaction;
 
 /**
- * Provider de paiement pour Mollie
+ * Provider de paiement pour PayPal
  */
-class MollieProvider implements PaymentProviderInterface
+class PayPalProvider implements PaymentProviderInterface
 {
    /**
     * Configuration du provider
@@ -24,7 +24,7 @@ class MollieProvider implements PaymentProviderInterface
    protected array $config = [];
 
    /**
-    * Client Mollie
+    * Client PayPal
     */
    protected $client = null;
 
@@ -36,7 +36,7 @@ class MollieProvider implements PaymentProviderInterface
       $this->config = $config;
 
       if ($this->isConfigured()) {
-         // Initialiser le client Mollie lorsque la librairie sera disponible
+         // Initialiser le client PayPal lorsque la librairie sera disponible
       }
 
       return $this;
@@ -47,7 +47,7 @@ class MollieProvider implements PaymentProviderInterface
     */
    public function isConfigured(): bool
    {
-      return !empty($this->config['key']);
+      return !empty($this->config['client_id']) && !empty($this->config['client_secret']);
    }
 
    /**
@@ -56,7 +56,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createCustomer(array $customerData): Customer
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createCustomer', 'mollie');
+      throw PaymentException::unsupportedAction('createCustomer', 'paypal');
    }
 
    /**
@@ -65,7 +65,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getCustomer(string $customerId): ?Customer
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getCustomer', 'mollie');
+      throw PaymentException::unsupportedAction('getCustomer', 'paypal');
    }
 
    /**
@@ -74,7 +74,7 @@ class MollieProvider implements PaymentProviderInterface
    public function updateCustomer(string $customerId, array $customerData): Customer
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('updateCustomer', 'mollie');
+      throw PaymentException::unsupportedAction('updateCustomer', 'paypal');
    }
 
    /**
@@ -83,7 +83,7 @@ class MollieProvider implements PaymentProviderInterface
    public function deleteCustomer(string $customerId): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('deleteCustomer', 'mollie');
+      throw PaymentException::unsupportedAction('deleteCustomer', 'paypal');
    }
 
    /**
@@ -92,7 +92,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createPaymentIntent(array $intentData): PaymentIntent
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createPaymentIntent', 'mollie');
+      throw PaymentException::unsupportedAction('createPaymentIntent', 'paypal');
    }
 
    /**
@@ -101,7 +101,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getPaymentIntent(string $intentId): ?PaymentIntent
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getPaymentIntent', 'mollie');
+      throw PaymentException::unsupportedAction('getPaymentIntent', 'paypal');
    }
 
    /**
@@ -110,7 +110,7 @@ class MollieProvider implements PaymentProviderInterface
    public function confirmPaymentIntent(string $intentId, array $options = []): PaymentIntent
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('confirmPaymentIntent', 'mollie');
+      throw PaymentException::unsupportedAction('confirmPaymentIntent', 'paypal');
    }
 
    /**
@@ -119,7 +119,7 @@ class MollieProvider implements PaymentProviderInterface
    public function cancelPaymentIntent(string $intentId): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('cancelPaymentIntent', 'mollie');
+      throw PaymentException::unsupportedAction('cancelPaymentIntent', 'paypal');
    }
 
    /**
@@ -128,7 +128,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createTransaction(array $transactionData): Transaction
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createTransaction', 'mollie');
+      throw PaymentException::unsupportedAction('createTransaction', 'paypal');
    }
 
    /**
@@ -137,7 +137,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getTransaction(string $transactionId): ?Transaction
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getTransaction', 'mollie');
+      throw PaymentException::unsupportedAction('getTransaction', 'paypal');
    }
 
    /**
@@ -146,7 +146,7 @@ class MollieProvider implements PaymentProviderInterface
    public function confirmTransaction(string $transactionId): Transaction
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('confirmTransaction', 'mollie');
+      throw PaymentException::unsupportedAction('confirmTransaction', 'paypal');
    }
 
    /**
@@ -155,7 +155,7 @@ class MollieProvider implements PaymentProviderInterface
    public function cancelTransaction(string $transactionId): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('cancelTransaction', 'mollie');
+      throw PaymentException::unsupportedAction('cancelTransaction', 'paypal');
    }
 
    /**
@@ -164,7 +164,7 @@ class MollieProvider implements PaymentProviderInterface
    public function refundTransaction(string $transactionId, ?float $amount = null): Transaction
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('refundTransaction', 'mollie');
+      throw PaymentException::unsupportedAction('refundTransaction', 'paypal');
    }
 
    /**
@@ -173,7 +173,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createPaymentMethod(string $customerId, array $paymentMethodData): PaymentMethod
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createPaymentMethod', 'mollie');
+      throw PaymentException::unsupportedAction('createPaymentMethod', 'paypal');
    }
 
    /**
@@ -182,7 +182,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getPaymentMethods(string $customerId): array
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getPaymentMethods', 'mollie');
+      throw PaymentException::unsupportedAction('getPaymentMethods', 'paypal');
    }
 
    /**
@@ -191,7 +191,7 @@ class MollieProvider implements PaymentProviderInterface
    public function deletePaymentMethod(string $paymentMethodId): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('deletePaymentMethod', 'mollie');
+      throw PaymentException::unsupportedAction('deletePaymentMethod', 'paypal');
    }
 
    /**
@@ -200,7 +200,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createPlan(array $planData): Plan
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createPlan', 'mollie');
+      throw PaymentException::unsupportedAction('createPlan', 'paypal');
    }
 
    /**
@@ -209,7 +209,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getPlan(string $planId): ?Plan
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getPlan', 'mollie');
+      throw PaymentException::unsupportedAction('getPlan', 'paypal');
    }
 
    /**
@@ -218,7 +218,7 @@ class MollieProvider implements PaymentProviderInterface
    public function updatePlan(string $planId, array $planData): Plan
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('updatePlan', 'mollie');
+      throw PaymentException::unsupportedAction('updatePlan', 'paypal');
    }
 
    /**
@@ -227,7 +227,7 @@ class MollieProvider implements PaymentProviderInterface
    public function deletePlan(string $planId): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('deletePlan', 'mollie');
+      throw PaymentException::unsupportedAction('deletePlan', 'paypal');
    }
 
    /**
@@ -236,7 +236,7 @@ class MollieProvider implements PaymentProviderInterface
    public function createSubscription(string $customerId, string $planId, array $options = []): Subscription
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('createSubscription', 'mollie');
+      throw PaymentException::unsupportedAction('createSubscription', 'paypal');
    }
 
    /**
@@ -245,7 +245,7 @@ class MollieProvider implements PaymentProviderInterface
    public function getSubscription(string $subscriptionId): ?Subscription
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('getSubscription', 'mollie');
+      throw PaymentException::unsupportedAction('getSubscription', 'paypal');
    }
 
    /**
@@ -254,7 +254,7 @@ class MollieProvider implements PaymentProviderInterface
    public function updateSubscription(string $subscriptionId, array $data): Subscription
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('updateSubscription', 'mollie');
+      throw PaymentException::unsupportedAction('updateSubscription', 'paypal');
    }
 
    /**
@@ -263,7 +263,7 @@ class MollieProvider implements PaymentProviderInterface
    public function cancelSubscription(string $subscriptionId, bool $atPeriodEnd = true): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('cancelSubscription', 'mollie');
+      throw PaymentException::unsupportedAction('cancelSubscription', 'paypal');
    }
 
    /**
@@ -272,7 +272,7 @@ class MollieProvider implements PaymentProviderInterface
    public function handleWebhook(string $payload, array $headers): array
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('handleWebhook', 'mollie');
+      throw PaymentException::unsupportedAction('handleWebhook', 'paypal');
    }
 
    /**
@@ -281,7 +281,7 @@ class MollieProvider implements PaymentProviderInterface
    public function verifyWebhookSignature(string $payload, string $signature, string $secret): bool
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('verifyWebhookSignature', 'mollie');
+      throw PaymentException::unsupportedAction('verifyWebhookSignature', 'paypal');
    }
 
    /**
@@ -290,6 +290,6 @@ class MollieProvider implements PaymentProviderInterface
    public function generateClientToken(array $options = []): string
    {
       // Implémentation à venir
-      throw PaymentException::unsupportedAction('generateClientToken', 'mollie');
+      throw PaymentException::unsupportedAction('generateClientToken', 'paypal');
    }
 }

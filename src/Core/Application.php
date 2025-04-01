@@ -267,16 +267,26 @@ class Application
          $this->boot();
 
          $request = Request::capture();
+
+         // Initialisation du routeur
+         Router::init();
+
+         // Dispatch de la requête
          $response = Router::dispatch($request);
 
+         // Si la réponse n'est pas une instance de Response, on la convertit
          if (!($response instanceof Response)) {
             $response = new Response((string) $response);
          }
 
+         // On ne renvoie pas la réponse, on l'envoie directement
          $response->send();
-         return $response;
+         exit;
       } catch (\Throwable $e) {
-         return $this->handleException($e);
+         // En cas d'erreur, on utilise le gestionnaire d'erreurs
+         $response = $this->handleException($e);
+         $response->send();
+         exit;
       }
    }
 
@@ -285,20 +295,31 @@ class Application
     */
    protected function handleException(\Throwable $e): Response
    {
-      if ($this->container->has(ErrorHandler::class)) {
-         $handler = $this->container->get(ErrorHandler::class);
-         return $handler->handle($e);
+      try {
+         $statusCode = match (get_class($e)) {
+            'IronFlow\Http\Exceptions\NotFoundException' => 404,
+            'IronFlow\Http\Exceptions\ForbiddenException' => 403,
+            'IronFlow\Http\Exceptions\UnauthorizedException' => 401,
+            default => 500
+         };
+
+         if (Config::get('app.debug', false)) {
+            return Response::view('errors/debug', [
+               'exception' => $e,
+               'message' => $e->getMessage(),
+               'file' => $e->getFile(),
+               'line' => $e->getLine(),
+               'trace' => $e->getTraceAsString()
+            ], $statusCode);
+         }
+
+         return Response::view("errors/{$statusCode}", [], $statusCode);
+      } catch (\Throwable $e) {
+         // Fallback en cas d'erreur lors du rendu de la vue
+         http_response_code(500);
+         echo "Une erreur est survenue.";
+         exit;
       }
-
-      throw $e;
-   }
-
-   /**
-    * Récupère le chemin de base de l'application
-    */
-   public function getBasePath(): string
-   {
-      return $this->basePath;
    }
 
    /**
@@ -307,5 +328,13 @@ class Application
    public function path(string $path = ''): string
    {
       return $this->basePath . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+   }
+
+   /**
+    * Récupère le chemin de base de l'application
+    */
+   public function basePath(string $path = ''): string
+   {
+      return $this->basePath . ($path ? DIRECTORY_SEPARATOR . $path : '');
    }
 }

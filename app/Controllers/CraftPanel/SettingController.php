@@ -1,35 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\CraftPanel;
+namespace App\Controllers\CraftPanel;
 
-use App\Http\Controllers\Controller;
-use IronFlow\Support\Facades\View;
-use IronFlow\Support\Facades\Redirect;
-use IronFlow\Support\Facades\Request;
-use IronFlow\Support\Facades\Config;
-use IronFlow\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
+use IronFlow\Http\Controller;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
+
 
 class SettingController extends Controller
 {
-   /**
-    * Affiche la page des paramètres
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function index()
+   
+   public function index(): Response
    {
       $settings = $this->getSettings();
-      return View::make('craftpanel.settings.index', compact('settings'));
+      return $this->view('craftpanel.settings.index', compact('settings'));
    }
 
-   /**
-    * Met à jour les paramètres
-    *
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function update()
+   public function update(): Response
    {
       $validator = $this->validateSettings(Request::all());
 

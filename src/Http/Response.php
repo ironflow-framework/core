@@ -340,7 +340,7 @@ class Response
     */
    public function withErrors(array $errors): self
    {
-      flash('errors', $errors);
+      flash('errors', implode(', ', $errors));
       return $this;
    }
 

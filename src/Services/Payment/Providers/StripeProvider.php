@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Providers;
+namespace IronFlow\Services\Payment\Providers;
 
-use IronFlow\Payment\Contracts\PaymentProviderInterface;
-use IronFlow\Payment\Exceptions\PaymentException;
-use IronFlow\Payment\Models\Customer;
-use IronFlow\Payment\Models\PaymentIntent;
-use IronFlow\Payment\Models\PaymentMethod;
-use IronFlow\Payment\Models\Plan;
-use IronFlow\Payment\Models\Subscription;
-use IronFlow\Payment\Models\Transaction;
+use IronFlow\Services\Payment\Contracts\PaymentProviderInterface;
+use IronFlow\Services\Payment\Exceptions\PaymentException;
+use IronFlow\Services\Payment\Models\Customer;
+use IronFlow\Services\Payment\Models\PaymentIntent;
+use IronFlow\Services\Payment\Models\PaymentMethod;
+use IronFlow\Services\Payment\Models\Plan;
+use IronFlow\Services\Payment\Models\Subscription;
+use IronFlow\Services\Payment\Models\Transaction;
 
 /**
  * Provider de paiement pour Stripe

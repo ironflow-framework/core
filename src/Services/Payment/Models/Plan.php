@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Models;
+namespace IronFlow\Services\Payment\Models;
 
 use IronFlow\Database\Model;
 use IronFlow\Database\Iron\Relations\HasMany;

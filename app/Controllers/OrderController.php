@@ -14,7 +14,7 @@ class OrderController extends Controller
 {
    public function index(Request $request): Response
    {
-      $orders = Order::all();
+      $orders = Order::paginate(10);
 
       return $this->view('orders.index', [
          'title' => 'Liste des commandes',

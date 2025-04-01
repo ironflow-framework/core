@@ -36,10 +36,19 @@ class ErrorHandler
 
    public static function handleException(Throwable $exception): void
    {
+      error_log("=== Début de la gestion de l'exception ===");
+      error_log("Type d'exception: " . get_class($exception));
+      error_log("Message: " . $exception->getMessage());
+      error_log("Fichier: " . $exception->getFile());
+      error_log("Ligne: " . $exception->getLine());
+      error_log("Trace: " . $exception->getTraceAsString());
+
       $statusCode = self::getStatusCodeFromException($exception);
+      error_log("Code HTTP: " . $statusCode);
 
       try {
          if (Config::get('app.debug', false)) {
+            error_log("Mode debug activé, affichage de la vue de débogage");
             $response = Response::view('errors/debug', [
                'exception' => $exception,
                'message' => $exception->getMessage(),
@@ -48,15 +57,22 @@ class ErrorHandler
                'trace' => $exception->getTraceAsString()
             ], $statusCode);
          } else {
+            error_log("Mode debug désactivé, affichage de la vue d'erreur standard");
             $response = Response::view("errors/{$statusCode}", [], $statusCode);
          }
 
+         error_log("Envoi de la réponse...");
          $response->send();
+         error_log("Réponse envoyée avec succès");
       } catch (\Throwable $e) {
+         error_log("ERREUR lors du rendu de la vue: " . $e->getMessage());
+         error_log("Trace: " . $e->getTraceAsString());
          // Fallback en cas d'erreur lors du rendu de la vue
          http_response_code($statusCode);
          echo "Une erreur est survenue.";
       }
+
+      error_log("=== Fin de la gestion de l'exception ===");
    }
 
    public static function handleShutdown(): void

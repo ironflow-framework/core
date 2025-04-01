@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment;
+namespace IronFlow\Services\Payment;
 
-use IronFlow\Payment\Contracts\PaymentProviderInterface;
-use IronFlow\Payment\Exceptions\PaymentException;
+use IronFlow\Services\Payment\Contracts\PaymentProviderInterface;
+use IronFlow\Services\Payment\Exceptions\PaymentException;
+use IronFlow\Services\Payment\Models\Customer;
+use IronFlow\Services\Payment\Models\PaymentIntent;
+use IronFlow\Services\Payment\Models\PaymentMethod;
+use IronFlow\Services\Payment\Models\Plan;
+use IronFlow\Services\Payment\Models\Subscription;
+use IronFlow\Services\Payment\Models\Transaction;
 use IronFlow\Support\Facades\Config;
-use IronFlow\Payment\Models\Customer;
-use IronFlow\Payment\Models\PaymentIntent;
-use IronFlow\Payment\Models\PaymentMethod;
-use IronFlow\Payment\Models\Plan;
-use IronFlow\Payment\Models\Subscription;
-use IronFlow\Payment\Models\Transaction;
 use IronFlow\Support\Facades\Log;
 
 /**
@@ -74,7 +74,7 @@ class PaymentManager
    /**
     * Récupère un provider de paiement
     */
-   public function provider(string $name = null): PaymentProviderInterface
+   public function provider(?string $name = null): PaymentProviderInterface
    {
       // Si aucun nom n'est fourni, utiliser le provider par défaut
       if ($name === null) {
@@ -102,7 +102,7 @@ class PaymentManager
    /**
     * Crée un client
     */
-   public function createCustomer(array $customerData, string $provider = null): Customer
+   public function createCustomer(array $customerData, ?string $provider = null): Customer
    {
       try {
          return $this->provider($provider)->createCustomer($customerData);
@@ -115,7 +115,7 @@ class PaymentManager
    /**
     * Récupère un client
     */
-   public function getCustomer(string $customerId, string $provider = null): ?Customer
+   public function getCustomer(string $customerId, ?string $provider = null): ?Customer
    {
       try {
          return $this->provider($provider)->getCustomer($customerId);
@@ -128,7 +128,7 @@ class PaymentManager
    /**
     * Met à jour un client
     */
-   public function updateCustomer(string $customerId, array $customerData, string $provider = null): Customer
+   public function updateCustomer(string $customerId, array $customerData, ?string $provider = null): Customer
    {
       try {
          return $this->provider($provider)->updateCustomer($customerId, $customerData);
@@ -141,7 +141,7 @@ class PaymentManager
    /**
     * Supprime un client
     */
-   public function deleteCustomer(string $customerId, string $provider = null): bool
+   public function deleteCustomer(string $customerId, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->deleteCustomer($customerId);
@@ -154,7 +154,7 @@ class PaymentManager
    /**
     * Crée une intention de paiement
     */
-   public function createPaymentIntent(array $intentData, string $provider = null): PaymentIntent
+   public function createPaymentIntent(array $intentData, ?string $provider = null): PaymentIntent
    {
       try {
          return $this->provider($provider)->createPaymentIntent($intentData);
@@ -167,7 +167,7 @@ class PaymentManager
    /**
     * Récupère une intention de paiement
     */
-   public function getPaymentIntent(string $intentId, string $provider = null): ?PaymentIntent
+   public function getPaymentIntent(string $intentId, ?string $provider = null): ?PaymentIntent
    {
       try {
          return $this->provider($provider)->getPaymentIntent($intentId);
@@ -180,7 +180,7 @@ class PaymentManager
    /**
     * Confirme une intention de paiement
     */
-   public function confirmPaymentIntent(string $intentId, array $options = [], string $provider = null): PaymentIntent
+   public function confirmPaymentIntent(string $intentId, array $options = [], ?string $provider = null): PaymentIntent
    {
       try {
          return $this->provider($provider)->confirmPaymentIntent($intentId, $options);
@@ -193,7 +193,7 @@ class PaymentManager
    /**
     * Annule une intention de paiement
     */
-   public function cancelPaymentIntent(string $intentId, string $provider = null): bool
+   public function cancelPaymentIntent(string $intentId, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->cancelPaymentIntent($intentId);
@@ -206,7 +206,7 @@ class PaymentManager
    /**
     * Crée une transaction
     */
-   public function createTransaction(array $transactionData, string $provider = null): Transaction
+   public function createTransaction(array $transactionData, ?string $provider = null): Transaction
    {
       try {
          return $this->provider($provider)->createTransaction($transactionData);
@@ -219,7 +219,7 @@ class PaymentManager
    /**
     * Récupère une transaction
     */
-   public function getTransaction(string $transactionId, string $provider = null): ?Transaction
+   public function getTransaction(string $transactionId, ?string $provider = null): ?Transaction
    {
       try {
          return $this->provider($provider)->getTransaction($transactionId);
@@ -232,7 +232,7 @@ class PaymentManager
    /**
     * Confirme une transaction
     */
-   public function confirmTransaction(string $transactionId, string $provider = null): Transaction
+   public function confirmTransaction(string $transactionId, ?string $provider = null): Transaction
    {
       try {
          return $this->provider($provider)->confirmTransaction($transactionId);
@@ -245,7 +245,7 @@ class PaymentManager
    /**
     * Annule une transaction
     */
-   public function cancelTransaction(string $transactionId, string $provider = null): bool
+   public function cancelTransaction(string $transactionId, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->cancelTransaction($transactionId);
@@ -258,7 +258,7 @@ class PaymentManager
    /**
     * Rembourse une transaction
     */
-   public function refundTransaction(string $transactionId, ?float $amount = null, string $provider = null): Transaction
+   public function refundTransaction(string $transactionId, ?float $amount = null, ?string $provider = null): Transaction
    {
       if (!($this->config['allow_refunds'] ?? true)) {
          throw new PaymentException('Les remboursements ne sont pas autorisés dans la configuration');
@@ -275,7 +275,7 @@ class PaymentManager
    /**
     * Crée une méthode de paiement
     */
-   public function createPaymentMethod(string $customerId, array $paymentMethodData, string $provider = null): PaymentMethod
+   public function createPaymentMethod(string $customerId, array $paymentMethodData, ?string $provider = null): PaymentMethod
    {
       try {
          return $this->provider($provider)->createPaymentMethod($customerId, $paymentMethodData);
@@ -288,7 +288,7 @@ class PaymentManager
    /**
     * Récupère les méthodes de paiement d'un client
     */
-   public function getPaymentMethods(string $customerId, string $provider = null): array
+   public function getPaymentMethods(string $customerId, ?string $provider = null): array
    {
       try {
          return $this->provider($provider)->getPaymentMethods($customerId);
@@ -301,7 +301,7 @@ class PaymentManager
    /**
     * Supprime une méthode de paiement
     */
-   public function deletePaymentMethod(string $paymentMethodId, string $provider = null): bool
+   public function deletePaymentMethod(string $paymentMethodId, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->deletePaymentMethod($paymentMethodId);
@@ -314,7 +314,7 @@ class PaymentManager
    /**
     * Crée un plan d'abonnement
     */
-   public function createPlan(array $planData, string $provider = null): Plan
+   public function createPlan(array $planData, ?string $provider = null): Plan
    {
       try {
          return $this->provider($provider)->createPlan($planData);
@@ -327,7 +327,7 @@ class PaymentManager
    /**
     * Récupère un plan d'abonnement
     */
-   public function getPlan(string $planId, string $provider = null): ?Plan
+   public function getPlan(string $planId, ?string $provider = null): ?Plan
    {
       try {
          return $this->provider($provider)->getPlan($planId);
@@ -340,7 +340,7 @@ class PaymentManager
    /**
     * Met à jour un plan d'abonnement
     */
-   public function updatePlan(string $planId, array $planData, string $provider = null): Plan
+   public function updatePlan(string $planId, array $planData, ?string $provider = null): Plan
    {
       try {
          return $this->provider($provider)->updatePlan($planId, $planData);
@@ -353,7 +353,7 @@ class PaymentManager
    /**
     * Supprime un plan d'abonnement
     */
-   public function deletePlan(string $planId, string $provider = null): bool
+   public function deletePlan(string $planId, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->deletePlan($planId);
@@ -366,7 +366,7 @@ class PaymentManager
    /**
     * Crée un abonnement
     */
-   public function createSubscription(string $customerId, string $planId, array $options = [], string $provider = null): Subscription
+   public function createSubscription(string $customerId, string $planId, array $options = [], ?string $provider = null): Subscription
    {
       try {
          return $this->provider($provider)->createSubscription($customerId, $planId, $options);
@@ -379,7 +379,7 @@ class PaymentManager
    /**
     * Récupère un abonnement
     */
-   public function getSubscription(string $subscriptionId, string $provider = null): ?Subscription
+   public function getSubscription(string $subscriptionId, ?string $provider = null): ?Subscription
    {
       try {
          return $this->provider($provider)->getSubscription($subscriptionId);
@@ -392,7 +392,7 @@ class PaymentManager
    /**
     * Met à jour un abonnement
     */
-   public function updateSubscription(string $subscriptionId, array $data, string $provider = null): Subscription
+   public function updateSubscription(string $subscriptionId, array $data, ?string $provider = null): Subscription
    {
       try {
          return $this->provider($provider)->updateSubscription($subscriptionId, $data);
@@ -405,7 +405,7 @@ class PaymentManager
    /**
     * Annule un abonnement
     */
-   public function cancelSubscription(string $subscriptionId, bool $atPeriodEnd = true, string $provider = null): bool
+   public function cancelSubscription(string $subscriptionId, bool $atPeriodEnd = true, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->cancelSubscription($subscriptionId, $atPeriodEnd);
@@ -418,7 +418,7 @@ class PaymentManager
    /**
     * Gère un webhook entrant
     */
-   public function handleWebhook(string $payload, array $headers, string $provider = null): array
+   public function handleWebhook(string $payload, array $headers, ?string $provider = null): array
    {
       try {
          return $this->provider($provider)->handleWebhook($payload, $headers);
@@ -431,7 +431,7 @@ class PaymentManager
    /**
     * Vérifie la signature d'un webhook
     */
-   public function verifyWebhookSignature(string $payload, string $signature, string $secret, string $provider = null): bool
+   public function verifyWebhookSignature(string $payload, string $signature, string $secret, ?string $provider = null): bool
    {
       try {
          return $this->provider($provider)->verifyWebhookSignature($payload, $signature, $secret);
@@ -444,7 +444,7 @@ class PaymentManager
    /**
     * Génère un token de paiement côté client
     */
-   public function generateClientToken(array $options = [], string $provider = null): string
+   public function generateClientToken(array $options = [], ?string $provider = null): string
    {
       try {
          return $this->provider($provider)->generateClientToken($options);

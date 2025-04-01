@@ -297,12 +297,21 @@ abstract class Model
    /**
     * Supprime un enregistrement de la base de données
     * 
-    * @param mixed $id Identifiant de l'enregistrement à supprimer
+    * @param mixed|null $id Identifiant de l'enregistrement à supprimer
     * @return bool Succès de l'opération
     */
-   public static function delete($id): bool
+   public static function delete($id = null): bool
    {
-      $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " = :id";
+      if (is_null($id)) {
+         $id = self::$primaryKey;
+      }
+
+      if (is_array($id)) {
+         $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " IN (" . implode(", ", $id) . ")";
+      } else {
+         $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " = :id";
+      }
+
       $stmt = (new static())->getConnection()->prepare($query);
       $stmt->bindValue(':id', $id);
       return $stmt->execute();

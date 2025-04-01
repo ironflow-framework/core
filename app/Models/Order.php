@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use IronFlow\Database\Factories\HasFactory;
-use IronFlow\Database\Iron\Model;
+use IronFlow\Database\Model;
 use IronFlow\Furnace\Traits\HasForm;
 
 class Order extends Model
@@ -66,9 +66,7 @@ class Order extends Model
          return $this;
       }
 
-      $this->products()->updateExistingPivot($product->id, [
-         'quantity' => $quantity
-      ]);
+      $this->products()->sync([$product->id => ['quantity' => $quantity]]);
 
       $this->updateTotalAmount();
 

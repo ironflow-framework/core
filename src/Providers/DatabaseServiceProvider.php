@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Foundation\ServiceProvider;
+use IronFlow\Core\Providers\ServiceProvider;
 use IronFlow\Database\Iron\IronManager;
 
 /**

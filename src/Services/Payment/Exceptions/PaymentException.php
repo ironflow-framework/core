@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Exceptions;
+namespace IronFlow\Services\Payment\Exceptions;
 
 /**
  * Exception spécifique au système de paiement

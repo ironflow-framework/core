@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\Routing\Router;
-use IronFlow\Foundation\ServiceProvider;
+use IronFlow\Core\Providers\ServiceProvider;
 
 /**
  * Fournisseur de services pour le système de routage

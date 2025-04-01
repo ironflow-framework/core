@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Payment\Facades;
+namespace IronFlow\Services\Payment\Facades;
 
-use IronFlow\Support\Facades\Facade;
-use IronFlow\Payment\Models\Customer;
-use IronFlow\Payment\Models\PaymentIntent;
-use IronFlow\Payment\Models\PaymentMethod;
-use IronFlow\Payment\Models\Plan;
-use IronFlow\Payment\Models\Subscription;
-use IronFlow\Payment\Models\Transaction;
+use IronFlow\Services\Payment\Models\Customer;
+use IronFlow\Services\Payment\Models\PaymentIntent;
+use IronFlow\Services\Payment\Models\PaymentMethod;
+use IronFlow\Services\Payment\Models\Plan;
+use IronFlow\Services\Payment\Models\Subscription;
+use IronFlow\Services\Payment\Models\Transaction;
 
 /**
  * Façade pour le système de paiement
@@ -46,9 +45,9 @@ use IronFlow\Payment\Models\Transaction;
  * @method static bool verifyWebhookSignature(string $payload, string $signature, string $secret, string $provider = null)
  * @method static string generateClientToken(array $options = [], string $provider = null)
  * 
- * @see \IronFlow\Payment\PaymentManager
+ * @see \IronFlow\Services\Payment\PaymentManager
  */
-class Payment extends Facade
+class Payment
 {
    /**
     * Récupère le nom d'enregistrement du composant
@@ -56,5 +55,10 @@ class Payment extends Facade
    protected static function getFacadeAccessor(): string
    {
       return 'payment';
+   }
+
+   public static function __callStatic($method, $args)
+   {
+      return static::getFacadeRoot()->$method(...$args);
    }
 }

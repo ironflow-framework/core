@@ -1,27 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\CraftPanel;
+namespace App\Controllers\CraftPanel;
 
-use App\Http\Controllers\Controller;
+use IronFlow\Http\Controller;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
 use IronFlow\Support\Facades\Auth;
-use IronFlow\Support\Facades\View;
+
 
 class DashboardController extends Controller
 {
-   /**
-    * Affiche le tableau de bord du CraftPanel
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function index()
+   
+   public function index(Request $request): Response
    {
       $user = Auth::guard('craftpanel')->user();
       $stats = $this->getDashboardStats();
 
-      return View::make('craftpanel.dashboard', [
-         'user' => $user,
-         'stats' => $stats,
-      ]);
+      return $this->view('craftpanel.dashboard', compact('user', 'stats'));
    }
 
    /**
