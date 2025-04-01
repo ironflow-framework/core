@@ -9,7 +9,7 @@ use IronFlow\Validation\Validator;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use IronFlow\Support\Facades\Collection;
 use IronFlow\Support\Facades\Session;
-
+use IronFlow\Support\Facades\Str;
 
 /**
  * Classe Request
@@ -144,7 +144,7 @@ class Request extends SymfonyRequest
    public function old(?string $key = null, mixed $default = null): mixed
    {
       if ($key) {
-         return $this->session()->get('old', $key, $default);
+         return $this->session()->get('old_' . $key, $default);
       }
 
       return $this->session()->all();
@@ -316,12 +316,12 @@ class Request extends SymfonyRequest
     * Valide les données de la requête
     *
     * @param array $rules
-    * @return bool
+    * @return bool True si donnée validées sinon False
     */
    public function validate(array $rules): bool
    {
-      $validator = new Validator();
-      return $validator->validate($this->all(), $rules);
+      $validator = Validator::make($this->all(), $rules);
+      return $validator->passes();
    }
 
    /**
@@ -370,6 +370,23 @@ class Request extends SymfonyRequest
    public function isMethod(string $method): bool
    {
       return strtoupper($method) === $this->getMethod();
+   }
+
+   /**
+    * Recupère la methode de la requête
+    * @return string
+    */
+   public function method(): string {
+      return Str::upper($this->getMethod()) ?? $this->getMethod();
+   }
+
+   /**
+    * Recupère l'uri de la requête
+    * @return string|null
+    */
+   public function path(): string|null
+   {
+     return $this->getUri() ?? null;
    }
 
    /**
