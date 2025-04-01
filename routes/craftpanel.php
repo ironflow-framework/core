@@ -1,20 +1,17 @@
 <?php
 
 use IronFlow\Support\Facades\Route;
-use App\Http\Controllers\CraftPanel\DashboardController;
-use App\Http\Controllers\CraftPanel\AuthController;
-use App\Http\Controllers\CraftPanel\UserController;
-use App\Http\Controllers\CraftPanel\RoleController;
-use App\Http\Controllers\CraftPanel\SettingController;
+use App\Controllers\CraftPanel\DashboardController;
+use App\Controllers\CraftPanel\AuthController;
+use App\Controllers\CraftPanel\UserController;
+use App\Controllers\CraftPanel\RoleController;
+use App\Controllers\CraftPanel\SettingController;
 
 $prefix = config('craftpanel.routes.prefix', 'craftpanel');
 $middleware = config('craftpanel.routes.middleware', ['web', 'auth']);
-$namespace = config('craftpanel.routes.namespace', 'App\\Http\\Controllers\\CraftPanel');
+$namespace = config('craftpanel.routes.namespace', 'App\\Controllers\\CraftPanel');
 
-Route::prefix($prefix)
-    ->middleware($middleware)
-    ->namespace($namespace)
-    ->group(function () {
+Route::group($prefix, function () {
         // Routes d'authentification
         Route::get('login', [AuthController::class, 'showLoginForm'])->name('craftpanel.login');
         Route::post('login', [AuthController::class, 'login']);
@@ -39,4 +36,4 @@ Route::prefix($prefix)
             Route::get('settings', [SettingController::class, 'index'])->name('craftpanel.settings');
             Route::post('settings', [SettingController::class, 'update'])->name('craftpanel.settings.update');
         });
-    });
+    }, ['middleware' => $middleware, 'namespace' => $namespace]);
