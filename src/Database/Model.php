@@ -16,6 +16,7 @@ use IronFlow\Database\Iron\Relations\BelongsToMany;
 use IronFlow\Database\Iron\Relations\HasMany;
 use IronFlow\Database\Iron\Relations\HasOne;
 
+use IronFlow\Database\Iron\Relations\MorphTo;
 use PDO;
 use PDOException;
 
@@ -491,6 +492,29 @@ abstract class Model
       $instance = new $related();
 
       return new HasOne(
+         $instance,
+         $this,
+         $foreignKey,
+         $localKey
+      );
+   }
+
+   /**
+    * Définit une relation HasOne
+    * 
+    * @param string $related Classe du modèle lié
+    * @param string|null $foreignKey Clé étrangère
+    * @param string|null $localKey Clé locale
+    * @return MorphTo Relation MorphTo
+    */
+    public function morphTo(string $related, ?string $foreignKey = null, ?string $localKey = null): MorphTo
+   {
+      $foreignKey = $foreignKey ?? $this->getForeignKey();
+      $localKey = $localKey ?? $this->getKeyName();
+
+      $instance = new $related();
+
+      return new MorphTo(
          $instance,
          $this,
          $foreignKey,

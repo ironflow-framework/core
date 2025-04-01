@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Vibe\Exceptions;
+namespace IronFlow\Service\Vibe\Exceptions;
 
 class MediaException extends \Exception
 {

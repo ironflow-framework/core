@@ -10,11 +10,11 @@ return [
       IronFlow\Providers\DatabaseServiceProvider::class,
       IronFlow\Providers\ViewServiceProvider::class,
       IronFlow\Providers\CacheServiceProvider::class,
-   IronFlow\Providers\TranslationServiceProvider::class,
+      IronFlow\Providers\TranslationServiceProvider::class,
 
       // Providers de fonctionnalités
-      IronFlow\Payment\PaymentServiceProvider::class,
       IronFlow\Channel\ChannelServiceProvider::class,
       IronFlow\Services\AI\AIServiceProvider::class,
+      IronFlow\Services\Payment\PaymentServiceProvider::class,
    ],
 ];

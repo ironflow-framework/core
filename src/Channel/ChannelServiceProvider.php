@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Channel;
 
-use IronFlow\Foundation\Application;
-use IronFlow\Foundation\ServiceProvider;
-use IronFlow\Support\Facades\Config;
-use IronFlow\Support\Facades\Log;
+use IronFlow\Core\Providers\ServiceProvider;
 
 /**
  * Service provider pour le système de channel

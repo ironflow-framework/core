@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace IronFlow\Vibe;
 
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Image;
+use Intervention\Image\ImageManager;
 use IronFlow\Support\Facades\Storage;
-use IronFlow\Vibe\Exceptions\MediaException;
-use IronFlow\Vibe\Models\Media;
-use Intervention\Image\ImageManagerStatic as Image;
+use IronFlow\Service\Vibe\Exceptions\MediaException;
+use IronFlow\Service\Vibe\Models\Media;
+
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class MediaManager
@@ -26,12 +29,17 @@ class MediaManager
     */
    protected array $config;
 
+   protected ImageManager $manager;
+
    /**
     * Constructeur privé pour le singleton
     */
    private function __construct()
    {
       $this->config = config('vibe', []);
+      $this->manager = new ImageManager(
+         new Driver()
+      );
    }
 
    /**
@@ -274,8 +282,9 @@ class MediaManager
       switch ($type) {
          case 'image':
             if (class_exists(Image::class)) {
+               $image = $this->manager->read($file->getRealPath());
                try {
-                  $image = Image::make($file->getRealPath());
+                 
                   $metadata = [
                      'width' => $image->width(),
                      'height' => $image->height(),
@@ -391,7 +400,7 @@ class MediaManager
       $quality = $this->config['image_quality'] ?? 85;
 
       try {
-         $image = Image::make($file->getRealPath());
+         $image = $this->manager->read($file->getRealPath());
          $pathInfo = pathinfo($path);
 
          foreach ($imageSizes as $size => $dimensions) {
@@ -401,13 +410,13 @@ class MediaManager
             $thumbnailPath = $pathInfo['dirname'] . '/' . $pathInfo['filename'] . '_' . $size . '.' . $pathInfo['extension'];
 
             // Redimensionne l'image
-            $resized = $image->fit($width, $height, function ($constraint) {
-               $constraint->aspectRatio();
-               $constraint->upsize();
-            });
+            $image->resize($width, $height);
 
+            $encoded = $image->toPng();
+
+            $encoded->save('new_name.png');
             // Sauvegarde la miniature
-            Storage::disk($disk)->put($thumbnailPath, (string) $resized->encode($pathInfo['extension'], $quality));
+            Storage::disk($disk)->put($thumbnailPath, (string) $encoded);
          }
       } catch (\Exception $e) {
          // Ignore les erreurs de création de miniatures

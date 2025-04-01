@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Furnace\Forms\Auth;
+namespace IronFlow\Forms\Furnace\Forms\Auth;
 
-use IronFlow\Furnace\Form;
-use IronFlow\Furnace\Components\Input;
+use IronFlow\Forms\Furnace\Components\Input;
+use IronFlow\Forms\Furnace\Form;
 
 class LoginForm extends Form
 {

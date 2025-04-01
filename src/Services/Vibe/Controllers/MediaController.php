@@ -7,10 +7,9 @@ namespace IronFlow\Vibe\Controllers;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Support\Facades\Storage;
-use IronFlow\Vibe\Exceptions\MediaException;
+use IronFlow\Service\Vibe\Models\Media;
+use IronFlow\Service\Vibe\Exceptions\MediaException;
 use IronFlow\Vibe\MediaManager;
-use IronFlow\Vibe\Models\Media;
 
 class MediaController extends Controller
 {

@@ -33,7 +33,7 @@ Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->nam
 Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
 // Groupes de routes
-Route::group(['middleware' => ['auth']], function () {
-   Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
-   Route::post('/profile/update', [AuthController::class, 'updateProfile'])->name('profile.update');
-});
+Route::group('profile', function () {
+   Route::get('/', [AuthController::class, 'profile'])->name('profile');
+   Route::post('/update', [AuthController::class, 'updateProfile'])->name('profile.update');
+}, ['middleware' => ['auth']]);

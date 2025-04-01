@@ -21,6 +21,7 @@ class Router
    private static array $middleware = [];
    private static array $globalMiddleware = [];
    private static array $namedRoutes = [];
+   private static string|null $currentGroupPrefix = null;
    private static ?Route $lastRoute = null;
 
    public static function init(): void
@@ -72,13 +73,40 @@ class Router
       return $this;
    }
 
-   public static function group(array $attributes, callable $callback): void
+   public function prefix(string $prefix): self
    {
+      $previousPrefix = self::$currentGroupPrefix;
+
+      if (self::$lastRoute) {
+
+         if ($previousPrefix !== null) {
+            self::$currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
+         } else {
+            self::$currentGroupPrefix = rtrim($prefix, '/');
+         }
+      }
+
+      self::$currentGroupPrefix = $previousPrefix;
+
+      return $this;
+   }
+
+   public static function group(string $prefix, callable $callback, array $attributes): void
+   {
+      $previousPrefix = self::$currentGroupPrefix;
+
+      if ($previousPrefix !== null) {
+         self::$currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
+      } else {
+         self::$currentGroupPrefix = rtrim($prefix, '/');
+      }
+
       $previousMiddleware = self::$middleware;
       self::$middleware = array_merge(self::$middleware, $attributes['middleware'] ?? []);
 
       $callback();
 
+      self::$currentGroupPrefix = $previousPrefix;
       self::$middleware = $previousMiddleware;
    }
 

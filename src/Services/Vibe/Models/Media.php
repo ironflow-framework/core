@@ -2,26 +2,15 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Vibe\Models;
+namespace IronFlow\Service\Vibe\Models;
 
+use IronFlow\Database\Iron\Relations\MorphTo;
 use IronFlow\Database\Model;
-use IronFlow\Support\Facades\Storage;
 use IronFlow\Vibe\MediaManager;
 
 class Media extends Model
 {
-   /**
-    * Table associée au modèle
-    *
-    * @var string
-    */
    protected $table = 'media';
-
-   /**
-    * Attributs pouvant être assignés en masse
-    *
-    * @var array
-    */
    protected $fillable = [
       'name',
       'filename',
@@ -39,11 +28,6 @@ class Media extends Model
       'model_id',
    ];
 
-   /**
-    * Attributs qui doivent être convertis en types natifs
-    *
-    * @var array
-    */
    protected $casts = [
       'size' => 'integer',
       'metadata' => 'array',
@@ -142,22 +126,16 @@ class Media extends Model
    /**
     * Relation polymorphique avec d'autres modèles
     *
-    * @return \IronFlow\Database\Relations\MorphTo
+    * @return \IronFlow\Database\Iron\Relations\MorphTo
     */
-   public function model()
+   public function model(): MorphTo
    {
-      return $this->morphTo();
+      return $this->morphTo('');
    }
-
-   /**
-    * Supprime le média et le fichier associé
-    *
-    * @return bool|null
-    * @throws \Exception
-    */
-   public function delete()
+   public function remove(): bool
    {
       MediaManager::instance()->delete($this);
-      return parent::delete();
+      return parent::delete($this->primaryKey);
    }
+
 }

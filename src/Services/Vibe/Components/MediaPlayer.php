@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Vibe\Components;
+namespace IronFlow\Service\Vibe\Components;
 
+use IronFlow\Service\Vibe\Models\Media;
 use IronFlow\View\Component;
-use IronFlow\Vibe\Models\Media;
 
 class MediaPlayer extends Component
 {

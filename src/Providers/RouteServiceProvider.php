@@ -6,6 +6,7 @@ namespace IronFlow\Providers;
 
 use IronFlow\Routing\Router;
 use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Support\Facades\Filesystem;
 
 /**
  * Fournisseur de services pour le système de routage
@@ -45,16 +46,28 @@ class RouteServiceProvider extends ServiceProvider
     */
    protected function loadRoutes(): void
    {
-      $router = $this->app['router'];
+
+      $appBasePath = $this->app->basePath();
 
       // Chargement des routes web
-      if (file_exists($this->app->getBasePath() . '/routes/web.php')) {
-         require $this->app->getBasePath() . '/routes/web.php';
+      if (file_exists($appBasePath . '/routes/web.php')) {
+         require $appBasePath . '/routes/web.php';
       }
 
       // Chargement des routes API
-      if (file_exists($this->app->getBasePath() . '/routes/api.php')) {
-         require $this->app->getBasePath() . '/routes/api.php';
+      if (file_exists($appBasePath . '/routes/api.php')) {
+         require $appBasePath . '/routes/api.php';
       }
+
+      // Chargement des routes du CraftPanel
+      if (Filesystem::exists($appBasePath . '/routes/craftpanel.php')) {
+         require $appBasePath . '/routes/craftpanel.php';
+      }
+
+      $this->app->withRoutes([
+         $appBasePath . '/routes/web.php',
+         $appBasePath . '/routes/api.php',
+         $appBasePath . '/routes/craftpanel.php',
+      ]);
    }
 }

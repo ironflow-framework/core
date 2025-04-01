@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
    public function boot(): void
    {
       // Configuration de base de l'application
-      date_default_timezone_set($this->app['config']['timezone']);
-      setlocale(LC_ALL, $this->app['config']['locale']);
+      date_default_timezone_set(config('app.timezone', 'UTC'));
+      setlocale(LC_ALL, config('app.locale', 'fr_FR'));
    }
 }
