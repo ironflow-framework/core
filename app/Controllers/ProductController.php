@@ -9,6 +9,7 @@ use App\Models\Category;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
+use IronFlow\Validation\Validator;
 
 class ProductController extends Controller
 {
@@ -28,8 +29,8 @@ class ProductController extends Controller
 
       $form = Product::form()->input('name', 'Nom du produit')
          ->textarea('description', 'Description du produit')
-         ->input('price', 'Prix du produit', ['type' => 'number', 'step' => '0.01'])
-         ->input('stock', 'Quantité en stock', ['type' => 'number'])
+         ->input('price', 'Prix du produit', 'number')
+         ->input('stock', 'Quantité en stock', 'number')
          ->select('category_id', 'Catégorie du produit', $categories)
          ->button('Créer le produit')
          ->action('/products/store');
@@ -42,7 +43,9 @@ class ProductController extends Controller
 
    public function store(Request $request): Response
    {
-      $data = $request->validate([
+      $data = $request->all();
+
+      $validator = Validator::make($data, [
          'name' => 'required|string|max:255',
          'description' => 'nullable|string',
          'price' => 'required|numeric|min:0',
@@ -50,9 +53,15 @@ class ProductController extends Controller
          'category_id' => 'required|exists:categories,id'
       ]);
 
+      if ($validator->fails()) {
+         return $this->back()->withErrors($validator->errors());
+      }
+
       $product = Product::create($data);
 
-      return $this->redirect('/products')->with('success', 'Produit créé avec succès');
+      return $this->redirect('/products')
+         ->with('success', 'Produit créé avec succès')
+         ->with('product', $product);
    }
 
    public function show(Request $request, $id): Response
@@ -73,8 +82,8 @@ class ProductController extends Controller
       $form = Product::form()->fill($product->toArray())
          ->input('name', 'Nom du produit')
          ->textarea('description', 'Description du produit')
-         ->input('price', 'Prix du produit', ['type' => 'number', 'step' => '0.01'])
-         ->input('stock', 'Quantité en stock', ['type' => 'number'])
+         ->input('price', 'Prix du produit', 'number')
+         ->input('stock', 'Quantité en stock', 'number')
          ->select('category_id', 'Catégorie du produit', $categories)
          ->button('Modifier le produit')
          ->action("/products/update/{$id}");
@@ -89,14 +98,20 @@ class ProductController extends Controller
    public function update(Request $request, $id): Response
    {
       $product = Product::findOrFail($id);
+      $data = $request->all();
 
-      $data = $request->validate([
+      $validator = Validator::make($data, [
          'name' => 'required|string|max:255',
          'description' => 'nullable|string',
          'price' => 'required|numeric|min:0',
          'stock' => 'required|integer|min:0',
          'category_id' => 'required|exists:categories,id'
       ]);
+
+      if (!$validator->fails())
+      {
+         return $this->back()->withErrors($validator->errors());
+      }
 
       $product->fill($data);
       $product->save();

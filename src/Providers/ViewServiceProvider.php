@@ -39,7 +39,6 @@ class ViewServiceProvider extends ServiceProvider
       $view->addGlobal('APP_LANG', config('app.locale'));
       $view->addGlobal('APP_VERSION', config('app.version', '1.0.0'));
 
-
       $view->addFunction('url', function (string $path, array $parameters = []): string {
          $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
          $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];

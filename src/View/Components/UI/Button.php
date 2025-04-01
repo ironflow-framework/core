@@ -58,7 +58,7 @@ class Button extends Component
       return $this;
    }
 
-   public function icon(string $icon): self
+   public function icon(?string $icon = null): self
    {
       $this->icon = $icon;
       return $this;
@@ -141,7 +141,7 @@ class Button extends Component
 
       return sprintf(
          '<button %s>%s</button>',
-         $this->renderAttributes($attributes),
+         $this->renderAttributes(),
          implode('', $content)
       );
    }

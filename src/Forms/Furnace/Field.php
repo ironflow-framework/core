@@ -60,7 +60,12 @@ abstract class Field extends Component
    {
       $attrs = [];
       foreach ($this->attributes as $key => $value) {
-         $attrs[] = sprintf('%s="%s"', $key, htmlspecialchars($value));
+         if (is_string($value))
+         {
+            $attrs[] = sprintf('%s="%s"', $key, htmlspecialchars($value));
+         } else {
+            $attrs[] = sprintf('%s="%s"', $key, $value);
+         }
       }
       return implode(' ', $attrs);
    }

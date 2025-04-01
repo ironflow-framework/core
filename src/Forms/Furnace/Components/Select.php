@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace IronFlow\Forms\Furnace\Components;
 
+use IronFlow\Database\Collection;
 use IronFlow\Forms\Furnace\Field;
 
 class Select extends Field
 {
-   protected array $options = [];
+   protected array|Collection $options = [];
    protected bool $multiple = false;
    protected ?string $placeholder = null;
 
-   public function options(array $options): self
+   /**
+    * Ajouter les options
+    * @param array|\IronFlow\Database\Collection $options
+    * @return Select
+    */
+   public function options(array|Collection $options): self
    {
       $this->options = $options;
       return $this;

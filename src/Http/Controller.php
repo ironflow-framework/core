@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
+use IronFlow\Core\Application;
 use IronFlow\View\ViewInterface;
 use IronFlow\Http\Response;
 use IronFlow\Routing\Router;
@@ -18,14 +19,11 @@ abstract class Controller
    public function __construct(?ViewInterface $view = null)
    {
       if ($view === null) {
-         $viewPath = view_path();
-         if (!is_dir($viewPath)) {
-            throw new \RuntimeException("Le répertoire des vues n'existe pas: {$viewPath}");
-         }
-         $this->view = new TwigView($viewPath);
+         $this->view = Application::getInstance()->getContainer()->get('view');
       } else {
          $this->view = $view;
       }
+      
       $this->response = new Response();
    }
 
@@ -68,7 +66,7 @@ abstract class Controller
          session_start();
       }
 
-      $_SESSION['_flash'][$key] = $value;
+      session()->flash($key, $value);
       $this->response->with($key, $value);
 
       return $this;
@@ -119,9 +117,9 @@ abstract class Controller
     */
    protected function validate(array $data, array $rules): array|bool
    {
-      $validator = new Validator($data, $rules);
+      $validator = Validator::make($data, $rules);
 
-      if ($validator->validate()) {
+      if ($validator->passes()) {
          return true;
       }
 
