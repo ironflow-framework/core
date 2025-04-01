@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Core\Providers;
 
 use IronFlow\Core\Application;
+use IronFlow\Support\Facades\Filesystem;
 
 /**
  * Classe de base pour tous les fournisseurs de services
@@ -69,7 +70,7 @@ abstract class ServiceProvider
          if (is_dir($fromPath)) {
             $this->copyDirectory($fromPath, $toPath);
          } else {
-            $this->copyFile($fromPath, $toPath);
+            // Filesystem::copy($fromPath, $toPath);
          }
       }
    }
@@ -95,19 +96,6 @@ abstract class ServiceProvider
             copy($file->getPathname(), $to . DIRECTORY_SEPARATOR . $file->getRelativePathname());
          }
       }
-   }
-
-   /**
-    * Copie un fichier
-    */
-   private function copyFile(string $from, string $to): void
-   {
-      $directory = dirname($to);
-      if (!is_dir($directory)) {
-         mkdir($directory, 0755, true);
-      }
-
-      copy($from, $to);
    }
 
    /**

@@ -34,15 +34,27 @@ class ViewServiceProvider extends ServiceProvider
    public function boot(): void
    {
       // Configuration des vues
-      $view = $this->app['view'];
+      $view = $this->app->getContainer()->get('view');
 
-      // Ajout des fonctions globales
-      $view->addFunction('asset', function ($path) {
+      $view->addGlobal('APP_LANG', config('app.local'));
+      $view->addGlobal('APP_VERSION', config('app.version', '1.0.0'));
+
+
+      $view->addFunction('url', function (string $path, array $parameters = []): string {
+         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+         $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
+         $path = trim($path, '/');
+         $query = !empty($parameters) ? '?' . http_build_query($parameters) : '';
+         return $baseUrl . '/' . $path . $query;
+      });
+
+      $view->addFunction('asset', function (string $path): string {
          return '/assets/' . ltrim($path, '/');
       });
 
       $view->addFunction('route', function ($name, $parameters = []) {
-         return $this->app['router']->url($name, $parameters);
+         $path = str_replace('.', '/', $name);
+         return $this->app->getContainer()->get('router')->url($path, $parameters);
       });
    }
 }

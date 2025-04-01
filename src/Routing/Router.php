@@ -13,6 +13,7 @@ use IronFlow\Http\Request;
 use IronFlow\Http\Response;
 use IronFlow\Http\Exceptions\NotFoundException;
 use App\Controllers\AuthController;
+use ReflectionMethod;
 
 class Router
 {
@@ -91,7 +92,14 @@ class Router
       return $this;
    }
 
-   public static function group(string $prefix, callable $callback, array $attributes): void
+   /**
+    * Ajoute un groupe de route
+    * @param string $prefix
+    * @param callable $callback
+    * @param array $attributes
+    * @return Router
+    */
+   public static function group(string $prefix, callable $callback, array $attributes = []): self
    {
       $previousPrefix = self::$currentGroupPrefix;
 
@@ -108,6 +116,8 @@ class Router
 
       self::$currentGroupPrefix = $previousPrefix;
       self::$middleware = $previousMiddleware;
+
+      return new self;
    }
 
    public static function auth(): void
@@ -198,7 +208,7 @@ class Router
          error_log("Méthode: " . $method);
 
          $controller = new $class();
-         $reflection = new \ReflectionMethod($class, $method);
+         $reflection = new ReflectionMethod($class, $method);
          $parameters = $reflection->getParameters();
 
          error_log("Paramètres de la méthode: " . print_r($parameters, true));
@@ -265,6 +275,8 @@ class Router
 
          foreach (array_reverse($middleware) as $middleware) {
             $next = function (Request $request) use ($middleware, $next) {
+               $middleware .= 'Middleware';
+               $middleware = ucfirst($middleware);
                return (new $middleware())->handle($request, $next);
             };
          }

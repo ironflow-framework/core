@@ -21,17 +21,17 @@ class CacheServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('cache', function ($app) {
-         return new HammerManager($app['config']['cache']);
+      $this->app->singleton('cache', function ($app): HammerManager {
+         return new HammerManager(config('cache'));
       });
    }
 
    public function boot(): void
    {
       // Configuration du cache
-      $cache = $this->app['cache'];
+      $cache = $this->app->getContainer()->get('cache');
 
       // Configuration du driver par défaut
-      $cache->setDefaultDriver($this->app['config']['cache']['default']);
+      $cache->setDefaultDriver(config('cache.default'));
    }
 }

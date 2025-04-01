@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Cache\Hammer\Drivers;
 
 use DateTime;
-use IronFlow\Hammer\Contracts\CacheDriverInterface;
+use IronFlow\Cache\Hammer\Contracts\CacheDriverInterface;
+use IronFlow\Support\Facades\Filesystem;
 
 /**
  * Driver de cache utilisant le système de fichiers
@@ -25,8 +26,8 @@ class FileDriver implements CacheDriverInterface
     public function __construct(?string $cachePath = null)
     {
         $this->cachePath = $cachePath ?? dirname(__DIR__, 4) . '/storage/cache';
-        if (!is_dir($this->cachePath)) {
-            mkdir($this->cachePath, 0777, true);
+        if (!Filesystem::isDirectory($this->cachePath)) {
+            Filesystem::makeDirectory($this->cachePath, 0777, true);
         }
     }
 

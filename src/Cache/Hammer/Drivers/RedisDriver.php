@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace IronFlow\Cache\Hammer\Drivers;
 
-use DateTime;
+use IronFlow\Cache\Hammer\Contracts\CacheDriverInterface;
 use Redis;
 use RedisException;
-use IronFlow\Hammer\Contracts\CacheDriverInterface;
 
 /**
  * Driver de cache utilisant Redis

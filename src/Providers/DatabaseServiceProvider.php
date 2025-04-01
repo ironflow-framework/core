@@ -21,7 +21,7 @@ class DatabaseServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('db', function ($app) {
+      $this->app->singleton('db', function ($app): IronManager {
          // Configuration à partir du fichier de configuration
          return new IronManager();
       });
@@ -30,6 +30,6 @@ class DatabaseServiceProvider extends ServiceProvider
    public function boot(): void
    {
       // Configuration de la connexion par défaut
-      $this->app['db']->connection();
+      $this->app->getContainer()->get('db')->connection();
    }
 }

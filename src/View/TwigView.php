@@ -57,7 +57,7 @@ class TwigView implements ViewInterface
 
       if (!is_dir($cachePath)) {
          error_log("Création du répertoire de cache...");
-         if (!mkdir($cachePath, 0777, true)) {
+         if (!Filesystem::makeDirectory($cachePath, 0777, true)) {
             throw new \RuntimeException("Impossible de créer le répertoire de cache: " . $cachePath);
          }
          error_log("Répertoire de cache créé avec succès");
@@ -76,17 +76,9 @@ class TwigView implements ViewInterface
          'charset' => 'UTF-8'
       ]);
 
-      $this->addGlobal('APP_LANG', Config::get('app.local'));
-      $this->addGlobal('APP_VERSION', Config::get('app.version', '1.0.0'));
-
       $this->twig->addExtension(new ViteExtension());
       $this->twig->addExtension(new RouteExtension());
-
-      // Ajout des fonctions Twig
-      $this->twig->addFunction(new \Twig\TwigFunction('url', [$this, 'url']));
-      $this->twig->addFunction(new \Twig\TwigFunction('asset', [$this, 'asset']));
-      $this->twig->addFunction(new \Twig\TwigFunction('route', [$this, 'route']));
-
+     
       error_log("TwigView initialisé avec succès");
       error_log("Cache path: " . $cachePath);
       error_log("=== Fin de l'initialisation de TwigView ===");
@@ -117,7 +109,7 @@ class TwigView implements ViewInterface
             error_log("ERREUR: Le template n'existe pas: " . $templatePath);
             error_log("Liste des templates disponibles:");
             $loader = $this->twig->getLoader();
-            if ($loader instanceof \Twig\Loader\FilesystemLoader) {
+            if ($loader instanceof FilesystemLoader) {
                $paths = $loader->getPaths();
                foreach ($paths as $path) {
                   error_log("- " . $path);
@@ -157,25 +149,4 @@ class TwigView implements ViewInterface
       $this->twig->addFunction(new \Twig\TwigFunction($name, $function));
    }
 
-   public function url(string $path, array $parameters = []): string
-   {
-      $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-      $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
-      $path = trim($path, '/');
-      $query = !empty($parameters) ? '?' . http_build_query($parameters) : '';
-      return $baseUrl . '/' . $path . $query;
-   }
-
-   public function asset(string $path): string
-   {
-      return '/assets/' . ltrim($path, '/');
-   }
-
-   public function route(string $name, array $parameters = []): string
-   {
-      // Pour l'instant, on utilise une simple transformation
-      // À améliorer avec un vrai système de nommage des routes
-      $path = str_replace('.', '/', $name);
-      return $this->url($path, $parameters);
-   }
 }

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 
-use App\Controllers\AuthController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\DashboardController;
@@ -18,7 +17,7 @@ Route::auth();
 
 // Routes pour le dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
-   ->middleware('auth')
+   // ->middleware('auth')
    ->name('dashboard');
 
 // Routes resource pour les produits
@@ -33,7 +32,8 @@ Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->nam
 Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
 // Groupes de routes
-Route::group('profile', function () {
-   Route::get('/', [AuthController::class, 'profile'])->name('profile');
-   Route::post('/update', [AuthController::class, 'updateProfile'])->name('profile.update');
-}, ['middleware' => ['auth']]);
+// Route::group('profile', function () {
+//    Route::get('/', [AuthController::class, 'profile'])->name('profile');
+//    Route::post('/update', [AuthController::class, 'updateProfile'])->name('profile.update');
+// // }, ['middleware' => ['auth']]);
+// });

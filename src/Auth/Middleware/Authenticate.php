@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Auth\Middleware;
 
+use App\Models\User;
 use IronFlow\Auth\AuthManager;
-use IronFlow\CraftPanel\Models\AdminUser;
 use IronFlow\Http\Middleware;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
@@ -26,8 +26,9 @@ class Authenticate extends Middleware
         }
 
         $user = AuthManager::getInstance()->user();
-        if ($user instanceof AdminUser) {
+        if ($user instanceof User) {
             // Autoriser l'accès
+            session()->flash('welcome', 'Bon retour ' . $user->name .'!');
         } else {
             // Rediriger ou refuser l'accès
             return Response::redirect('/unauthorized');

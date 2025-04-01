@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Cache\Hammer\Drivers;
 
-use DateTime;
+use IronFlow\Cache\Hammer\Contracts\CacheDriverInterface;
 use Memcached;
-use IronFlow\Hammer\Contracts\CacheDriverInterface;
 
 /**
  * Driver de cache utilisant Memcached

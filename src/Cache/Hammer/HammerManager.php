@@ -5,25 +5,25 @@ declare(strict_types=1);
 namespace IronFlow\Cache\Hammer;
 
 use InvalidArgumentException;
-use IronFlow\Hammer\Contracts\CacheDriverInterface;
-use IronFlow\Hammer\Drivers\FileDriver;
-use IronFlow\Hammer\Drivers\RedisDriver;
-use IronFlow\Hammer\Drivers\MemcachedDriver;
+use IronFlow\Cache\Hammer\Contracts\CacheDriverInterface;
+use IronFlow\Cache\Hammer\Drivers\FileDriver;
+use IronFlow\Cache\Hammer\Drivers\RedisDriver;
+use IronFlow\Cache\Hammer\Drivers\MemcachedDriver;
 
 /**
- * Gestionnaire de cache pour le systu00e8me Hammer
- * Permet de gu00e9rer plusieurs drivers de cache
+ * Gestionnaire de cache pour le système Hammer
+ * Permet de gérer plusieurs drivers de cache
  */
 class HammerManager
 {
     /**
-     * Configuration du systu00e8me de cache
+     * Configuration du système de cache
      * @var array
      */
     private array $config;
     
     /**
-     * Driver de cache par du00e9faut
+     * Driver de cache par défaut
      * @var string
      */
     private string $defaultDriver;
@@ -36,7 +36,7 @@ class HammerManager
 
     /**
      * Constructeur
-     * @param array $config Configuration du systu00e8me de cache
+     * @param array $config Configuration du systuème de cache
      */
     public function __construct(array $config)
     {
@@ -45,7 +45,7 @@ class HammerManager
     }
 
     /**
-     * Du00e9finit le driver de cache par du00e9faut
+     * Définit le driver de cache par défaut
      * @param string $driver Nom du driver
      * @return void
      */
@@ -55,8 +55,8 @@ class HammerManager
     }
 
     /**
-     * Ru00e9cupu00e8re une instance de driver de cache
-     * @param string|null $name Nom du driver (null pour utiliser le driver par du00e9faut)
+     * Récupuère une instance de driver de cache
+     * @param string|null $name Nom du driver (null pour utiliser le driver par défaut)
      * @return CacheDriverInterface Instance du driver
      */
     public function driver(?string $name = null): CacheDriverInterface
@@ -71,10 +71,10 @@ class HammerManager
     }
 
     /**
-     * Cru00e9e une instance de driver de cache
+     * Crée une instance de driver de cache
      * @param string $name Nom du driver
      * @return CacheDriverInterface Instance du driver
-     * @throws InvalidArgumentException Si le driver n'est pas supportu00e9
+     * @throws InvalidArgumentException Si le driver n'est pas supporté
      */
     protected function createDriver(string $name): CacheDriverInterface
     {
@@ -84,15 +84,15 @@ class HammerManager
             'file' => new FileDriver($config['path'] ?? null),
             'redis' => new RedisDriver($config),
             'memcached' => new MemcachedDriver($config),
-            default => throw new InvalidArgumentException("Driver de cache non supportu00e9: {$name}")
+            default => throw new InvalidArgumentException("Driver de cache non supporté: {$name}")
         };
     }
 
     /**
-     * Ru00e9cupu00e8re une valeur du cache
-     * @param string $key Clu00e9 u00e0 ru00e9cupu00e9rer
-     * @param mixed $default Valeur par du00e9faut si la clu00e9 n'existe pas
-     * @return mixed La valeur ru00e9cupu00e9ru00e9e ou la valeur par du00e9faut
+     * Récupuère une valeur du cache
+     * @param string $key Clé u00e0 récupérer
+     * @param mixed $default Valeur par défaut si la clé n'existe pas
+     * @return mixed La valeur récupérée ou la valeur par défaut
      */
     public function get(string $key, mixed $default = null): mixed
     {
@@ -107,10 +107,10 @@ class HammerManager
 
     /**
      * Stocke une valeur dans le cache
-     * @param string $key Clu00e9 pour stocker la valeur
+     * @param string $key Clé pour stocker la valeur
      * @param mixed $value Valeur u00e0 stocker
-     * @param int|null $ttl Duru00e9e de vie en secondes (null pour pas d'expiration)
-     * @return bool True si le stockage a ru00e9ussi, false sinon
+     * @param int|null $ttl Durée de vie en secondes (null pour pas d'expiration)
+     * @return bool True si le stockage a réussi, false sinon
      */
     public function put(string $key, mixed $value, ?int $ttl = null): bool
     {
@@ -122,8 +122,8 @@ class HammerManager
 
     /**
      * Supprime une valeur du cache
-     * @param string $key Clu00e9 u00e0 supprimer
-     * @return bool True si la suppression a ru00e9ussi, false sinon
+     * @param string $key Clé u00e0 supprimer
+     * @return bool True si la suppression a réussi, false sinon
      */
     public function forget(string $key): bool
     {
@@ -131,8 +131,8 @@ class HammerManager
     }
 
     /**
-     * Vide complu00e8tement le cache
-     * @return bool True si le vidage a ru00e9ussi, false sinon
+     * Vide compluètement le cache
+     * @return bool True si le vidage a réussi, false sinon
      */
     public function flush(): bool
     {
@@ -140,11 +140,11 @@ class HammerManager
     }
 
     /**
-     * Ru00e9cupu00e8re une valeur du cache ou l'enregistre si elle n'existe pas
-     * @param string $key Clu00e9 u00e0 ru00e9cupu00e9rer
-     * @param callable $callback Fonction u00e0 exu00e9cuter pour gu00e9nu00e9rer la valeur si non trouvu00e9e
-     * @param int|null $ttl Duru00e9e de vie en secondes (null pour pas d'expiration)
-     * @return mixed La valeur stocku00e9e ou gu00e9nu00e9ru00e9e
+     * Récupuère une valeur du cache ou l'enregistre si elle n'existe pas
+     * @param string $key Clé u00e0 récupérer
+     * @param callable $callback Fonction u00e0 exécuter pour générer la valeur si non trouvée
+     * @param int|null $ttl Durée de vie en secondes (null pour pas d'expiration)
+     * @return mixed La valeur stockée ou générée
      */
     public function remember(string $key, callable $callback, ?int $ttl = null): mixed
     {
@@ -152,9 +152,9 @@ class HammerManager
     }
 
     /**
-     * Vu00e9rifie si une clu00e9 existe dans le cache
-     * @param string $key Clu00e9 u00e0 vu00e9rifier
-     * @return bool True si la clu00e9 existe, false sinon
+     * Vérifie si une clé existe dans le cache
+     * @param string $key Clé u00e0 vérifier
+     * @return bool True si la clé existe, false sinon
      */
     public function has(string $key): bool
     {
@@ -162,10 +162,10 @@ class HammerManager
     }
 
     /**
-     * Met u00e0 jour la duru00e9e de vie d'une clu00e9
-     * @param string $key Clu00e9 u00e0 mettre u00e0 jour
-     * @param int $ttl Nouvelle duru00e9e de vie en secondes
-     * @return bool True si la mise u00e0 jour a ru00e9ussi, false sinon
+     * Met u00e0 jour la durée de vie d'une clé
+     * @param string $key Clé u00e0 mettre u00e0 jour
+     * @param int $ttl Nouvelle durée de vie en secondes
+     * @return bool True si la mise u00e0 jour a réussi, false sinon
      */
     public function ttl(string $key, int $ttl): bool
     {

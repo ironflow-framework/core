@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Support\Facades\Filesystem;
 use IronFlow\Support\Facades\Trans;
 
 /**
@@ -35,16 +36,16 @@ class TranslationServiceProvider extends ServiceProvider
    {
       // Création du répertoire de base pour les traductions s'il n'existe pas
       $langPath = lang_path();
-      if (!is_dir($langPath)) {
-         mkdir($langPath, 0755, true);
+      if (!Filesystem::isDirectory($langPath)) {
+         Filesystem::makeDirectory($langPath, 0755, true);
       }
 
       // Création des répertoires pour les langues par défaut
       $locales = ['fr', 'en'];
       foreach ($locales as $locale) {
          $localePath = $langPath . '/' . $locale;
-         if (!is_dir($localePath)) {
-            mkdir($localePath, 0755, true);
+         if (!Filesystem::isDirectory($localePath)) {
+            Filesystem::makeDirectory($localePath, 0755, true);
          }
       }
 
