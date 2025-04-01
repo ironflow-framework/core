@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Service\Vibe\Models;
+namespace IronFlow\Services\Vibe\Models;
 
 use IronFlow\Database\Iron\Relations\MorphTo;
 use IronFlow\Database\Model;

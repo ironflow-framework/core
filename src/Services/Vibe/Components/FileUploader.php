@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Service\Vibe\Components;
+namespace IronFlow\Services\Vibe\Components;
 
 use IronFlow\View\Component;
 

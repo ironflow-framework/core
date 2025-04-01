@@ -8,8 +8,8 @@ use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 use IronFlow\Support\Facades\Storage;
-use IronFlow\Service\Vibe\Exceptions\MediaException;
-use IronFlow\Service\Vibe\Models\Media;
+use IronFlow\Services\Vibe\Exceptions\MediaException;
+use IronFlow\Services\Vibe\Models\Media;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
