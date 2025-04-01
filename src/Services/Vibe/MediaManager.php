@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Vibe;
+namespace IronFlow\Services\Vibe;
 
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Image;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Forms\Furnace\Forms\Auth;
+namespace IronFlow\View\Components\UI\Forms\Auth;
 
 use IronFlow\Forms\Furnace\Components\Input;
 use IronFlow\Forms\Furnace\Form;

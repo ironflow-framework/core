@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Vibe\Controllers;
+namespace IronFlow\Services\Vibe\Controllers;
 
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Service\Vibe\Models\Media;
-use IronFlow\Service\Vibe\Exceptions\MediaException;
-use IronFlow\Vibe\MediaManager;
+use IronFlow\Services\Vibe\Models\Media;
+use IronFlow\Services\Vibe\Exceptions\MediaException;
+
+use IronFlow\Services\Vibe\MediaManager;
 
 class MediaController extends Controller
 {
