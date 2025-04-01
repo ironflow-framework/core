@@ -208,7 +208,7 @@ class Router
          error_log("Méthode: " . $method);
 
          $controller = new $class();
-         $reflection = new ReflectionMethod($class, $method);
+         $reflection = new \ReflectionMethod($class, $method);
          $parameters = $reflection->getParameters();
 
          error_log("Paramètres de la méthode: " . print_r($parameters, true));

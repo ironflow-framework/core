@@ -1,18 +1,15 @@
 <?php
 
-use IronFlow\Database\Schema\Blueprint;
 use IronFlow\Database\Migrations\Migration;
+use IronFlow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Schema;
+use IronFlow\Support\Facades\DB;
 
-class CreateCraftPanelSettingsTable extends Migration
+return new class extends Migration
 {
-   /**
-    * Exécute la migration.
-    *
-    * @return void
-    */
-   public function up()
+   public function up(): void
    {
-      Schema::create('craftpanel_settings', function (Blueprint $table) {
+      Schema::createTable('craftpanel_settings', function (Anvil $table) {
          $table->id();
          $table->string('key_name')->unique();
          $table->text('value')->nullable();
@@ -103,8 +100,9 @@ class CreateCraftPanelSettingsTable extends Migration
          ],
       ];
 
+      $db = DB::getInstance();
       foreach ($settings as $setting) {
-         DB::table('craftpanel_settings')->insert([
+         $db->insert('craftpanel_settings', [
             'key_name' => $setting['key_name'],
             'value' => $setting['value'],
             'created_at' => now(),
@@ -113,13 +111,8 @@ class CreateCraftPanelSettingsTable extends Migration
       }
    }
 
-   /**
-    * Annule la migration.
-    *
-    * @return void
-    */
-   public function down()
+   public function down(): void
    {
-      Schema::dropIfExists('craftpanel_settings');
+      Schema::dropTableIfExists('craftpanel_settings');
    }
-}
+};

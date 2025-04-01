@@ -4,35 +4,19 @@ declare(strict_types=1);
 
 namespace IronFlow\Database\Migrations;
 
-use PDO;
 use Exception;
-use IronFlow\Database\Schema\Schema;
+use IronFlow\Database\Connection;
 
 /**
  * Classe de base pour les migrations
  */
 abstract class Migration
 {
-   /**
-    * Instance de la connexion à la base de données
-    *
-    * @var PDO
-    */
-   protected PDO $connection;
 
-   /**
-    * Constructeur
-    *
-    * @param PDO $connection Connexion à la base de données
-    */
-   public function __construct(PDO $connection)
+   public function getConnection()
    {
-      $this->connection = $connection;
-
-      // Configurer la connexion statique dans Schema si elle n'est pas déjà configurée
-      Schema::setDefaultConnection($connection);
+      return Connection::getInstance()->getConnection();
    }
-
    /**
     * Exécute la migration
     *
@@ -55,9 +39,9 @@ abstract class Migration
    public function runUp(): bool
    {
       try {
-         $this->beginTransaction();
+         // $this->beginTransaction();
          $this->up();
-         $this->commitTransaction();
+         // $this->commitTransaction();
          return true;
       } catch (Exception $e) {
          $this->rollbackTransaction();
@@ -90,7 +74,7 @@ abstract class Migration
     */
    protected function beginTransaction(): void
    {
-      $this->connection->beginTransaction();
+      $this->getConnection()->beginTransaction();
    }
 
    /**
@@ -100,8 +84,9 @@ abstract class Migration
     */
    protected function commitTransaction(): void
    {
-      $this->connection->commit();
+      $this->getConnection()->commit();
    }
+
 
    /**
     * Annule une transaction
@@ -110,8 +95,8 @@ abstract class Migration
     */
    protected function rollbackTransaction(): void
    {
-      if ($this->connection->inTransaction()) {
-         $this->connection->rollBack();
+      if ($this->getConnection()->inTransaction()) {
+         $this->getConnection()->rollBack();
       }
    }
 
@@ -124,7 +109,7 @@ abstract class Migration
     */
    protected function rawQuery(string $sql, array $params = []): bool
    {
-      $stmt = $this->connection->prepare($sql);
+      $stmt = $this->getConnection()->prepare($sql);
       return $stmt->execute($params);
    }
 }

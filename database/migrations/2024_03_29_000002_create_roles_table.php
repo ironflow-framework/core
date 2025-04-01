@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Role;
 use IronFlow\Database\Schema\Anvil;
 use IronFlow\Database\Schema\Schema;
 use IronFlow\Database\Migrations\Migration;
@@ -21,22 +22,29 @@ return new class extends Migration
          $table->timestamps();
       });
 
-      // Création des rôles par défaut
-      $db = DB::getInstance()->getConnection();
-      $db->insert('roles', [
+      $roles = [
          [
             'name' => 'admin',
             'description' => 'Administrateur avec tous les droits',
-            'created_at' => now(),
-            'updated_at' => now(),
          ],
          [
             'name' => 'user',
             'description' => 'Utilisateur standard',
+         ],
+      ];
+
+      $db = DB::getInstance();
+
+      foreach ($roles as $role) {
+         $db->beginTransaction();
+         $db->insert('roles', [
+            'name' => $role['name'],
+            'description' => $role['description'],
             'created_at' => now(),
             'updated_at' => now(),
-         ],
-      ]);
+         ]);
+         $db->commit();
+      }
    }
 
    /**
@@ -44,7 +52,7 @@ return new class extends Migration
     *
     * @return void
     */
-   public function down(): void  
+   public function down(): void
    {
       Schema::dropTableIfExists('roles');
    }

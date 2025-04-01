@@ -261,6 +261,17 @@ abstract class Model
       }
    }
 
+   public static function createMany(array $data): Collection
+   {
+      $records = array_map(
+         fn($item): Model =>
+         static::create($item),
+         $data
+      );
+      
+      return new Collection($records);
+   }
+
    /**
     * Met à jour un enregistrement existant dans la base de données
     * 
@@ -329,6 +340,43 @@ abstract class Model
    }
 
    /**
+    * Récuperer les enregistrement d'une colonne de la table
+    *
+    * @param string|array $columns
+    * @return Collection
+    */
+   public static function pluck(string|array $columns): Collection
+   {
+      if (is_array($columns)) {
+         $sql = "SELECT  FROM ";
+      } else {
+         $sql = "SELECT $columns FROM ";
+      }
+      
+      $sql .= static::$table;
+      $stmt = (new static())->getConnection()->query($sql);
+      $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
+      return new Collection($result);
+   }
+
+   public static function chunk(int $size, callable $callback): void
+   {
+      $offset = 0;
+      do {
+         $sql = "SELECT * FROM " . static::$table . " LIMIT $size OFFSET $offset";
+         $stmt = (new static())->getConnection()->query($sql);
+         $results = $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+
+         if (empty($results)) {
+            break;
+         }
+
+         $callback($results);
+         $offset += $size;
+      } while (count($results) === $size);
+   }
+
+   /**
     * Trouve un enregistrement par son identifiant
     * 
     * @param mixed $id Identifiant de l'enregistrement
@@ -367,6 +415,20 @@ abstract class Model
       return static::query()->where($column, $value);
    }
 
+   public static function onlyTrashed(): array
+   {
+      $sql = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NOT NULL";
+      $stmt = (new static())->db->query($sql);
+      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+   }
+
+   public static function restore($id): bool
+   {
+      $sql = "UPDATE " . static::$table . " SET deleted_at = NULL WHERE id = :id";
+      $stmt = (new static())->db->prepare($sql);
+      return $stmt->execute(['id' => $id]);
+   }
+
    /**
     * Compte le nombre d'enregistrements
     * 
@@ -386,9 +448,9 @@ abstract class Model
     * 
     * @param int $page Numéro de page
     * @param int $perPage Nombre d'éléments par page
-    * @return Collection Collection d'instances du modèle
+    * @return array
     */
-   public static function paginate(int $page = 1, int $perPage = 10): Collection
+   public static function paginate(int $page = 1, int $perPage = 10): array
    {
       $offset = ($page - 1) * $perPage;
       $query = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
@@ -396,7 +458,14 @@ abstract class Model
       $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
       $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
       $stmt->execute();
-      return new Collection($stmt->fetchAll(PDO::FETCH_ASSOC));
+
+      return [
+         'data' => new Collection($stmt->fetchAll(PDO::FETCH_ASSOC)),
+         'total' => static::count(),
+         'current_page' => $page,
+         'per_page' => $perPage,
+         'last_page' => ceil(static::count() / $perPage),
+      ];
    }
 
    /**
@@ -507,7 +576,7 @@ abstract class Model
     * @param string|null $localKey Clé locale
     * @return MorphTo Relation MorphTo
     */
-    public function morphTo(string $related, ?string $foreignKey = null, ?string $localKey = null): MorphTo
+   public function morphTo(string $related, ?string $foreignKey = null, ?string $localKey = null): MorphTo
    {
       $foreignKey = $foreignKey ?? $this->getForeignKey();
       $localKey = $localKey ?? $this->getKeyName();

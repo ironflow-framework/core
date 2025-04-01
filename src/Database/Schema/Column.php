@@ -68,9 +68,9 @@ class Column
    /**
     * Table référencée par la colonne
     *
-    * @var string|null
+    * @var array|null
     */
-   protected ?string $constrained = null;
+   protected ?array $constrained = null;
 
    /**
     * Action à effectuer lors de la suppression de la colonne

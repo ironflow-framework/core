@@ -86,11 +86,11 @@ class Schema
     */
    public function create(string $table, callable $callback): void
    {
-      $blueprint = new Anvil($table);
-      $callback($blueprint);
+      $anvil = new Anvil($table);
+      $callback($anvil);
 
       // Convertir le plan en requête SQL
-      $statements = $blueprint->toSql($this->connection->getAttribute(PDO::ATTR_DRIVER_NAME));
+      $statements = $anvil->toSql($this->connection->getAttribute(PDO::ATTR_DRIVER_NAME));
 
       // Exécuter les requêtes SQL
       foreach ($statements as $statement) {
@@ -120,11 +120,11 @@ class Schema
     */
    public function modify(string $table, callable $callback): void
    {
-      $blueprint = new Anvil($table, true);
-      $callback($blueprint);
+      $anvil = new Anvil($table, true);
+      $callback($anvil);
 
       // Convertir le plan en requête SQL
-      $statements = $blueprint->toSql($this->connection->getAttribute(PDO::ATTR_DRIVER_NAME));
+      $statements = $anvil->toSql($this->connection->getAttribute(PDO::ATTR_DRIVER_NAME));
 
       // Exécuter les requêtes SQL
       foreach ($statements as $statement) {

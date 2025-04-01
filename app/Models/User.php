@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use IronFlow\Database\Model;
-use IronFlow\Support\Facades\Hash;
 use IronFlow\Support\Facades\Auth;
 use IronFlow\Support\Security\Hasher;
 

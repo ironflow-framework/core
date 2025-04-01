@@ -2,11 +2,13 @@
 
 namespace Database\Migrations;
 
-use Carbon\Carbon;
+use App\Models\Permission;
+use App\Models\Role;
 use IronFlow\Database\Schema\Anvil;
 use IronFlow\Database\Schema\Schema;
 use IronFlow\Database\Migrations\Migration;
 use IronFlow\Support\Facades\DB;
+
 return new class extends Migration
 {
    public function up(): void
@@ -21,14 +23,15 @@ return new class extends Migration
 
       Schema::createTable('role_permissions', function (Anvil $table) {
          $table->id();
-         $table->foreignId('role_id')->constrained(['roles', 'id'])->onDelete('cascade');
+         $table->integer('role_id');
+         $table->integer('permission_id');
+         $table->foreign('role_id', 'roles', 'id')->onDelete('cascade');
          $table->foreign('permission_id', 'permissions', 'id')->onDelete('cascade');
          $table->timestamps();
       });
 
       // Création des permissions par défaut
       $permissions = [
-         // Permissions système
          [
             'name' => 'system.view',
             'description' => 'Voir les informations système',
@@ -40,7 +43,6 @@ return new class extends Migration
             'module' => 'system',
          ],
 
-         // Permissions d'administration
          [
             'name' => 'admin.view',
             'description' => 'Voir le panneau d\'administration',
@@ -90,9 +92,10 @@ return new class extends Migration
          ],
       ];
 
-      $db = DB::getInstance()->getConnection();
+      $db = DB::getInstance();
 
       foreach ($permissions as $permission) {
+         $db->beginTransaction();
          $db->insert('permissions', [
             'name' => $permission['name'],
             'description' => $permission['description'],
@@ -100,14 +103,17 @@ return new class extends Migration
             'created_at' => now(),
             'updated_at' => now(),
          ]);
+         $db->commit();
       }
 
       // Attribution des permissions au rôle admin
-      $adminRole = DB::table('roles')->where('name', 'admin')->first();
-      $allPermissions = DB::table('permissions')->pluck('id');
+      $adminRole = Role::query()->where('name', 'admin')->first();
+      $allPermissions = Permission::pluck('id');
+
+      $db = DB::getInstance();
 
       foreach ($allPermissions as $permissionId) {
-         DB::table('role_permissions')->insert([
+         $db->insert('role_permissions', [
             'role_id' => $adminRole->id,
             'permission_id' => $permissionId,
             'created_at' => now(),
@@ -116,8 +122,8 @@ return new class extends Migration
       }
 
       // Attribution des permissions de base au rôle user
-      $userRole = DB::table('roles')->where('name', 'user')->first();
-      $userPermissions = DB::table('permissions')
+      $userRole = Role::query()->where('name', 'user')->first();
+      $userPermissions = Permission::query()
          ->whereIn('name', ['user.view', 'user.edit', 'user.change_password'])
          ->pluck('id');
 

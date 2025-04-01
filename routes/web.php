@@ -17,7 +17,7 @@ Route::auth();
 
 // Routes pour le dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
-   // ->middleware('auth')
+   ->middleware('auth')
    ->name('dashboard');
 
 // Routes resource pour les produits

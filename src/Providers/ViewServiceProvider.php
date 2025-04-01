@@ -36,7 +36,7 @@ class ViewServiceProvider extends ServiceProvider
       // Configuration des vues
       $view = $this->app->getContainer()->get('view');
 
-      $view->addGlobal('APP_LANG', config('app.local'));
+      $view->addGlobal('APP_LANG', config('app.locale'));
       $view->addGlobal('APP_VERSION', config('app.version', '1.0.0'));
 
 

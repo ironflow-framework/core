@@ -274,18 +274,6 @@ class Builder
    }
 
    /**
-    * Pagine les résultats
-    * 
-    * @param int $page Numéro de page
-    * @param int $perPage Nombre d'éléments par page
-    * @return self
-    */
-   public function forPage(int $page, int $perPage): self
-   {
-      return $this->offset(($page - 1) * $perPage)->limit($perPage);
-   }
-
-   /**
     * Ajoute une clause JOIN
     * 
     * @param string $table Table à joindre
@@ -392,6 +380,21 @@ class Builder
    {
       $this->limit($perPage);
       $this->offset(($page - 1) * $perPage);
+      return $this;
+   }
+
+
+   public function pluck(array|string $columns): self
+   {
+      $this->columns = [];
+
+      if (is_array($columns)) {
+         array_map(fn($column) => array_push($this->columns, $column), $columns);
+      } else {
+         array_push($this->columns, $columns);
+      }
+
+
       return $this;
    }
 

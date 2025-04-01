@@ -6,7 +6,8 @@ use IronFlow\Database\Model;
 
 class Permission extends Model
 {
-   protected $fillable = ['code', 'name', 'description'];
+   protected static string $table = 'permissions';
+   protected array $fillable = ['code', 'name', 'description'];
 
    public function roles()
    {

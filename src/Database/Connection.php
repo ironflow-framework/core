@@ -74,13 +74,12 @@ class Connection
       $driver = $this->config['driver'] ?? 'mysql';
       $host = $this->config['host'] ?? 'localhost';
       $port = $this->config['port'] ?? '3306';
-      $database = $this->config['database'] ?? '';
+      $database = $this->config['database'] ?? 'ironflow';
       $username = $this->config['username'] ?? 'root';
       $password = $this->config['password'] ?? '';
       $charset = $this->config['charset'] ?? 'utf8mb4';
       $options = $this->config['options'] ?? [];
 
-      // Fusionner avec les options par défaut
       $defaultOptions = [
          PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
          PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -223,4 +222,23 @@ class Connection
    {
       return $this->getConnection()->lastInsertId($name);
    }
+
+   /**
+    * Insérer des données dans une table de la base de donnée
+    * @param string $table
+    * @param array $data
+    * @return bool
+    */
+   public function insert(string $table, array $data): bool
+   {
+      $columns = implode(", ", array_keys($data));
+      $placeholders = implode(", ", array_map(fn($col) => ":$col", array_keys($data)));
+
+      $sql = "INSERT INTO " . $table . "($columns) VALUES ($placeholders)";
+
+      $stmt = $this->getConnection()->prepare($sql);
+
+      return $stmt->execute($data);
+   }
+
 }

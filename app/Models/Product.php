@@ -4,16 +4,16 @@ namespace App\Models;
 
 use IronFlow\Database\Factories\HasFactory;
 use IronFlow\Database\Model;
-use IronFlow\Furnace\Traits\HasForm;
+use IronFlow\Forms\Furnace\HasForm;
 
 class Product extends Model
 {
     use HasFactory;
     use HasForm;
     
-    protected $table = 'products';
+    protected static string $table = 'products';
     
-    protected $fillable = [
+    protected array $fillable = [
         'name',
         'description',
         'price',
@@ -21,7 +21,7 @@ class Product extends Model
         'category_id'
     ];
     
-    protected $casts = [
+    protected array $casts = [
         'price' => 'float',
         'stock' => 'integer',
         'created_at' => 'datetime',

@@ -6,9 +6,9 @@ use IronFlow\Database\Model;
 
 class Category extends Model
 {
-   protected $table = 'categories';
+   protected static string $table = 'categories';
 
-   protected $fillable = ['name', 'description'];
+   protected array $fillable = ['name', 'description'];
 
    public function products()
    {

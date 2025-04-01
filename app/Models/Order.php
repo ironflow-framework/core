@@ -4,16 +4,16 @@ namespace App\Models;
 
 use IronFlow\Database\Factories\HasFactory;
 use IronFlow\Database\Model;
-use IronFlow\Furnace\Traits\HasForm;
+use IronFlow\Forms\Furnace\HasForm;
 
 class Order extends Model
 {
    use HasFactory;
    use HasForm;
 
-   protected $table = 'orders';
+   protected static string $table = 'orders';
 
-   protected $fillable = [
+   protected array $fillable = [
       'user_id',
       'total_amount',
       'status',
@@ -24,7 +24,7 @@ class Order extends Model
       'notes'
    ];
 
-   protected $casts = [
+   protected array $casts = [
       'total_amount' => 'float',
       'created_at' => 'datetime',
       'updated_at' => 'datetime'

@@ -40,10 +40,8 @@ abstract class Service implements ServiceInterface
     *
     * @return void
     */
-   public function register(): void
-   {
-      // À implémenter dans les classes filles
-   }
+   abstract public function register(): void;
+
 
    /**
     * Démarre le service après son enregistrement

@@ -33,7 +33,7 @@ Route::group($prefix, function () {
         // Paramètres
         Route::get('settings', [SettingController::class, 'index'])->name('craftpanel.settings');
         Route::post('settings', [SettingController::class, 'update'])->name('craftpanel.settings.update');
-    });
-    // ->middleware(['auth:craftpanel']);
+    })
+    ->middleware(['auth:craftpanel']);
 });
 // }, ['middleware' => $middleware, 'namespace' => $namespace]);

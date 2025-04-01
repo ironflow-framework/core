@@ -14,7 +14,7 @@ return new class extends Migration
          $table->string('name');
          $table->string('email')->unique();
          $table->string('password');
-         $table->foreignId('role_id')->constrained(['roles', 'id']);
+         $table->foreignId('role_id')->constrained(['role', 'id'])->onDelete('cascade');
          $table->boolean('is_active')->default(true);
          $table->boolean('two_factor_enabled')->default(false);
          $table->string('two_factor_secret')->nullable();

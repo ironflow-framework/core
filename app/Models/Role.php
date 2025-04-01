@@ -6,8 +6,8 @@ use IronFlow\Database\Model;
 
 class Role extends Model
 {
-
-   protected $fillable = [
+   protected static string $table = 'roles';
+   protected array $fillable = [
       'name',
       'description',
    ];

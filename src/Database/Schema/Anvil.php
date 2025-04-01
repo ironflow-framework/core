@@ -400,7 +400,7 @@ class Anvil
 
       if (!$this->isUpdate) {
          // Création de table
-         $sql = "CREATE TABLE {$this->table} (";
+         $sql = "CREATE TABLE IF NOT EXISTS {$this->table} (";
 
          // Colonnes
          $columnDefinitions = [];
