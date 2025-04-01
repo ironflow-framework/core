@@ -16,6 +16,7 @@ return [
             'auth',
             'auth.craftpanel',
         ],
+        'name' => env('CRAFTPANEL_NAMESPACE', 'craftpanel'),
     ],
 
     // Configuration du thème
