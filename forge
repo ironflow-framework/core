@@ -25,6 +25,18 @@ if (file_exists(__DIR__ . '/.env')) {
    $dotenv->safeLoad();
 }
 
+$logo = <<<EOT
+  ___                      _____ _                
+ |_ _|_ __ ___  _ __     |  ___| | _____      __ 
+  | || '__/ _ \| '_ \    | |_  | |/ _ \ \ /\ / / 
+  | || | | (_) | | | |   |  _| | | (_) \ V  V /  
+ |___|_|  \___/|_| |_|   |_|   |_|\___/ \_/\_/   
+                                       
+EOT;
+
+echo "\033[36m{$logo}\033[0m" . PHP_EOL;
+echo "\033[1mIronFlow Framework\033[0m - Un Framework forgé pour les artisans du web" . PHP_EOL;
+
 // Création et exécution de la console
 $kernel = new IronFlow\Console\Kernel('IronFlow Console', '1.0.0');
 

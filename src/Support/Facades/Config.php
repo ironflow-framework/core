@@ -82,4 +82,23 @@ class Config
 
       $array = $value;
    }
+
+   /**
+    * Charge la configuration depuis un chemin spécifique
+    *
+    * @param string $path Le chemin du répertoire de configuration
+    * @return void
+    */
+   public static function loadFromPath(string $path): void
+   {
+      if (!is_dir($path)) {
+         throw new \RuntimeException("Le répertoire de configuration {$path} n'existe pas");
+      }
+
+      $files = glob($path . '/*.php');
+      foreach ($files as $file) {
+         $key = basename($file, '.php');
+         self::$items[$key] = require $file;
+      }
+   }
 }

@@ -1,5 +1,4 @@
 import "@css/app.css";
-import "@css/errors.css";
 // import "@uploads/*";
 
 if (import.meta.hot) {

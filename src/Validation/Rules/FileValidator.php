@@ -4,10 +4,27 @@ declare(strict_types=1);
 
 namespace IronFlow\Validation\Rules;
 
-use IronFlow\Validation\Validator;
+use IronFlow\Validation\AbstractRule;
 
-class FileValidator extends Validator
+class FileValidator extends AbstractRule
 {
+
+   /**
+    * Types MIME autorisés
+    */
+   private const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+   ];
+
    protected array $allowedMimeTypes = [];
    protected int $maxSize = 0;
    protected array $allowedExtensions = [];
@@ -37,7 +54,7 @@ class FileValidator extends Validator
       return $this;
    }
 
-   public function validate($value, array $data = []): bool
+   public function validate(string $field, mixed $value, array $parameters = [], array $data = []): bool
    {
       if (empty($value)) {
          return !$this->required;
@@ -48,7 +65,7 @@ class FileValidator extends Validator
       }
 
       foreach ($value as $file) {
-         if (!$this->validateFile($file)) {
+         if (!$this->validateFile($file, $field)) {
             return false;
          }
       }
@@ -56,15 +73,15 @@ class FileValidator extends Validator
       return true;
    }
 
-   protected function validateFile($file): bool
+   protected function validateFile($file, string $field): bool
    {
       if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-         $this->addError('Le fichier n\'a pas été correctement uploadé.', 'upload');
+         $this->setAttribute('field', $field);
          return false;
       }
 
       if ($this->maxSize > 0 && $file['size'] > $this->maxSize) {
-         $this->addError(sprintf('Le fichier ne doit pas dépasser %d octets.', $this->maxSize), 'size');
+         $this->setAttribute('field', $field);
          return false;
       }
 
@@ -74,7 +91,7 @@ class FileValidator extends Validator
          finfo_close($finfo);
 
          if (!in_array($mimeType, $this->allowedMimeTypes)) {
-            $this->addError('Le type de fichier n\'est pas autorisé.', 'mime');
+            $this->setAttribute('field', $field);
             return false;
          }
       }
@@ -82,7 +99,7 @@ class FileValidator extends Validator
       if (!empty($this->allowedExtensions)) {
          $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
          if (!in_array($extension, $this->allowedExtensions)) {
-            $this->addError('L\'extension du fichier n\'est pas autorisée.', 'extension');
+            $this->setAttribute('field', $field);
             return false;
          }
       }

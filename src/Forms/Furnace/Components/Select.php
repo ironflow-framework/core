@@ -41,7 +41,7 @@ class Select extends Field
       $baseAttributes = [
          'name' => $this->name . ($this->multiple ? '[]' : ''),
          'id' => $this->name,
-         'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+         'class' => 'mt-1 block w-full rounded-md py-3 px-2 text-gray-700 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
       ];
 
       if ($this->multiple) {
@@ -78,9 +78,17 @@ class Select extends Field
       }
 
       return sprintf(
-         '<select %s>%s</select>',
+         '<div class="form-group mb-4">
+         %s
+         <select %s>
+         %s
+         </select>
+         %s
+         </div>',
+         $this->renderLabel(),
          $this->renderAttributes(),
-         $options
+         $options,
+         $this->renderError()
       );
    }
 }

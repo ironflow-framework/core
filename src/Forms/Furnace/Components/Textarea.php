@@ -29,7 +29,7 @@ class Textarea extends Field
          'name' => $this->name,
          'id' => $this->name,
          'rows' => $this->rows,
-         'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+         'class' => 'mt-1 block w-full rounded-md py-3 px-2 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm resize-none',
          'placeholder' => $this->placeholder,
       ];
 
@@ -40,9 +40,15 @@ class Textarea extends Field
       $this->attributes = array_merge($baseAttributes, $this->attributes);
 
       return sprintf(
-         '<textarea %s>%s</textarea>',
+         '<div class="form-group mb-4">
+         %s
+         <textarea %s>%s</textarea>
+          %s
+          </div>',
+         $this->renderLabel(),
          $this->renderAttributes(),
-         htmlspecialchars($this->value)
+         htmlspecialchars($this->value),
+         $this->renderError()
       );
    }
 }

@@ -30,7 +30,7 @@ class ServeCommand extends Command
       $port = $input->getOption('port');
       $showLogs = !$input->getOption('no-logs');
 
-      $io->title('Serveur de développement IronFlow');
+      $io->section('Serveur de développement IronFlow');
       $io->text("Serveur démarré sur http://{$host}:{$port}");
       $io->text('Appuyez sur Ctrl+C pour arrêter le serveur.');
 

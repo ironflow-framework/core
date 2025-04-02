@@ -6,25 +6,69 @@ namespace IronFlow\Routing;
 
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
-use Symfony\Component\Routing\RequestContext;
-use Symfony\Component\Routing\Matcher\UrlMatcher;
-use Symfony\Component\Routing\Exception\ResourceNotFoundException;
-use IronFlow\Http\Request;
-use IronFlow\Http\Response;
-use IronFlow\Http\Exceptions\NotFoundException;
+use IronFlow\Http\Request\Request;
+use IronFlow\Http\Response\Response;
+use IronFlow\Core\Container\ContainerInterface;
 use App\Controllers\AuthController;
-use ReflectionMethod;
+use IronFlow\Core\Exceptions\HttpException;
 
-class Router
+/**
+ * Gestionnaire de routage
+ * 
+ * Cette classe gère le routage des requêtes HTTP dans l'application.
+ * Elle permet de définir des routes, de les grouper, et de les faire correspondre
+ * aux requêtes entrantes.
+ */
+class Router implements RouterInterface
 {
-   private static ?RouteCollection $routes = null;
-   private static array $middlewareGroups = [];
-   private static array $middleware = [];
-   private static array $globalMiddleware = [];
-   private static array $namedRoutes = [];
-   private static string|null $currentGroupPrefix = null;
-   private static ?Route $lastRoute = null;
+   /**
+    * La collection de routes
+    */
+   private ?RouteCollection $routes = null;
 
+   /**
+    * Les middlewares globaux
+    * 
+    * @var array<string>
+    */
+   private array $middleware = [];
+
+   /**
+    * Les routes nommées
+    * 
+    * @var array<string, Route>
+    */
+   private array $namedRoutes = [];
+
+   /**
+    * Le préfixe du groupe de routes actuel
+    */
+   private string|null $currentGroupPrefix = null;
+
+   /**
+    * La dernière route ajoutée
+    */
+   private ?Route $lastRoute = null;
+
+   /**
+    * Le conteneur d'injection de dépendances
+    */
+   private ContainerInterface $container;
+
+   /**
+    * Crée une nouvelle instance du routeur
+    * 
+    * @param ContainerInterface $container Le conteneur d'injection de dépendances
+    */
+   public function __construct(ContainerInterface $container)
+   {
+      $this->container = $container;
+      $this->routes = new RouteCollection();
+   }
+
+   /**
+    * Initialise le routeur
+    */
    public static function init(): void
    {
       if (self::$routes === null) {
@@ -32,152 +76,20 @@ class Router
       }
    }
 
-   public static function get(string $path, $handler): self
-   {
-      self::addRoute('GET', $path, $handler);
-      return new self();
-   }
-
-   public static function post(string $path, $handler): self
-   {
-      self::addRoute('POST', $path, $handler);
-      return new self();
-   }
-
-   public static function put(string $path, $handler): self
-   {
-      self::addRoute('PUT', $path, $handler);
-      return new self();
-   }
-
-   public static function delete(string $path, $handler): self
-   {
-      self::addRoute('DELETE', $path, $handler);
-      return new self();
-   }
-
-   public function middleware(string|array $middleware): self
-   {
-      if (self::$lastRoute) {
-         $currentMiddleware = self::$lastRoute->getDefault('_middleware') ?? [];
-         self::$lastRoute->setDefault('_middleware', array_merge($currentMiddleware, (array) $middleware));
-      }
-      return $this;
-   }
-
-   public function name(string $name): self
-   {
-      if (self::$lastRoute) {
-         self::$namedRoutes[$name] = self::$lastRoute;
-         self::$lastRoute->setDefault('_name', $name);
-      }
-      return $this;
-   }
-
-   public function prefix(string $prefix): self
-   {
-      $previousPrefix = self::$currentGroupPrefix;
-
-      if (self::$lastRoute) {
-
-         if ($previousPrefix !== null) {
-            self::$currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
-         } else {
-            self::$currentGroupPrefix = rtrim($prefix, '/');
-         }
-      }
-
-      self::$currentGroupPrefix = $previousPrefix;
-
-      return $this;
-   }
-
    /**
-    * Ajoute un groupe de route
-    * @param string $prefix
-    * @param callable $callback
-    * @param array $attributes
-    * @return Router
+    * Ajoute une route
+    * 
+    * @param string $method La méthode HTTP
+    * @param string $path L'URI de la route
+    * @param mixed $handler L'action à exécuter
     */
-   public static function group(string $prefix, callable $callback, array $attributes = []): self
+   public function addRoute(string $method, string $path, mixed $handler): Route
    {
-      $previousPrefix = self::$currentGroupPrefix;
-
-      if ($previousPrefix !== null) {
-         self::$currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
-      } else {
-         self::$currentGroupPrefix = rtrim($prefix, '/');
-      }
-
-      $previousMiddleware = self::$middleware;
-      self::$middleware = array_merge(self::$middleware, $attributes['middleware'] ?? []);
-
-      $callback();
-
-      self::$currentGroupPrefix = $previousPrefix;
-      self::$middleware = $previousMiddleware;
-
-      return new self;
-   }
-
-   public static function auth(): void
-   {
-      // Routes d'authentification par défaut
-      self::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-      self::post('/login', [AuthController::class, 'login']);
-      self::post('/logout', [AuthController::class, 'logout'])->name('logout');
-      self::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-      self::post('/register', [AuthController::class, 'register']);
-      self::get('/password/reset', [AuthController::class, 'showResetForm'])->name('password.request');
-      self::post('/password/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
-      self::get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
-      self::post('/password/reset', [AuthController::class, 'reset'])->name('password.update');
-   }
-
-   public static function resource(string $path, string $controller): self
-   {
-      $instance = new self();
-
-      // Index
-      self::get($path, [$controller, 'index'])->name($path . '.index');
-
-      // Create
-      self::get($path . '/create', [$controller, 'create'])->name($path . '.create');
-
-      // Store
-      self::post($path, [$controller, 'store'])->name($path . '.store');
-
-      // Show
-      self::get($path . '/{id}', [$controller, 'show'])->name($path . '.show');
-
-      // Edit
-      self::get($path . '/{id}/edit', [$controller, 'edit'])->name($path . '.edit');
-
-      // Update
-      self::put($path . '/{id}', [$controller, 'update'])->name($path . '.update');
-
-      // Delete
-      self::delete($path . '/{id}', [$controller, 'destroy'])->name($path . '.destroy');
-
-      return $instance;
-   }
-
-   private static function addRoute(string $method, string $path, $handler): void
-   {
-      self::init();
-
-      if (is_array($handler)) {
-         $handler = self::resolveController($handler);
-      }
-
-      $path = preg_replace('#/+#', '/', $path);
+      error_log("Adding route: {$method} {$path}");
 
       $route = new Route(
          $path,
-         [
-            '_controller' => $handler,
-            '_middleware' => self::$middleware
-         ],
+         ['_controller' => $handler],
          [],
          [],
          '',
@@ -185,123 +97,276 @@ class Router
          [$method]
       );
 
-      $routeName = $method . '_' . str_replace('/', '_', trim($path, '/'));
-      self::$routes->add($routeName, $route);
-      self::$lastRoute = $route;
+      if ($this->currentGroupPrefix !== null) {
+         $route->setPath($this->currentGroupPrefix . '/' . ltrim($path, '/'));
+      }
+
+      error_log("Final path: " . $route->getPath());
+      $this->routes->add($method . '_' . $path, $route);
+      $this->lastRoute = $route;
+
+      return $route;
    }
 
-   private static function resolveController(array $handler): callable
+   /**
+    * Ajoute une route GET
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function get(string $uri, array|callable $action): self
    {
-      if (is_callable($handler)) {
-         return $handler;
+      $this->addRoute('GET', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute une route POST
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function post(string $uri, array|callable $action): self
+   {
+      $this->addRoute('POST', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute une route PUT
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function put(string $uri, array|callable $action): self
+   {
+      $this->addRoute('PUT', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute une route DELETE
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function delete(string $uri, array|callable $action): self
+   {
+      $this->addRoute('DELETE', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute un groupe de routes
+    * 
+    * @param string $prefix Le préfixe des routes
+    * @param callable $callback La fonction de callback
+    * @param array $attributes Les attributs du groupe
+    * @return self
+    */
+   public function group(string $prefix, callable $callback, array $attributes = []): self
+   {
+      $previousPrefix = $this->currentGroupPrefix;
+
+      if ($previousPrefix !== null) {
+         $this->currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
+      } else {
+         $this->currentGroupPrefix = rtrim($prefix, '/');
       }
 
-      if (!is_array($handler)) {
-         throw new \InvalidArgumentException("Le handler doit être un tableau [classe, méthode] ou une fonction callable");
+      $previousMiddleware = $this->middleware;
+      $this->middleware = array_merge($this->middleware, $attributes['middleware'] ?? []);
+
+      $callback();
+
+      $this->currentGroupPrefix = $previousPrefix;
+      $this->middleware = $previousMiddleware;
+
+      return $this;
+   }
+
+   /**
+    * Ajoute des routes pour plusieurs méthodes HTTP
+    * 
+    * @param array<string> $methods Les méthodes HTTP
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    */
+   public function match(array $methods, string $uri, array|callable $action): void
+   {
+      foreach ($methods as $method) {
+         $this->addRoute($method, $uri, $action);
       }
+   }
 
-      [$class, $method] = $handler;
+   /**
+    * Ajoute les routes d'authentification par défaut
+    */
+   public function auth(): void
+   {
+      $this->get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+      $this->post('/login', [AuthController::class, 'login']);
+      $this->post('/logout', [AuthController::class, 'logout'])->name('logout');
+      $this->get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
+      $this->post('/register', [AuthController::class, 'register']);
+      $this->get('/password/reset', [AuthController::class, 'showResetForm'])->name('password.request');
+      $this->post('/password/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+      $this->get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
+      $this->post('/password/reset', [AuthController::class, 'reset'])->name('password.update');
+   }
 
-      return function (Request $request) use ($class, $method) {
-         error_log("=== Début de la résolution du contrôleur ===");
-         error_log("Classe: " . $class);
-         error_log("Méthode: " . $method);
+   /**
+    * Ajoute les routes RESTful pour une ressource
+    * 
+    * @param string $uri L'URI de base de la ressource
+    * @param string $controller Le contrôleur à utiliser
+    * @return self
+    */
+   public function resource(string $uri, string $controller): self
+   {
+      $this->get($uri, [$controller, 'index'])->name($uri . '.index');
+      $this->get($uri . '/create', [$controller, 'create'])->name($uri . '.create');
+      $this->post($uri, [$controller, 'store'])->name($uri . '.store');
+      $this->get($uri . '/{id}', [$controller, 'show'])->name($uri . '.show');
+      $this->get($uri . '/{id}/edit', [$controller, 'edit'])->name($uri . '.edit');
+      $this->put($uri . '/{id}', [$controller, 'update'])->name($uri . '.update');
+      $this->delete($uri . '/{id}', [$controller, 'destroy'])->name($uri . '.destroy');
 
-         $controller = new $class();
-         $reflection = new \ReflectionMethod($class, $method);
-         $parameters = $reflection->getParameters();
+      return $this;
+   }
 
-         error_log("Paramètres de la méthode: " . print_r($parameters, true));
+   /**
+    * Ajoute un préfixe à la dernière route
+    * 
+    * @param string $prefix Le préfixe à ajouter
+    * @return self
+    */
+   public function prefix(string $prefix): self
+   {
+      if ($this->lastRoute) {
+         $currentPath = $this->lastRoute->getPath();
+         $this->lastRoute->setPath($prefix . '/' . ltrim($currentPath, '/'));
+      }
+      return $this;
+   }
 
-         $args = [];
-         foreach ($parameters as $parameter) {
-            $type = $parameter->getType();
-            if ($type && $type->getName() === Request::class) {
-               $args[] = $request;
-               error_log("Paramètre Request ajouté");
-            } else {
-               $routeParams = $request->getRouteParameters();
-               $paramName = $parameter->getName();
-               $args[] = $routeParams[$paramName] ?? null;
-               error_log("Paramètre {$paramName} ajouté: " . ($routeParams[$paramName] ?? 'null'));
+   /**
+    * Nomme la dernière route
+    * 
+    * @param string $name Le nom de la route
+    * @return self
+    */
+   public function name(string $name): self
+   {
+      if ($this->lastRoute) {
+         $this->namedRoutes[$name] = $this->lastRoute;
+         $this->lastRoute->setDefault('_name', $name);
+      }
+      return $this;
+   }
+
+   /**
+    * Ajoute des middlewares à la dernière route
+    * 
+    * @param string|array $middleware Les middlewares à ajouter
+    * @return self
+    */
+   public function middleware(string|array $middleware): self
+   {
+      if ($this->lastRoute) {
+         $currentMiddleware = $this->lastRoute->getDefault('_middleware') ?? [];
+         $this->lastRoute->setDefault('_middleware', array_merge($currentMiddleware, (array) $middleware));
+      }
+      return $this;
+   }
+
+   /**
+    * Récupère la collection de routes
+    * 
+    * @return RouteCollection
+    */
+   public function getRoutes(): RouteCollection
+   {
+      return $this->routes;
+   }
+
+   /**
+    * Récupère une route par son nom
+    * 
+    * @param string $name Le nom de la route
+    * @return Route
+    */
+   public function getRoute(string $name): Route
+   {
+      if (!isset($this->namedRoutes[$name])) {
+         throw new HttpException(404, "Route [{$name}] not defined.");
+      }
+      return $this->namedRoutes[$name];
+   }
+
+   /**
+    * Génère une URL pour une route nommée
+    * 
+    * @param string $name Le nom de la route
+    * @param array<string, mixed> $parameters Les paramètres de la route
+    * @return string L'URL générée
+    */
+   public function url(string $name, array $parameters = []): string
+   {
+      $route = $this->getRoute($name);
+      return $route->getPath();
+   }
+
+   /**
+    * Traite une requête et retourne une réponse
+    * 
+    * @param Request $request La requête à traiter
+    * @return Response $response La réponse générée
+    * @throws HttpException Si la route n'est pas trouvée
+    */
+   public function dispatch(Request $request): Response
+   {
+      $path = $request->getPathInfo();
+      $method = $request->getMethod();
+
+      error_log("Dispatching request: {$method} {$path}");
+      error_log("Routes registered: " . count($this->routes));
+
+      foreach ($this->routes as $name => $route) {
+         error_log("Checking route {$name}: " . $route->getPath() . " [" . implode(',', $route->getMethods()) . "]");
+         if ($route->getMethods() === [$method] && $route->getPath() === $path) {
+            $controller = $route->getDefault('_controller');
+            if (is_array($controller)) {
+               [$class, $method] = $controller;
+               $instance = $this->container->make($class);
+               return $instance->$method($request);
             }
+            return $controller($request);
          }
-
-         error_log("Arguments finaux: " . print_r($args, true));
-         error_log("=== Fin de la résolution du contrôleur ===");
-
-         return $controller->$method(...$args);
-      };
-   }
-
-   public static function getRoutes(): RouteCollection
-   {
-      return self::$routes ?? new RouteCollection();
-   }
-
-   public static function getRoute(string $name): Route
-   {
-      return self::$routes->get($name);
-   }
-
-   public static function match(string $path, string $method): array
-   {
-      $context = new RequestContext();
-      $context->setMethod($method);
-      $context->setPathInfo($path);
-
-      $matcher = new UrlMatcher(self::getRoutes(), $context);
-
-      try {
-         return $matcher->match($path);
-      } catch (ResourceNotFoundException $e) {
-         throw new NotFoundException("Route {$path} not found.", 404, $e);
       }
+
+      throw new HttpException(404, "Route non trouvée : {$path}");
    }
 
-   public static function dispatch(Request $request): Response
+   /**
+    * Génère une URL pour une route nommée
+    * 
+    * @param string $name Le nom de la route
+    * @param array<string, mixed> $parameters Les paramètres de la route
+    * @return string L'URL générée
+    */
+   public function generateUrl(string $name, array $parameters = []): string
    {
-      try {
-         $route = self::match($request->getPathInfo(), $request->getMethod());
-         $handler = $route['_controller'];
-         $middleware = array_merge(self::$globalMiddleware, $route['_middleware'] ?? []);
-
-         unset($route['_controller'], $route['_middleware']);
-         $request->setRouteParameters($route);
-
-         $next = function (Request $request) use ($handler) {
-            return $handler($request);
-         };
-
-         foreach (array_reverse($middleware) as $middleware) {
-            $next = function (Request $request) use ($middleware, $next) {
-               $middleware .= 'Middleware';
-               $middleware = ucfirst($middleware);
-               return (new $middleware())->handle($request, $next);
-            };
+      foreach ($this->routes as $route) {
+         if ($route->getDefault('_name') === $name) {
+            return $route->getPath();
          }
-
-         return $next($request);
-      } catch (NotFoundException $e) {
-         throw $e;
-      } catch (\Exception $e) {
-         throw $e;
-      }
-   }
-
-   public static function url(string $name, array $parameters = []): string
-   {
-      if (!isset(self::$namedRoutes[$name])) {
-         throw new \RuntimeException("Route [{$name}] not defined.");
       }
 
-      $route = self::$namedRoutes[$name];
-      $path = $route->getPath();
-
-      foreach ($parameters as $key => $value) {
-         $path = str_replace("{{$key}}", (string) $value, $path);
-      }
-
-      return $path;
+      throw new \RuntimeException("Route non trouvée : {$name}");
    }
 }

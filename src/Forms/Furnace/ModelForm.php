@@ -267,7 +267,7 @@ class ModelForm extends Component
     */
    public function button(string $label = 'Enregistrer', $type = 'submit', $variant = 'primary', $size = 'lg', $fullWidth = true, $icon = null, $disabled = false, $loading = false, $attributes = []): self
    {
-      $button = new Button(['name' => 'submit'])
+      $button = new Button()
          ->type($type)
          ->variant($variant)
          ->size($size)
@@ -277,17 +277,15 @@ class ModelForm extends Component
          ->loading($loading)
          ->withAttributes($attributes)
          ->setContent($label);
-         
+
       $this->fields['submit'] = $button;
       return $this;
    }
 
    public function fill($data)
    {
-      
-      
-      foreach($this->fields as $key => $field) {
-         if (in_array($key, array_keys($data))){
+      foreach ($this->fields as $key => $field) {
+         if (in_array($key, array_keys($data))) {
             $field->value = $data[$key];
          }
       }
@@ -300,7 +298,7 @@ class ModelForm extends Component
     */
    public function render(): string
    {
-      $template = '<form action="%s" method="%s" class="space-y-4">';
+      $template = '<form action="%s" method="%s" class="space-y-4 px-4 py-4 bg-slate-50 shadow-lg rounded-md">';
 
       if ($this->method === 'PUT' || $this->method === 'DELETE') {
          $template .= '<input type="hidden" name="_method" value="' . $this->method . '">';

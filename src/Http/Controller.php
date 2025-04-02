@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
-use IronFlow\Core\Application;
+use IronFlow\Core\Application\Application;
 use IronFlow\View\ViewInterface;
-use IronFlow\Http\Response;
+use IronFlow\Http\Response\Response;
 use IronFlow\Routing\Router;
 use IronFlow\View\TwigView;
 use IronFlow\Validation\Validator;
+use IronFlow\Support\Facades\Session;
 
 abstract class Controller
 {
    protected TwigView $view;
    protected Response $response;
+   protected array $middleware = [];
 
    public function __construct(?ViewInterface $view = null)
    {
@@ -23,8 +25,25 @@ abstract class Controller
       } else {
          $this->view = $view;
       }
-      
+
       $this->response = new Response();
+      $this->initialize();
+   }
+
+   /**
+    * Méthode appelée après la construction du contrôleur
+    */
+   protected function initialize(): void
+   {
+      // À surcharger dans les classes enfants si nécessaire
+   }
+
+   /**
+    * Récupère les middlewares du contrôleur
+    */
+   public function getMiddleware(): array
+   {
+      return $this->middleware;
    }
 
    protected function view(string $template, array $data = []): Response
@@ -35,66 +54,45 @@ abstract class Controller
 
    protected function json(array $data, int $status = 200): Response
    {
-      return $this->response
-         ->setContent(json_encode($data))
-         ->setStatusCode($status)
-         ->setHeader('Content-Type', 'application/json');
+      return Response::json($data, $status);
    }
 
    protected function redirect(?string $url = null): Response
    {
-      if ($url) {
-         return $this->response
-            ->setStatusCode(302)
-            ->setHeader('Location', $url);
-      }
-
-      // Retourne une réponse vide avec code 302 si aucune URL n'est fournie
-      return $this->response->setStatusCode(302);
+      return Response::redirect($url ?? '/');
    }
 
    public function route(string $name, array $parameters = []): Response
    {
-      $router = new Router();
-      $url = $router->url($name, $parameters);
+      $router = Application::getInstance()->getRouter();
+      $url = $router->generateUrl($name, $parameters);
       return $this->redirect($url);
    }
 
    public function with(string $key, mixed $value): self
    {
-      if (!session_status() === PHP_SESSION_ACTIVE) {
-         session_start();
-      }
-
-      session()->flash($key, $value);
-      $this->response->with($key, $value);
-
+      Session::flash($key, $value);
       return $this;
    }
 
    protected function withErrors(array $errors): self
    {
-      $this->with('errors', $errors);
-      return $this;
+      return $this->with('errors', $errors);
    }
 
    protected function withOld(array $old): self
    {
-      $this->with('old', $old);
-      return $this;
+      return $this->with('old', $old);
    }
 
    protected function withInput(): self
    {
-      $this->withOld($_POST);
-      return $this;
+      return $this->withOld($_POST);
    }
 
-   protected function abort(int $status, string $message = "Page non trouvée"): void
+   protected function abort(int $status, string $message = "Page non trouvée"): never
    {
-      $this->response->setStatusCode($status)->setContent($message);
-      $this->response->send();
-      exit;
+      throw new \IronFlow\Http\Exceptions\HttpException($message, $status);
    }
 
    protected function response(): Response
@@ -118,12 +116,7 @@ abstract class Controller
    protected function validate(array $data, array $rules): array|bool
    {
       $validator = Validator::make($data, $rules);
-
-      if ($validator->passes()) {
-         return true;
-      }
-
-      return $validator->errors();
+      return $validator->passes() ? true : $validator->getErrors();
    }
 
    /**
@@ -132,25 +125,51 @@ abstract class Controller
     * @param array $data Les données à valider
     * @param array $rules Les règles de validation
     * @param string|null $redirectTo URL de redirection en cas d'échec
-    * @return bool Retourne true si la validation réussit
+    * @return Response|bool Retourne true si la validation réussit
     */
-   protected function validateOrFail(array $data, array $rules, ?string $redirectTo = null): bool
+   protected function validateOrFail(array $data, array $rules, ?string $redirectTo = null): Response|bool
    {
       $result = $this->validate($data, $rules);
 
       if ($result !== true) {
-         $this->with('errors', $result);
-         $this->with('old', $data);
+         $this->withErrors($result)->withInput();
 
          if ($redirectTo) {
-            $this->redirect($redirectTo)->send();
-         } else {
-            $this->back()->send();
+            return $this->redirect($redirectTo);
          }
 
-         exit;
+         return $this->back();
       }
 
       return true;
+   }
+
+   protected function authorize(bool $condition, string $message = "Non autorisé"): void
+   {
+      if (!$condition) {
+         $this->abort(403, $message);
+      }
+   }
+
+   protected function middleware(string|array $middleware): self
+   {
+      $this->middleware = array_merge(
+         $this->middleware,
+         (array) $middleware
+      );
+      return $this;
+   }
+
+   public function index(): Response
+   {
+      try {
+         return $this->view('welcome', [
+            'APP_VERSION' => Application::VERSION
+         ]);
+      } catch (\Exception $e) {
+         error_log($e->getMessage());
+         error_log($e->getTraceAsString());
+         throw $e;
+      }
    }
 }

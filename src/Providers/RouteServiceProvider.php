@@ -23,9 +23,7 @@ class RouteServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('router', function ($app) {
-         return new Router();
-      });
+      $this->app->getContainer()->bind(Router::class);
    }
 
    /**
@@ -47,7 +45,7 @@ class RouteServiceProvider extends ServiceProvider
    protected function loadRoutes(): void
    {
 
-      $appBasePath = $this->app->basePath();
+      $appBasePath = $this->app->getBasePath();
 
       // Chargement des routes web
       if (file_exists($appBasePath . '/routes/web.php')) {

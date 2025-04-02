@@ -1,0 +1,12 @@
+{% extends 'errors/layout.twig' %}
+
+{% block title %}Redirection temporaire{% endblock %}
+
+{% block content %}
+    <div class="error-page">
+        <h1>302</h1>
+        <h2>Redirection temporaire</h2>
+        <p>Cette ressource a été temporairement déplacée vers une nouvelle URL.</p>
+        <a href="{{ url('home') }}" class="btn btn-primary">Retour à l'accueil</a>
+    </div>
+{% endblock %} 

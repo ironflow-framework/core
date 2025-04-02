@@ -45,6 +45,26 @@ if ($_ENV['APP_ENV'] === 'development') {
    ini_set('display_errors', '1');
    ini_set('log_errors', '1');
    ini_set('error_log', BASE_PATH . '/storage/logs/php_errors.log');
+   ini_set('display_startup_errors', '1');
+   ini_set('track_errors', '1');
+   ini_set('html_errors', '1');
+   ini_set('docref_root', '');
+   ini_set('docref_ext', '.html');
+
+   // Configuration du logging personnalisé
+   ini_set('error_prepend_string', '[' . date('Y-m-d H:i:s') . '] ');
+   ini_set('error_append_string', "\n");
+
+   // Test de logging
+   error_log("=== Démarrage de l'application ===");
+   error_log("PHP Version: " . PHP_VERSION);
+   error_log("Memory Limit: " . ini_get('memory_limit'));
+   error_log("Max Execution Time: " . ini_get('max_execution_time'));
+   error_log("Error Reporting: " . error_reporting());
+   error_log("Display Errors: " . ini_get('display_errors'));
+   error_log("Log Errors: " . ini_get('log_errors'));
+   error_log("Error Log: " . ini_get('error_log'));
+   error_log("================================\n");
 }
 
 // Création du répertoire de logs si nécessaire
@@ -52,12 +72,44 @@ if (!is_dir(BASE_PATH . '/storage/logs')) {
    mkdir(BASE_PATH . '/storage/logs', 0755, true);
 }
 
-// Démarrage de l'application
-$app = require BASE_PATH . '/bootstrap/app.php';
-$response = $app->run();
+// Vérification des permissions du fichier de log
+$logFile = BASE_PATH . '/storage/logs/php_errors.log';
+if (!file_exists($logFile)) {
+   touch($logFile);
+}
+chmod($logFile, 0666);
 
-// Envoi de la réponse au client
-$response->send();
+try {
+   // Démarrage de l'application
+   error_log("Chargement de l'application...");
+   $app = require BASE_PATH . '/bootstrap/app.php';
+   error_log("Application chargée, démarrage...");
+   $app->run();
+} catch (\Throwable $e) {
+   error_log("ERREUR CRITIQUE: " . $e->getMessage());
+   error_log("Fichier: " . $e->getFile() . ":" . $e->getLine());
+   error_log("Trace: " . $e->getTraceAsString());
+
+   // Gestion des erreurs non capturées
+   if (isset($app)) {
+      $response = $app->handleException($e);
+      $response->send();
+   } else {
+      // Fallback en cas d'erreur avant l'initialisation de l'application
+      http_response_code(500);
+      if ($_ENV['APP_ENV'] === 'development') {
+         echo sprintf(
+            "Une erreur est survenue : %s\n%s\n%s",
+            $e->getMessage(),
+            $e->getFile() . ':' . $e->getLine(),
+            $e->getTraceAsString()
+         );
+      } else {
+         echo "Une erreur est survenue. Veuillez réessayer plus tard.";
+      }
+   }
+   exit(1);
+}
 
 // Affichage des métriques de performance en mode debug
 if (filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN)) {

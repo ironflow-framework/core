@@ -27,13 +27,15 @@ class ProductController extends Controller
    {
       $categories = Category::all()->pluck('name', 'id');
 
-      $form = Product::form()->input('name', 'Nom du produit')
+      $form = Product::form()
+         ->method('POST')
+         ->action('/products/store')
+         ->input('name', 'Nom du produit')
          ->textarea('description', 'Description du produit')
          ->input('price', 'Prix du produit', 'number')
          ->input('stock', 'Quantité en stock', 'number')
          ->select('category_id', 'Catégorie du produit', $categories)
-         ->button('Créer le produit')
-         ->action('/products/store');
+         ->button('Créer le produit');
 
       return $this->view('products.create', [
          'title' => 'Créer un produit',
@@ -43,25 +45,30 @@ class ProductController extends Controller
 
    public function store(Request $request): Response
    {
-      $data = $request->all();
+      if ($request->isMethod('post')){
+         $data = $request->all();
 
-      $validator = Validator::make($data, [
-         'name' => 'required|string|max:255',
-         'description' => 'nullable|string',
-         'price' => 'required|numeric|min:0',
-         'stock' => 'required|integer|min:0',
-         'category_id' => 'required|exists:categories,id'
-      ]);
+         $validator = Validator::make($data, [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'category_id' => 'required|exists:categories,id'
+         ]);
 
-      if ($validator->fails()) {
-         return $this->back()->withErrors($validator->errors());
+         if ($validator->fails()) {
+            return $this->redirect('/products')->withErrors($validator->errors());
+         }
+
+         $product = Product::create($data);
+
+         return $this->redirect('/products')
+            ->with('success', 'Produit créé avec succès')
+            ->with('product', $product);
       }
 
-      $product = Product::create($data);
-
-      return $this->redirect('/products')
-         ->with('success', 'Produit créé avec succès')
-         ->with('product', $product);
+      return $this->back();
+     
    }
 
    public function show(Request $request, $id): Response

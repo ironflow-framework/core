@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Providers;
 
-use IronFlow\Core\Application;
+use IronFlow\Core\Application\Application;
+use IronFlow\Support\Facades\Filesystem;
 
 /**
  * Classe de base pour tous les fournisseurs de services
@@ -44,7 +45,7 @@ abstract class ServiceProvider
     */
    protected function make(string $abstract): mixed
    {
-      return $this->app->make($abstract);
+      return $this->app->getContainer()->make($abstract);
    }
 
    /**
@@ -56,7 +57,7 @@ abstract class ServiceProvider
          return;
       }
 
-      $publishPath = $this->app->basePath('vendor/publishes');
+      $publishPath = $this->app->getBasePath() . 'vendor/publishes';
 
       if (!is_dir($publishPath)) {
          mkdir($publishPath, 0755, true);
@@ -69,7 +70,7 @@ abstract class ServiceProvider
          if (is_dir($fromPath)) {
             $this->copyDirectory($fromPath, $toPath);
          } else {
-            // Filesystem::copy($fromPath, $toPath);
+            Filesystem::copy($fromPath, $toPath);
          }
       }
    }

@@ -17,7 +17,7 @@ class Button extends Component
    protected bool $iconOnly = false;
    protected bool $loading = false;
 
-   public function __construct(array $attributes = [])
+   public function __construct(?array $attributes = [])
    {
       parent::__construct($attributes);
    }
@@ -73,14 +73,14 @@ class Button extends Component
    protected function getVariantClasses(): string
    {
       $variants = [
-         'primary' => 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',
-         'secondary' => 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500',
-         'success' => 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-         'danger' => 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-         'warning' => 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500',
-         'info' => 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-         'light' => 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500',
-         'dark' => 'bg-gray-800 text-white hover:bg-gray-900 focus:ring-gray-500',
+         'primary' => 'bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:ring-indigo-500',
+         'secondary' => 'bg-white text-gray-700 rounded border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500',
+         'success' => 'bg-green-600 text-white rounded hover:bg-green-700 focus:ring-green-500',
+         'danger' => 'bg-red-600 text-white rounded hover:bg-red-700 focus:ring-red-500',
+         'warning' => 'bg-yellow-600 text-white rounded hover:bg-yellow-700 focus:ring-yellow-500',
+         'info' => 'bg-blue-600 text-white rounded hover:bg-blue-700 focus:ring-blue-500',
+         'light' => 'bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:ring-gray-500',
+         'dark' => 'bg-gray-800 text-white rounded hover:bg-gray-900 focus:ring-gray-500',
       ];
 
       return $variants[$this->variant] ?? $variants['primary'];
@@ -108,22 +108,17 @@ class Button extends Component
       ];
 
       if ($this->fullWidth) {
-         $classes[] = 'w-full';
+         array_push($classes,'w-full');
       }
 
       if ($this->disabled) {
-         $classes[] = 'opacity-50 cursor-not-allowed';
+         array_push($classes, 'opacity-50 cursor-not-allowed');
       }
-
-      $attributes = array_merge([
-         'type' => $this->type,
-         'class' => implode(' ', $classes),
-      ], $this->attributes);
 
       if ($this->disabled) {
-         $attributes['disabled'] = 'disabled';
+        $this->attributes['disabled'] = 'disabled';
       }
-
+      
       $content = [];
 
       if ($this->icon) {
@@ -140,7 +135,11 @@ class Button extends Component
       }
 
       return sprintf(
-         '<button %s>%s</button>',
+         '<div class="form-action mb-4">
+         <button type="%s" class="%s" %s>%s</button>
+         </div>',
+         $this->type,
+         implode(' ', $classes),
          $this->renderAttributes(),
          implode('', $content)
       );

@@ -1,0 +1,12 @@
+{% extends 'errors/layout.twig' %}
+
+{% block title %}Proxy d'authentification requis{% endblock %}
+
+{% block content %}
+    <div class="error-page">
+        <h1>407</h1>
+        <h2>Proxy d'authentification requis</h2>
+        <p>L'authentification est requise pour accéder à cette ressource via le proxy.</p>
+        <a href="{{ url('home') }}" class="btn btn-primary">Retour à l'accueil</a>
+    </div>
+{% endblock %} 

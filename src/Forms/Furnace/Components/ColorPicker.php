@@ -29,7 +29,7 @@ class ColorPicker extends Field
          'type' => 'color',
          'name' => $this->name,
          'id' => $this->name,
-         'class' => 'h-10 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+         'class' => 'h-10 w-full rounded-md py-4 px-3 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
          'value' => $this->value,
       ], $this->attributes);
 

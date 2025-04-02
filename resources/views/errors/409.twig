@@ -1,0 +1,12 @@
+{% extends 'errors/layout.twig' %}
+
+{% block title %}Conflit de version{% endblock %}
+
+{% block content %}
+    <div class="error-page">
+        <h1>409</h1>
+        <h2>Conflit de version</h2>
+        <p>Un conflit de version est survenu lors de la mise à jour de la ressource.</p>
+        <a href="{{ url('home') }}" class="btn btn-primary">Retour à l'accueil</a>
+    </div>
+{% endblock %} 

@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Service;
 
-use IronFlow\Core\Application;
-use IronFlow\Core\Service\Contracts\ServiceInterface;
-
+use IronFlow\Core\Application\Application;
+use IronFlow\Core\Container\ContainerInterface;
 /**
  * Classe de base pour les services d'application
  * 
@@ -54,5 +53,15 @@ abstract class Service implements ServiceInterface
    public function boot(): void
    {
       // Les services peuvent surcharger cette méthode si nécessaire
+   }
+
+   /**
+    * Obtient le conteneur d'injection de dépendances
+    *
+    * @return ContainerInterface
+    */
+   public function getContainer(): ContainerInterface
+   {
+      return $this->app->getContainer();
    }
 }

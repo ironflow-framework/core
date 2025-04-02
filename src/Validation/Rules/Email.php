@@ -14,7 +14,7 @@ class Email extends AbstractRule
    /**
     * Message d'erreur par défaut
     */
-   protected string $defaultMessage = 'Le champ :field doit être une adresse email valide';
+   protected string $defaultMessage = 'Le champ :field doit être une adresse email valide.';
 
    /**
     * Vérification DNS
@@ -32,19 +32,12 @@ class Email extends AbstractRule
    }
 
    /**
-    * Valide une adresse email
-    *
-    * @param mixed $value
-    * @param array $data
-    * @return bool
+    * Valide une valeur
     */
-   public function validate($value, array $data = []): bool
+   public function validate(string $field, mixed $value, array $parameters = [], array $data = []): bool
    {
-      if (empty($value)) {
-         return true; // Pas d'erreur si vide (la règle Required doit être utilisée pour vérifier la présence)
-      }
-
       if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+         $this->setAttribute('field', $field);
          return false;
       }
 

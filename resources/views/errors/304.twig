@@ -1,0 +1,12 @@
+{% extends 'errors/layout.twig' %}
+
+{% block title %}Non modifié{% endblock %}
+
+{% block content %}
+    <div class="error-page">
+        <h1>304</h1>
+        <h2>Non modifié</h2>
+        <p>La ressource n'a pas été modifiée depuis votre dernière requête.</p>
+        <a href="{{ url('home') }}" class="btn btn-primary">Retour à l'accueil</a>
+    </div>
+{% endblock %} 

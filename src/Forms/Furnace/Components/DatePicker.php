@@ -39,11 +39,11 @@ class DatePicker extends Field
 
    public function render(): string
    {
-      $attributes = array_merge([
+      $this->attributes = array_merge([
          'type' => $this->showTime ? 'datetime-local' : 'date',
          'name' => $this->name,
          'id' => $this->name,
-         'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+         'class' => 'mt-1 block w-full py-3 px-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
          'value' => $this->value,
       ], $this->attributes);
 
