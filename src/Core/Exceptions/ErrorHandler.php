@@ -4,17 +4,28 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Exceptions;
 
+use IronFlow\Core\Application\Application;
 use Throwable;
 use IronFlow\Http\Response;
 use IronFlow\Http\Exceptions\HttpException;
 use IronFlow\Support\Facades\Config;
-use IronFlow\Http\Exceptions\CsrfTokenException;
-use IronFlow\Http\Exceptions\TooManyRequestsException;
-use IronFlow\Support\Facades\Security;
+
 
 class ErrorHandler
 {
    private static bool $isRegistered = false;
+
+   private Application $app;
+
+   /**
+    * Constructeur
+    * 
+    * @param Application $app
+    */
+   public function __construct(Application $app)
+   {
+      $this->app = $app;
+   }
 
    public static function register(): void
    {
@@ -39,7 +50,7 @@ class ErrorHandler
       throw new \ErrorException($message, 0, $severity, $file, $line);
    }
 
-   public static function handleException(\Throwable $e): void
+   public static function handleException(Throwable $e): void
    {
       $statusCode = match (get_class($e)) {
          'IronFlow\Http\Exceptions\NotFoundException' => 404,
@@ -86,5 +97,10 @@ class ErrorHandler
          'IronFlow\Http\Exceptions\UnauthorizedException' => 401,
          default => 500
       };
+   }
+
+   public function getApp(): Application
+   {
+      return $this->app;
    }
 }

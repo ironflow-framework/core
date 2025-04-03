@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use IronFlow\Http\Controller;
-use IronFlow\Http\Response\Response;
+use IronFlow\Http\Response;
 use IronFlow\Core\Application\Application;
 
 class WelcomeController extends Controller

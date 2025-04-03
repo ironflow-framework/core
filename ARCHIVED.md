@@ -4,6 +4,16 @@
 - [In Progress]: Tâches toujours en cours de réalisation car parfois dépendant des nouvelles fonctionnalités pour être finaliser
 - [PARTIAL Done]: Tâches réalisée en partie ou doit être revue
 
+## ARCHIVER ET REALISER - AVRIL 2025
+
+### Controller
+
+[x] Cooriger les bugs presents dans la classe Controller
+
+### Classe Request et Response
+
+[x] Mettre à jour ces classes en ajoutant des methodes utiles
+
 ## ARCHIVER ET REALISER - MARS 2025
 
 ### Sécurité [Done]

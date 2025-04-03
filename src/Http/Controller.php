@@ -6,8 +6,7 @@ namespace IronFlow\Http;
 
 use IronFlow\Core\Application\Application;
 use IronFlow\View\ViewInterface;
-use IronFlow\Http\Response\Response;
-use IronFlow\Routing\Router;
+use IronFlow\Http\Response;
 use IronFlow\View\TwigView;
 use IronFlow\Validation\Validator;
 use IronFlow\Support\Facades\Session;
@@ -69,27 +68,6 @@ abstract class Controller
       return $this->redirect($url);
    }
 
-   public function with(string $key, mixed $value): self
-   {
-      Session::flash($key, $value);
-      return $this;
-   }
-
-   protected function withErrors(array $errors): self
-   {
-      return $this->with('errors', $errors);
-   }
-
-   protected function withOld(array $old): self
-   {
-      return $this->with('old', $old);
-   }
-
-   protected function withInput(): self
-   {
-      return $this->withOld($_POST);
-   }
-
    protected function abort(int $status, string $message = "Page non trouvée"): never
    {
       throw new \IronFlow\Http\Exceptions\HttpException($message, $status);
@@ -119,31 +97,6 @@ abstract class Controller
       return $validator->passes() ? true : $validator->getErrors();
    }
 
-   /**
-    * Valide les données et redirige avec les erreurs si la validation échoue
-    * 
-    * @param array $data Les données à valider
-    * @param array $rules Les règles de validation
-    * @param string|null $redirectTo URL de redirection en cas d'échec
-    * @return Response|bool Retourne true si la validation réussit
-    */
-   protected function validateOrFail(array $data, array $rules, ?string $redirectTo = null): Response|bool
-   {
-      $result = $this->validate($data, $rules);
-
-      if ($result !== true) {
-         $this->withErrors($result)->withInput();
-
-         if ($redirectTo) {
-            return $this->redirect($redirectTo);
-         }
-
-         return $this->back();
-      }
-
-      return true;
-   }
-
    protected function authorize(bool $condition, string $message = "Non autorisé"): void
    {
       if (!$condition) {
@@ -160,16 +113,29 @@ abstract class Controller
       return $this;
    }
 
-   public function index(): Response
+   /**
+    * Valide les données et redirige avec les erreurs si la validation échoue
+    * 
+    * @param array $data Les données à valider
+    * @param array $rules Les règles de validation
+    * @param string|null $redirectTo URL de redirection en cas d'échec
+    * @return Response|bool Retourne true si la validation réussit
+    */
+   protected function validateOrFail(array $data, array $rules, ?string $redirectTo = null): Response|bool
    {
-      try {
-         return $this->view('welcome', [
-            'APP_VERSION' => Application::VERSION
-         ]);
-      } catch (\Exception $e) {
-         error_log($e->getMessage());
-         error_log($e->getTraceAsString());
-         throw $e;
+      $result = $this->validate($data, $rules);
+
+      if ($result !== true) {
+         $this->response()->withErrors([$result])->withInput();
+
+         if ($redirectTo) {
+            return $this->redirect($redirectTo);
+         }
+
+         return $this->back();
       }
+
+      return true;
    }
+
 }

@@ -2,6 +2,17 @@
 
 ## POINT A REVOIR SUR IRONFLOW
 
+### Refactoring et déplacement de code
+
+[] Refactoriser le code  
+[] Separer les responsabilités  
+[] Avoir un code maintenable et scalable  
+[] Documentation PHPDoc  
+[] Avoir un framework leger, modulaire, scalable, moderne et puissant  
+[] Stabiliser une version 2 pour mise en production  
+[] Proposition amelioration pour la version 3 (Il se peut que la version 3 soit à 60% axé sur la partie front)
+[] Preparer une librairy de composant  
+
 ### Global
 
 [x] Pour les commandes cli toujours suivre ce qui fait dans le dossier Console/Commands  
@@ -10,7 +21,11 @@
 
 ### Channel système
 
-[] Mettre en place un système de channel
+[x] Mettre en place un système de channel  
+
+### Craftpanel
+
+- Mise à jour complète du craftpanel  
 
 ### Internationalisation
 
@@ -22,22 +37,14 @@
 
 ### Application
 
-[] Revoir les fichiers du dossier Application
 [x] Revoir le container de service  
 [] Revoir aussi le dossier Providers
 
 ### Database
 
 [] Completer le système de factorie et de seeding  
-[] Completer des choses si possible
-
-### Controller
-
-[x] Cooriger les bugs presents dans la classe Controller
-
-### Classe Request et Response
-
-[x] Mettre à jour ces classes en ajoutant des methodes utiles
+[] Mettre en place une gestion de la base de donnée plus facile et sûre  
+[] Ajouter des fonctionnalités pour la gestion de la base de donnée  
 
 ### Système de component
 
@@ -121,7 +128,10 @@
 
 #### Autres services
 
-[] Ajouter d'autres services si possible
+[] Ajouter d'autres services telle que celle lié au e-commerce et à la création des articles de blogs
+
+### Gestion des formulaires et système de composant
+[] Revoir tout le système en entier  
 
 ### Exemple cas d'usage dans un projet du framework
 

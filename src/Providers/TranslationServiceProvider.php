@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Core\Service\ServiceProvider;
 use IronFlow\Support\Facades\Filesystem;
 use IronFlow\Support\Facades\Trans;
 
@@ -23,7 +23,7 @@ class TranslationServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('translator', function () {
+      $this->container->singleton('translator', function () {
          Trans::initialize();
          return Trans::class;
       });

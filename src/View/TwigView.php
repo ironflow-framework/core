@@ -54,6 +54,9 @@ class TwigView implements ViewInterface
          'charset' => 'UTF-8'
       ]);
 
+      $this->twig->addGlobal('APP_VERSION', config('app.version'));
+      $this->twig->addGlobal('APP_LOCALE', config('app.locale'));
+
       $this->twig->addExtension(new ViteExtension());
       $this->twig->addExtension(new RouteExtension());
    }

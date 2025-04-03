@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Core\Exceptions;
 
 use IronFlow\Core\Application\Application;
-use IronFlow\Http\Response\Response;
+use IronFlow\Http\Response;
 use IronFlow\Support\Facades\Config;
 
 /**

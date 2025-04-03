@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Providers;
 
 use IronFlow\View\TwigView;
-use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Core\Service\ServiceProvider;
+use IronFlow\Routing\RouterInterface;
 
 /**
  * Fournisseur de services pour le système de vues
@@ -21,7 +22,7 @@ class ViewServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('view', function ($app) {
+      $this->container->singleton('view', function ($app) {
          return new TwigView(view_path() ?? $app->getBasePath() . '/resources/views');
       });
    }
@@ -34,7 +35,7 @@ class ViewServiceProvider extends ServiceProvider
    public function boot(): void
    {
       // Configuration des vues
-      $view = $this->app->getContainer()->get('view');
+      $view = $this->container->get('view');
 
       $view->addGlobal('APP_LANG', config('app.locale'));
       $view->addGlobal('APP_VERSION', config('app.version', '1.0.0'));
@@ -53,7 +54,7 @@ class ViewServiceProvider extends ServiceProvider
 
       $view->addFunction('route', function ($name, $parameters = []) {
          $path = str_replace('.', '/', $name);
-         return $this->app->getContainer()->get('router')->url($path, $parameters);
+         return $this->container->get(RouterInterface::class)->url($path, $parameters);
       });
    }
 }

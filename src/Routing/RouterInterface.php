@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Routing;
 
-use IronFlow\Http\Request\Request;
-use IronFlow\Http\Response\Response;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
 use Symfony\Component\Routing\Route;
 
 interface RouterInterface

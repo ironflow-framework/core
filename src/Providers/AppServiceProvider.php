@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Core\Service\ServiceProvider;
 
 /**
  * Fournisseur de services principal de l'application
@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('app', function ($app) {
+      $this->container->singleton('app', function ($app) {
          return $app;
       });
    }

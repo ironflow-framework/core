@@ -4,15 +4,28 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Application;
 
+use Exception;
+use IronFlow\Cache\Hammer\Hammer;
+use IronFlow\Cache\Hammer\HammerManager;
 use IronFlow\Core\Container\ContainerInterface;
 use IronFlow\Core\Container\Container;
 use IronFlow\Core\Exceptions\ErrorHandler;
-use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Core\Service\ServiceProvider;
 use IronFlow\Database\Connection;
+use IronFlow\Database\Iron\IronManager;
 use IronFlow\Http\Request;
+use IronFlow\Http\Response;
+use IronFlow\Providers\AppServiceProvider;
+use IronFlow\Providers\CacheServiceProvider;
+use IronFlow\Providers\DatabaseServiceProvider;
+use IronFlow\Providers\RouteServiceProvider;
+use IronFlow\Providers\TranslationServiceProvider;
+use IronFlow\Providers\ViewServiceProvider;
 use IronFlow\Routing\RouterInterface;
 use IronFlow\Routing\Router;
 use IronFlow\Support\Facades\Config;
+use IronFlow\Support\Facades\Trans;
+use IronFlow\View\TwigView;
 
 
 class Application implements ApplicationInterface
@@ -48,9 +61,14 @@ class Application implements ApplicationInterface
    private array $bootedServiceProviders = [];
 
    /**
-    * Liste des fichiers routes
+    * Chemin vers le fichier de routes web
     */
-   private array $routePaths = [];
+   private string $webRouterPath = '';
+
+   /**
+    * Chemin vers le fichier de routes API
+    */
+   private string $apiRouterPath = '';
 
    /**
     * Constructeur privé pour le pattern Singleton
@@ -83,9 +101,25 @@ class Application implements ApplicationInterface
    {
       $this->container->singleton('app', fn() => $this);
       $this->container->singleton('config', fn() => new Config());
+      $this->container->singleton(ContainerInterface::class, fn() => $this->container);
       $this->container->singleton(RouterInterface::class, fn() => new Router($this->container));
       $this->container->singleton(Request::class, fn() => Request::createFromGlobals());
-      $this->container->singleton(Connection::class, fn() => new Connection());
+      $this->container->singleton('view', fn() => new TwigView(view_path() ?? '/resources/views'));
+      $this->container->singleton('db', fn() => Connection::getInstance());
+      $this->container->singleton('db.manager', fn() => new IronManager());
+      $this->container->singleton('cache', fn() => Hammer::getInstance());
+      $this->container->singleton('cache.manager', fn() => new HammerManager(config('cache')));
+      $this->container->singleton('translator', fn() => new Trans());
+
+      // Enregistrement des fournisseurs de services par défaut
+      $this->serviceProviders = [
+         AppServiceProvider::class,
+         ViewServiceProvider::class,
+         RouteServiceProvider::class,
+         DatabaseServiceProvider::class,
+         CacheServiceProvider::class,
+         TranslationServiceProvider::class
+      ];
    }
 
    /**
@@ -108,6 +142,14 @@ class Application implements ApplicationInterface
       // Chargement de la configuration depuis les fichiers
       $config = $this->container->make('config');
       $config->loadFromPath($this->basePath . '/config');
+
+      // Configuration par défaut si non définie
+      if (!$config->has('app.locale')) {
+         $config->set('app.locale', 'fr');
+      }
+      if (!$config->has('app.version')) {
+         $config->set('app.version', self::VERSION);
+      }
    }
 
    /**
@@ -218,35 +260,6 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Définit les chemins des fichiers de routes
-    * 
-    * @param string $web Chemin vers le fichier de routes web
-    * @param string $api Chemin vers le fichier de routes API
-    * @return static Instance courante de l'application
-    */
-   public function withRouter(string $web, string $api): static
-   {
-      $webRouterPath = ltrim($web, '/');
-      $apiRouterPath = ltrim($api, '/');
-
-      $webRoutesFile = $this->basePath . $webRouterPath;
-      $apiRoutesFile = $this->basePath . $apiRouterPath;
-
-      if (!file_exists($webRoutesFile)) {
-         throw new ErrorHandler("Fichier de routes web non trouvé: {$webRoutesFile}");
-      }
-
-      if (!file_exists($apiRoutesFile)) {
-         throw new ErrorHandler("Fichier de routes API non trouvé: {$apiRoutesFile}");
-      }
-
-      array_push($this->routePaths, $webRoutesFile);
-      array_push($this->routePaths, $apiRoutesFile);
-
-      return $this;
-   }
-
-   /**
     * Obtient le chemin de base de l'application
     */
    public function getBasePath(): string
@@ -255,16 +268,68 @@ class Application implements ApplicationInterface
    }
 
    /**
+    * Définit les chemins des fichiers de routes
+    * 
+    * @param string $web Chemin vers le fichier de routes web
+    * @param string $api Chemin vers le fichier de routes API
+    * @return static Instance courante de l'application
+    */
+   public function withRouter(string $web, string $api): static
+   {
+      $this->webRouterPath = ltrim($web, '/');
+      $this->apiRouterPath = ltrim($api, '/');
+
+      return $this;
+   }
+
+   /**
+    * Définit les fournisseurs de service
+    * 
+    * @param array<string> $providers Liste des fournisseurs de service
+    * @return static Instance courante de l'application
+    */
+   public function withProvider(array $providers): static
+   {
+      foreach ($providers as $provider) {
+         $this->registerServiceProvider($provider);
+      }
+      return $this;
+   }
+
+
+   /**
     * Charge les routes de l'application
     */
    private function loadRoutes(): void
    {
-      if (!file_exists($this->basePath . '/routes/web.php')) {
-         require $this->basePath . '/routes/web.php';
+      // Vérification des fichiers de routes
+      $this->webRouterPath = ($this->webRouterPath != '') ? $this->webRouterPath : '/routes/web.php';
+      $this->apiRouterPath = ($this->apiRouterPath != '') ? $this->apiRouterPath : '/routes/api.php';
+
+      $webRoutesFile = $this->isAbsolutePath($this->webRouterPath)
+         ? $this->webRouterPath
+         : $this->basePath . '/' . $this->webRouterPath;
+
+      $apiRoutesFile = $this->isAbsolutePath($this->apiRouterPath)
+         ? $this->apiRouterPath
+         : $this->basePath . '/' . $this->apiRouterPath;
+
+      if (!file_exists($webRoutesFile)) {
+         throw new Exception("Fichier de routes web non trouvé: {$webRoutesFile}");
       }
 
-      foreach ($this->routePaths as $path) {
-         require $path;
+      if (!file_exists($apiRoutesFile)) {
+         throw new Exception("Fichier de routes API non trouvé: {$apiRoutesFile}");
       }
+
+      // Chargement des fichiers de routes
+      require_once $webRoutesFile;
+      require_once $apiRoutesFile;
    }
+
+   private function isAbsolutePath(string $path): bool
+   {
+      return str_starts_with($path, '/') || preg_match('/^[A-Za-z]:\\\\/', $path);
+   }
+
 }

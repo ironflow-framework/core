@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
-use IronFlow\Core\Providers\ServiceProvider;
+use IronFlow\Core\Service\ServiceProvider;
 use IronFlow\Database\Iron\IronManager;
+use IronFlow\Database\Connection;
 
 /**
  * Fournisseur de services pour le système de base de données
@@ -21,15 +22,20 @@ class DatabaseServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->app->singleton('db', function ($app): IronManager {
-         // Configuration à partir du fichier de configuration
+      $this->container->singleton('db.manager', function (): IronManager {
          return new IronManager();
       });
    }
 
+   /**
+    * Configure le système de base de données
+    * 
+    * @return void
+    */
    public function boot(): void
    {
-      // Configuration de la connexion par défaut
-      $this->app->getContainer()->get('db')->connection();
+      // Initialisation de la connexion par défaut
+      $manager = $this->container->get('db.manager');
+      $manager->connection();
    }
 }

@@ -6,8 +6,8 @@ namespace IronFlow\Routing;
 
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
-use IronFlow\Http\Request\Request;
-use IronFlow\Http\Response\Response;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
 use IronFlow\Core\Container\ContainerInterface;
 use App\Controllers\AuthController;
 use IronFlow\Core\Exceptions\HttpException;
@@ -85,8 +85,6 @@ class Router implements RouterInterface
     */
    public function addRoute(string $method, string $path, mixed $handler): Route
    {
-      error_log("Adding route: {$method} {$path}");
-
       $route = new Route(
          $path,
          ['_controller' => $handler],
@@ -101,7 +99,6 @@ class Router implements RouterInterface
          $route->setPath($this->currentGroupPrefix . '/' . ltrim($path, '/'));
       }
 
-      error_log("Final path: " . $route->getPath());
       $this->routes->add($method . '_' . $path, $route);
       $this->lastRoute = $route;
 
@@ -333,11 +330,7 @@ class Router implements RouterInterface
       $path = $request->getPathInfo();
       $method = $request->getMethod();
 
-      error_log("Dispatching request: {$method} {$path}");
-      error_log("Routes registered: " . count($this->routes));
-
       foreach ($this->routes as $name => $route) {
-         error_log("Checking route {$name}: " . $route->getPath() . " [" . implode(',', $route->getMethods()) . "]");
          if ($route->getMethods() === [$method] && $route->getPath() === $path) {
             $controller = $route->getDefault('_controller');
             if (is_array($controller)) {

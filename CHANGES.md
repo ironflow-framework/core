@@ -1,5 +1,13 @@
 # Historique des Changements
 
+## [02/04/25]
+
+### Restructuration
+
+- Refonte de l'architecture du framework pour mieux separer les responsabilités
+- Mise à jour du système d'injection de dependance
+
+
 ## [29/03/25]
 
 ### Restructuration

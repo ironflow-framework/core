@@ -84,6 +84,17 @@ class Config
    }
 
    /**
+    * Vérifie si une clé de configuration existe
+    *
+    * @param string $key
+    * @return bool
+    */
+   public static function has(string $key): bool
+   {
+      return isset(self::$items[$key]);
+   }
+
+   /**
     * Charge la configuration depuis un chemin spécifique
     *
     * @param string $path Le chemin du répertoire de configuration

@@ -17,7 +17,7 @@ return [
    ],
 
    'aliases' => [
-      'App' => IronFlow\Core\Application::class,
+      'App' => IronFlow\Core\Application\Application::class,
       'Route' => IronFlow\Routing\Router::class,
       'DB' => IronFlow\Database\Connection::class,
       'View' => IronFlow\View\TwigView::class,
