@@ -1,58 +1,95 @@
 <?php
 
+declare(strict_types=1);
+
 namespace IronFlow\Forms\Components;
 
 use IronFlow\Database\Collection;
 
 class Select extends Component
 {
+   /**
+    * Options du select
+    *
+    * @var array
+    */
    protected array $options = [];
-   protected bool $multiple = false;
-   protected bool $required = false;
 
-   public function __construct(string $name, string $label, array $options = [])
+   /**
+    * Valeur par défaut
+    *
+    * @var mixed
+    */
+   protected mixed $defaultValue = null;
+
+   /**
+    * Constructeur
+    *
+    * @param string $name Nom du champ
+    * @param string $label Label du champ
+    * @param array $attributes Attributs HTML
+    */
+   public function __construct(string $name, string $label = '', array $attributes = [])
    {
-      parent::__construct($name, $label, $options);
-
-      $this->options = $options['options'] ?? [];
-      $this->multiple = $options['multiple'] ?? false;
-      $this->required = $options['required'] ?? false;
+      parent::__construct($name, $label, $attributes);
    }
 
+   /**
+    * Définit les options
+    *
+    * @param array $options
+    * @return self
+    */
+   public function options(array $options): self
+   {
+      $this->options = $options;
+      return $this;
+   }
+
+   /**
+    * Définit la valeur par défaut
+    *
+    * @param mixed $value
+    * @return self
+    */
+   public function defaultValue(mixed $value): self
+   {
+      $this->defaultValue = $value;
+      return $this;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
-      $attributes = [
-         'name' => $this->name . ($this->multiple ? '[]' : ''),
-         'id' => $this->name,
-         'class' => $this->getOption('class', 'form-control'),
-      ];
+      $value = $this->getValue() ?? $this->defaultValue;
+      $error = $this->getError();
+      $errorClass = $error ? ' is-invalid' : '';
+      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
 
-      if ($this->multiple) {
-         $attributes['multiple'] = 'multiple';
+      $options = '';
+      foreach ($this->options as $optionValue => $optionLabel) {
+         $selected = $value == $optionValue ? ' selected' : '';
+         $options .= "<option value='{$optionValue}'{$selected}>{$optionLabel}</option>";
       }
 
-      if ($this->required) {
-         $attributes['required'] = 'required';
-      }
-
-      $html = '<div class="form-group">';
-      $html .= '<label for="' . $this->name . '">' . $this->label . '</label>';
-      $html .= '<select ' . $this->buildAttributes($attributes) . '>';
-
-      foreach ($this->options as $value => $label) {
-         $selected = $this->value == $value ? ' selected' : '';
-         $html .= '<option value="' . $value . '"' . $selected . '>' . $label . '</option>';
-      }
-
-      $html .= '</select>';
-
-      if ($this->hasError()) {
-         $html .= '<div class="error-message">' . implode(', ', $this->errors) . '</div>';
-      }
-
-      $html .= '</div>';
-
-      return $html;
+      return "
+            <div class='form-group'>
+                <label for='{$this->name}'>{$this->label}</label>
+                <select 
+                    name='{$this->name}'
+                    id='{$this->name}'
+                    class='form-control{$errorClass}'
+                    {$this->renderAttributes()}
+                >
+                    {$options}
+                </select>
+                {$errorMessage}
+            </div>
+        ";
    }
 
    protected function buildAttributes(array $attributes): string

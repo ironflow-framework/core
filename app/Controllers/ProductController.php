@@ -15,7 +15,7 @@ class ProductController extends Controller
 {
    public function index(Request $request): Response
    {
-      $products = Product::all();
+      $products = Product::with('category')->get();
 
       return $this->view('products.index', [
          'title' => 'Liste des produits',
@@ -25,19 +25,44 @@ class ProductController extends Controller
 
    public function create(Request $request): Response
    {
-      $categories = Category::all()->pluck('name', 'id');
-
       $form = Product::form()
          ->method('POST')
-         ->action('/products/store')
-         ->input('name', 'Nom du produit')
-         ->textarea('description', 'Description du produit')
-         ->input('price', 'Prix du produit', 'number')
-         ->input('stock', 'Quantité en stock', 'number')
-         ->select('category_id', 'Catégorie du produit', $categories)
-         ->button('Créer le produit');
+         ->action(route('products.store'))
+         ->theme('floating')
+         ->input('name', 'Nom du produit', [
+            'required' => true,
+            'placeholder' => 'Entrez le nom du produit'
+         ])
+         ->textarea('description', 'Description', [
+            'rows' => 3,
+            'placeholder' => 'Entrez une description pour le produit'
+         ])
+         ->input('price', 'Prix', [
+            'type' => 'number',
+            'step' => '0.01',
+            'min' => '0',
+            'required' => true,
+            'placeholder' => 'Entrez le prix du produit'
+         ])
+         ->input('stock', 'Stock', [
+            'type' => 'number',
+            'min' => '0',
+            'required' => true,
+            'placeholder' => 'Entrez la quantité en stock'
+         ])
+         ->select('category_id', 'Catégorie', [
+            'options' => ['' => 'Sélectionnez une catégorie'] + Category::pluck('name', 'id')->toArray(),
+            'required' => true
+         ])
+         ->checkbox('is_active', 'Actif', [], [
+            'checked' => true
+         ])
+         ->button('Créer le produit', [
+            'class' => 'btn btn-primary',
+            'icon' => 'fas fa-plus'
+         ]);
 
-      return $this->view('products.create', [   
+      return $this->view('products.create', [
          'title' => 'Créer un produit',
          'form' => $form->render()
       ]);
@@ -50,10 +75,11 @@ class ProductController extends Controller
 
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
-            'description' => ['nullable', 'stringLength:min=0'],
-            'price' => ['required', 'numeric', 'number:min=0'],
-            'stock' => ['required', 'numeric', 'number:min=0'],
-            'category_id' => ['required', 'numeric', 'exists:categories,id']
+            'description' => ['nullable', 'stringLength:max=1000'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'stock' => ['required', 'integer', 'min:0'],
+            'category_id' => ['required', 'exists:categories,id'],
+            'is_active' => ['boolean'],
          ]);
 
          if ($validator->fails()) {
@@ -62,7 +88,7 @@ class ProductController extends Controller
 
          $product = Product::create($data);
 
-         return $this->redirect('/products')
+         return $this->route('products.index')
             ->with([
                'success' => 'Produit créé avec succès',
                'product' => $product
@@ -74,8 +100,11 @@ class ProductController extends Controller
 
    public function show(Request $request, $id): Response
    {
+      $product = Product::with('category')->find($id);
 
-      $product = Product::findOrFail($id);
+      if (!$product) {
+         return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
+      }
 
       return $this->view('products.show', [
          'title' => $product->name,
@@ -85,17 +114,55 @@ class ProductController extends Controller
 
    public function edit(Request $request, $id): Response
    {
-      $product = Product::findOrFail($id);
-      $categories = Category::all()->pluck('name', 'id');
+      $product = Product::find($id);
 
-      $form = Product::form()->fill($product->toArray())
-         ->input('name', 'Nom du produit')
-         ->textarea('description', 'Description du produit')
-         ->input('price', 'Prix du produit', 'number')
-         ->input('stock', 'Quantité en stock', 'number')
-         ->select('category_id', 'Catégorie du produit', $categories)
-         ->button('Modifier le produit')
-         ->action("/products/update/{$id}");
+      if (!$product) {
+         return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
+      }
+
+      $categories = Category::all();
+      $categoryOptions = ['' => 'Sélectionnez une catégorie'];
+      foreach ($categories as $category) {
+         $categoryOptions[$category->id] = $category->name;
+      }
+
+      $form = Product::form()
+         ->method('POST')
+         ->action(route('products.update', ['id' => $id]))
+         ->theme('floating')
+         ->fill($product->toArray())
+         ->input('name', 'Nom du produit', [
+            'required' => true,
+            'placeholder' => 'Entrez le nom du produit'
+         ])
+         ->textarea('description', 'Description', [
+            'rows' => 3,
+            'placeholder' => 'Entrez une description pour le produit'
+         ])
+         ->input('price', 'Prix', [
+            'type' => 'number',
+            'step' => '0.01',
+            'min' => '0',
+            'required' => true,
+            'placeholder' => 'Entrez le prix du produit'
+         ])
+         ->input('stock', 'Stock', [
+            'type' => 'number',
+            'min' => '0',
+            'required' => true,
+            'placeholder' => 'Entrez la quantité en stock'
+         ])
+         ->select('category_id', 'Catégorie', [
+            'options' => $categoryOptions,
+            'required' => true
+         ])
+         ->checkbox('is_active', 'Actif', [], [
+            'checked' => $product->is_active
+         ])
+         ->button('Modifier le produit', [
+            'class' => 'btn btn-primary',
+            'icon' => 'fas fa-save'
+         ]);
 
       return $this->view('products.edit', [
          'title' => 'Modifier le produit: ' . $product->name,
@@ -107,25 +174,31 @@ class ProductController extends Controller
    public function update(Request $request, $id): Response
    {
       if ($request->isMethod('post')) {
-         $product = Product::findOrFail($id);
+         $product = Product::find($id);
+
+         if (!$product) {
+            return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
+         }
+
          $data = $request->all();
 
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
-            'description' => ['nullable', 'stringLength:min=0'],
-            'price' => ['required', 'numeric', 'number:min=0'],
-            'stock' => ['required', 'numeric', 'number:min=0'],
-            'category_id' => ['required', 'numeric', 'exists:categories,id']
+            'description' => ['nullable', 'stringLength:max=1000'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'stock' => ['required', 'integer', 'min:0'],
+            'category_id' => ['required', 'exists:categories,id'],
+            'is_active' => ['boolean'],
          ]);
 
-         if (!$validator->fails()) {
+         if ($validator->fails()) {
             return $this->back()->withErrors($validator->getErrors())->withInput();
          }
 
          $product->fill($data);
          $product->save();
 
-         return $this->redirect('/products')->with(['success' => 'Produit mis à jour avec succès']);
+         return $this->route('products.index')->with(['success' => 'Produit mis à jour avec succès']);
       }
 
       return $this->back();
@@ -134,10 +207,15 @@ class ProductController extends Controller
    public function destroy(Request $request, $id): Response
    {
       if ($request->isMethod('POST')) {
-         $product = Product::findOrFail($id);
+         $product = Product::find($id);
+
+         if (!$product) {
+            return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
+         }
+
          $product->delete();
 
-         return $this->redirect('/products')->with(['success' => 'Produit supprimé avec succès']);
+         return $this->route('products.index')->with(['success' => 'Produit supprimé avec succès']);
       }
 
       return $this->back();

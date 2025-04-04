@@ -1,80 +1,106 @@
 <?php
 
+declare(strict_types=1);
+
 namespace IronFlow\Forms\Components;
 
 class Input extends Component
 {
+   /**
+    * Type de l'input
+    *
+    * @var string
+    */
    protected string $type = 'text';
-   protected ?string $placeholder = null;
-   protected bool $required = false;
-   protected ?string $pattern = null;
-   protected ?string $min = null;
-   protected ?string $max = null;
 
-   public function __construct(string $name, string $label, array $options = [])
+   /**
+    * Placeholder de l'input
+    *
+    * @var string
+    */
+   protected string $placeholder = '';
+
+   /**
+    * Valeur par défaut
+    *
+    * @var mixed
+    */
+   protected mixed $defaultValue = null;
+
+   /**
+    * Constructeur
+    *
+    * @param string $name Nom du champ
+    * @param string $label Label du champ
+    * @param array $attributes Attributs HTML
+    */
+   public function __construct(string $name, string $label = '', array $attributes = [])
    {
-      parent::__construct($name, $label, $options);
-
-      $this->type = $options['type'] ?? 'text';
-      $this->placeholder = $options['placeholder'] ?? null;
-      $this->required = $options['required'] ?? false;
-      $this->pattern = $options['pattern'] ?? null;
-      $this->min = $options['min'] ?? null;
-      $this->max = $options['max'] ?? null;
+      parent::__construct($name, $label, $attributes);
    }
 
+   /**
+    * Définit le type de l'input
+    *
+    * @param string $type
+    * @return self
+    */
+   public function type(string $type): self
+   {
+      $this->type = $type;
+      return $this;
+   }
+
+   /**
+    * Définit le placeholder
+    *
+    * @param string $placeholder
+    * @return self
+    */
+   public function placeholder(string $placeholder): self
+   {
+      $this->placeholder = $placeholder;
+      return $this;
+   }
+
+   /**
+    * Définit la valeur par défaut
+    *
+    * @param mixed $value
+    * @return self
+    */
+   public function defaultValue(mixed $value): self
+   {
+      $this->defaultValue = $value;
+      return $this;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
-      $attributes = [
-         'type' => $this->type,
-         'name' => $this->name,
-         'id' => $this->name,
-         'class' => $this->getOption('class', 'form-control'),
-      ];
+      $value = $this->getValue() ?? $this->defaultValue;
+      $error = $this->getError();
+      $errorClass = $error ? ' is-invalid' : '';
+      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
 
-      if ($this->value !== null) {
-         $attributes['value'] = $this->value;
-      }
-
-      if ($this->placeholder) {
-         $attributes['placeholder'] = $this->placeholder;
-      }
-
-      if ($this->required) {
-         $attributes['required'] = 'required';
-      }
-
-      if ($this->pattern) {
-         $attributes['pattern'] = $this->pattern;
-      }
-
-      if ($this->min) {
-         $attributes['min'] = $this->min;
-      }
-
-      if ($this->max) {
-         $attributes['max'] = $this->max;
-      }
-
-      $html = '<div class="form-group">';
-      $html .= '<label for="' . $this->name . '">' . $this->label . '</label>';
-      $html .= '<input ' . $this->buildAttributes($attributes) . '>';
-
-      if ($this->hasError()) {
-         $html .= '<div class="error-message">' . implode(', ', $this->errors) . '</div>';
-      }
-
-      $html .= '</div>';
-
-      return $html;
-   }
-
-   protected function buildAttributes(array $attributes): string
-   {
-      return implode(' ', array_map(
-         fn($key, $value) => $value === true ? $key : "$key=\"$value\"",
-         array_keys($attributes),
-         $attributes
-      ));
+      return "
+            <div class='form-group'>
+                <label for='{$this->name}'>{$this->label}</label>
+                <input 
+                    type='{$this->type}'
+                    name='{$this->name}'
+                    id='{$this->name}'
+                    value='{$value}'
+                    placeholder='{$this->placeholder}'
+                    class='form-control{$errorClass}'
+                    {$this->renderAttributes()}
+                >
+                {$errorMessage}
+            </div>
+        ";
    }
 }

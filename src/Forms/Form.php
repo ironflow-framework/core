@@ -18,9 +18,9 @@ class Form
    protected string $theme = 'default';
    protected array $themes = [
       'default' => DefaultTheme::class,
-      // 'floating' => FloatingTheme::class,
-      // 'material' => MaterialTheme::class,
-      // 'tailwind' => TailwindTheme::class,
+      'floating' => FloatingTheme::class,
+      'material' => MaterialTheme::class,
+      'tailwind' => TailwindTheme::class,
    ];
 
    public function __construct(protected ?string $model = null) {}

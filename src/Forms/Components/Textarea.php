@@ -1,67 +1,105 @@
 <?php
 
+declare(strict_types=1);
+
 namespace IronFlow\Forms\Components;
 
 class Textarea extends Component
 {
-   protected ?int $rows = null;
-   protected ?int $cols = null;
-   protected ?string $placeholder = null;
-   protected bool $required = false;
+   /**
+    * Nombre de lignes
+    *
+    * @var int
+    */
+   protected int $rows = 3;
 
-   public function __construct(string $name, string $label, array $options = [])
+   /**
+    * Placeholder
+    *
+    * @var string
+    */
+   protected string $placeholder = '';
+
+   /**
+    * Valeur par défaut
+    *
+    * @var mixed
+    */
+   protected mixed $defaultValue = null;
+
+   /**
+    * Constructeur
+    *
+    * @param string $name Nom du champ
+    * @param string $label Label du champ
+    * @param array $attributes Attributs HTML
+    */
+   public function __construct(string $name, string $label = '', array $attributes = [])
    {
-      parent::__construct($name, $label, $options);
-
-      $this->rows = $options['rows'] ?? null;
-      $this->cols = $options['cols'] ?? null;
-      $this->placeholder = $options['placeholder'] ?? null;
-      $this->required = $options['required'] ?? false;
+      parent::__construct($name, $label, $attributes);
    }
 
+   /**
+    * Définit le nombre de lignes
+    *
+    * @param int $rows
+    * @return self
+    */
+   public function rows(int $rows): self
+   {
+      $this->rows = $rows;
+      return $this;
+   }
+
+   /**
+    * Définit le placeholder
+    *
+    * @param string $placeholder
+    * @return self
+    */
+   public function placeholder(string $placeholder): self
+   {
+      $this->placeholder = $placeholder;
+      return $this;
+   }
+
+   /**
+    * Définit la valeur par défaut
+    *
+    * @param mixed $value
+    * @return self
+    */
+   public function defaultValue(mixed $value): self
+   {
+      $this->defaultValue = $value;
+      return $this;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
-      $attributes = [
-         'name' => $this->name,
-         'id' => $this->name,
-         'class' => $this->getOption('class', 'form-control'),
-      ];
+      $value = $this->getValue() ?? $this->defaultValue;
+      $error = $this->getError();
+      $errorClass = $error ? ' is-invalid' : '';
+      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
 
-      if ($this->rows) {
-         $attributes['rows'] = $this->rows;
-      }
-
-      if ($this->cols) {
-         $attributes['cols'] = $this->cols;
-      }
-
-      if ($this->placeholder) {
-         $attributes['placeholder'] = $this->placeholder;
-      }
-
-      if ($this->required) {
-         $attributes['required'] = 'required';
-      }
-
-      $html = '<div class="form-group">';
-      $html .= '<label for="' . $this->name . '">' . $this->label . '</label>';
-      $html .= '<textarea ' . $this->buildAttributes($attributes) . '>' . ($this->value ?? '') . '</textarea>';
-
-      if ($this->hasError()) {
-         $html .= '<div class="error-message">' . implode(', ', $this->errors) . '</div>';
-      }
-
-      $html .= '</div>';
-
-      return $html;
-   }
-
-   protected function buildAttributes(array $attributes): string
-   {
-      return implode(' ', array_map(
-         fn($key, $value) => $value === true ? $key : "$key=\"$value\"",
-         array_keys($attributes),
-         $attributes
-      ));
+      return "
+            <div class='form-group'>
+                <label for='{$this->name}'>{$this->label}</label>
+                <textarea 
+                    name='{$this->name}'
+                    id='{$this->name}'
+                    rows='{$this->rows}'
+                    placeholder='{$this->placeholder}'
+                    class='form-control{$errorClass}'
+                    {$this->renderAttributes()}
+                >{$value}</textarea>
+                {$errorMessage}
+            </div>
+        ";
    }
 }

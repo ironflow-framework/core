@@ -96,6 +96,13 @@ class Builder
    protected array $havings = [];
 
    /**
+    * Résultats de la requête
+    * 
+    * @var array
+    */
+   protected array $results = [];
+
+   /**
     * Constructeur
     * 
     * @param Model $model Modèle associé à la requête
@@ -394,6 +401,23 @@ class Builder
          array_push($this->columns, $columns);
       }
 
+
+      return $this;
+   }
+
+   /**
+    * Convertit les résultats de la requête en tableau
+    * 
+    * @return self
+    */
+   public function toArray(): self
+   {
+      $this->results = array_map(function ($result) {
+         if (is_object($result) && method_exists($result, 'toArray')) {
+            return $result->toArray();
+         }
+         return (array) $result;
+      }, $this->results);
 
       return $this;
    }

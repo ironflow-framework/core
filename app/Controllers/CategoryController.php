@@ -28,9 +28,32 @@ class CategoryController extends Controller
       $form = Category::form()
          ->method('POST')
          ->action(route('categories.store'))
-         ->input('name', 'Nom de la catégorie')
          ->theme('floating')
-         ->button('Créer la catégorie');
+         ->input('name', 'Nom de la catégorie', [
+            'required' => true,
+            'placeholder' => 'Entrez le nom de la catégorie'
+         ])
+         ->textarea('description', 'Description', [
+            'rows' => 3,
+            'placeholder' => 'Entrez une description pour la catégorie'
+         ])
+         ->select('parent_id', 'Catégorie parente', [
+            'options' => ['' => 'Aucune'] + Category::pluck('name', 'id')->toArray()
+         ])
+         ->checkbox('is_active', 'Actif', [], [
+            'checked' => true
+         ])
+         ->radio('type', 'Type', [
+            'options' => [
+               'product' => 'Produit',
+               'service' => 'Service'
+            ],
+            'value' => 'product'
+         ])
+         ->button('Créer la catégorie', [
+            'class' => 'btn btn-primary',
+            'icon' => 'fas fa-plus'
+         ]);
 
       return $this->view('categories.create', [
          'title' => 'Créer une catégorie',
@@ -45,6 +68,10 @@ class CategoryController extends Controller
 
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
+            'description' => ['nullable', 'stringLength:max=1000'],
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'is_active' => ['boolean'],
+            'type' => ['required', 'in:product,service'],
          ]);
 
          if ($validator->fails()) {
@@ -65,7 +92,11 @@ class CategoryController extends Controller
 
    public function show(Request $request, $id): Response
    {
-      $category = Category::findOrFail($id);
+      $category = Category::with('parent')->find($id);
+
+      if (!$category) {
+         return $this->route('categories.index')->with(['error' => 'Catégorie non trouvée']);
+      }
 
       return $this->view('categories.show', [
          'title' => $category->name,
@@ -75,12 +106,48 @@ class CategoryController extends Controller
 
    public function edit(Request $request, $id): Response
    {
-      $category = Category::findOrFail($id);
+      $category = Category::find($id);
 
-      $form = Category::form()->fill($category->toArray())
-         ->input('name', 'Nom de la catégorie')
-         ->button('Modifier la catégorie')
-         ->action(route('categories.update.alt', ['id' => $id]));
+      if (!$category) {
+         return $this->route('categories.index')->with(['error' => 'Catégorie non trouvée']);
+      }
+
+      $categories = Category::where('id', '!=', $id)->get();
+      $categoryOptions = ['' => 'Sélectionnez une catégorie parente'];
+      foreach ($categories as $cat) {
+         $categoryOptions[$cat->id] = $cat->name;
+      }
+
+      $form = Category::form()
+         ->method('POST')
+         ->action(route('categories.update', ['id' => $id]))
+         ->theme('floating')
+         ->fill($category->toArray())
+         ->input('name', 'Nom de la catégorie', [
+            'required' => true,
+            'placeholder' => 'Entrez le nom de la catégorie'
+         ])
+         ->textarea('description', 'Description', [
+            'rows' => 3,
+            'placeholder' => 'Entrez une description pour la catégorie'
+         ])
+         ->select('parent_id', 'Catégorie parente', [
+            'options' => $categoryOptions
+         ])
+         ->checkbox('is_active', 'Actif', [], [
+            'checked' => $category->is_active
+         ])
+         ->radio('type', 'Type', [
+            'options' => [
+               'product' => 'Produit',
+               'service' => 'Service'
+            ],
+            'value' => $category->type
+         ])
+         ->button('Modifier la catégorie', [
+            'class' => 'btn btn-primary',
+            'icon' => 'fas fa-save'
+         ]);
 
       return $this->view('categories.edit', [
          'title' => 'Modifier la catégorie: ' . $category->name,
@@ -92,21 +159,30 @@ class CategoryController extends Controller
    public function update(Request $request, $id): Response
    {
       if ($request->isMethod('post')) {
-         $category = Category::findOrFail($id);
+         $category = Category::find($id);
+
+         if (!$category) {
+            return $this->route('categories.index')->with(['error' => 'Catégorie non trouvée']);
+         }
+
          $data = $request->all();
 
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
+            'description' => ['nullable', 'stringLength:max=1000'],
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'is_active' => ['boolean'],
+            'type' => ['required', 'in:product,service'],
          ]);
 
-         if (!$validator->fails()) {
+         if ($validator->fails()) {
             return $this->back()->withErrors($validator->getErrors())->withInput();
          }
 
          $category->fill($data);
          $category->save();
 
-         return $this->route('categories.index')->with(['success' => 'Catégorie mis à jour avec succès']);
+         return $this->route('categories.index')->with(['success' => 'Catégorie mise à jour avec succès']);
       }
 
       return $this->back();
@@ -115,7 +191,12 @@ class CategoryController extends Controller
    public function destroy(Request $request, $id): Response
    {
       if ($request->isMethod('POST')) {
-         $category = Category::findOrFail($id);
+         $category = Category::find($id);
+
+         if (!$category) {
+            return $this->route('categories.index')->with(['error' => 'Catégorie non trouvée']);
+         }
+
          $category->delete();
 
          return $this->route('categories.index')->with(['success' => 'Catégorie supprimée avec succès']);

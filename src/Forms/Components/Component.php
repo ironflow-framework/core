@@ -1,62 +1,135 @@
 <?php
 
+declare(strict_types=1);
+
 namespace IronFlow\Forms\Components;
 
 abstract class Component
 {
-   protected array $options = [];
-   protected ?string $value = null;
-   protected array $errors = [];
+   /**
+    * Nom du champ
+    *
+    * @var string
+    */
+   protected string $name;
 
-   public function __construct(
-      protected string $name,
-      protected string $label,
-      array $options = []
-   ) {
-      $this->options = $options;
-   }
+   /**
+    * Label du champ
+    *
+    * @var string
+    */
+   protected string $label;
 
-   public function getName(): string
+   /**
+    * Attributs HTML
+    *
+    * @var array
+    */
+   protected array $attributes = [];
+
+   /**
+    * Valeur du champ
+    *
+    * @var mixed
+    */
+   protected mixed $value = null;
+
+   /**
+    * Erreur du champ
+    *
+    * @var string|null
+    */
+   protected ?string $error = null;
+
+   /**
+    * Constructeur
+    *
+    * @param string $name Nom du champ
+    * @param string $label Label du champ
+    * @param array $attributes Attributs HTML
+    */
+   public function __construct(string $name, string $label = '', array $attributes = [])
    {
-      return $this->name;
+      $this->name = $name;
+      $this->label = $label;
+      $this->attributes = $attributes;
    }
 
-   public function getLabel(): string
-   {
-      return $this->label;
-   }
-
-   public function getValue(): ?string
-   {
-      return $this->value;
-   }
-
-   public function setValue(?string $value): self
+   /**
+    * Définit la valeur du champ
+    *
+    * @param mixed $value
+    * @return self
+    */
+   public function setValue(mixed $value): self
    {
       $this->value = $value;
       return $this;
    }
 
-   public function getErrors(): array
+   /**
+    * Récupère la valeur du champ
+    *
+    * @return mixed
+    */
+   public function getValue(): mixed
    {
-      return $this->errors;
+      return $this->value;
    }
 
-   public function setErrors(array $errors): self
+   /**
+    * Définit l'erreur du champ
+    *
+    * @param string $error
+    * @return self
+    */
+   public function setError(string $error): self
    {
-      $this->errors = $errors;
+      $this->error = $error;
       return $this;
    }
 
-   public function hasError(): bool
+   /**
+    * Récupère l'erreur du champ
+    *
+    * @return string|null
+    */
+   public function getError(): ?string
    {
-      return !empty($this->errors);
+      return $this->error;
    }
 
-   public function getOption(string $key, $default = null)
+   /**
+    * Ajoute un attribut HTML
+    *
+    * @param string $name
+    * @param string $value
+    * @return self
+    */
+   public function attribute(string $name, string $value): self
    {
-      return $this->options[$key] ?? $default;
+      $this->attributes[$name] = $value;
+      return $this;
    }
 
+   /**
+    * Rendu des attributs HTML
+    *
+    * @return string
+    */
+   protected function renderAttributes(): string
+   {
+      $html = '';
+      foreach ($this->attributes as $name => $value) {
+         $html .= " {$name}='{$value}'";
+      }
+      return $html;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    abstract public function render(): string;
 }

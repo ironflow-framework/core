@@ -2,34 +2,30 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Console\Commands\Database;
+namespace App\Console\Commands\Database;
 
+use App\Database\Seeders\DatabaseSeeder;
+use IronFlow\Database\Connection;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Database\Connection;
-use IronFlow\Database\Seeder\SeederManager;
 
-/**
- * Commande pour exécuter les seeders
- */
 class DbSeedCommand extends Command
 {
-   protected static $defaultName = 'db:seed';
-   protected static $defaultDescription = 'Exécute les seeders de base de données';
+   /**
+    * Nom de la commande
+    *
+    * @var string
+    */
+   protected string $name = 'db:seed';
 
    /**
-    * Configure la commande
+    * Description de la commande
     *
-    * @return void
+    * @var string
     */
-   protected function configure(): void
-   {
-      $this
-         ->addArgument('seeder', InputArgument::OPTIONAL, 'Nom du seeder à exécuter (sans le suffix "Seeder")');
-   }
+   protected string $description = 'Exécute les seeders de la base de données';
 
    /**
     * Exécute la commande
@@ -38,31 +34,20 @@ class DbSeedCommand extends Command
     * @param OutputInterface $output
     * @return int
     */
-   protected function execute(InputInterface $input, OutputInterface $output): int
+   public function execute(InputInterface $input, OutputInterface $output): int
    {
       $io = new SymfonyStyle($input, $output);
-      $io->title('Exécution des seeders');
-
-      $connection = Connection::getInstance()->getConnection();
-      $manager = new SeederManager($connection);
-
-      $specificSeeder = $input->getArgument('seeder');
+      $io->info('Exécution des seeders...');
 
       try {
-         if ($specificSeeder) {
-            $io->section("Exécution du seeder: {$specificSeeder}");
-            $manager->runSpecific($specificSeeder);
-            $io->success("Seeder {$specificSeeder} exécuté avec succès");
-         } else {
-            $io->section('Exécution de tous les seeders');
-            $manager->run();
-            $io->success('Tous les seeders ont été exécutés avec succès');
-         }
-      } catch (\Exception $e) {
-         $io->error('Erreur lors de l\'exécution des seeders: ' . $e->getMessage());
-         return Command::FAILURE;
-      }
+         $seeder = new DatabaseSeeder(Connection::getInstance());
+         $seeder->run();
 
-      return Command::SUCCESS;
+         $io->success('Seeders exécutés avec succès !');
+         return 0;
+      } catch (\Exception $e) {
+         $io->error('Erreur lors de l\'exécution des seeders : ' . $e->getMessage());
+         return 1;
+      }
    }
 }
