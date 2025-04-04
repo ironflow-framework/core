@@ -7,17 +7,17 @@ namespace IronFlow\Validation\Rules;
 use IronFlow\Validation\AbstractRule;
 
 /**
- * Règle de validation pour les valeurs numériques
+ * Règle de validation pour les champs nullables
  */
-class Numeric extends AbstractRule
+class Nullable extends AbstractRule
 {
    /**
     * Message d'erreur par défaut
     */
-   protected string $defaultMessage = 'Le champ :field doit être une valeur numérique';
+   protected string $defaultMessage = 'Le champ :field est invalide';
 
    /**
-    * Valide une valeur numérique
+    * Valide si la valeur est nullable
     *
     * @param string $field
     * @param mixed $value
@@ -27,10 +27,6 @@ class Numeric extends AbstractRule
     */
    public function validate(string $field, $value, array $parameters = [], array $data = []): bool
    {
-      if (empty($value) && $value !== '0' && $value !== 0) {
-         return true; // Pas d'erreur si vide (utiliser Required pour vérifier la présence)
-      }
-
-      return is_numeric($value);
+      return true; // Un champ nullable est toujours valide
    }
 }

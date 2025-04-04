@@ -29,11 +29,23 @@ class StringLength extends AbstractRule
    /**
     * Constructeur
     *
-    * @param int|null $min Longueur minimale
+    * @param array|int|null $min Longueur minimale
     * @param int|null $max Longueur maximale
     */
-   public function __construct(?int $min = null, ?int $max = null)
+   public function __construct($min = null, ?int $max = null)
    {
+      if (is_array($min)) {
+         $params = [];
+         foreach ($min as $param) {
+            if (strpos($param, '=') !== false) {
+               list($key, $value) = explode('=', $param);
+               $params[$key] = (int)$value;
+            }
+         }
+         $min = $params['min'] ?? null;
+         $max = $params['max'] ?? null;
+      }
+
       $this->min = $min;
       $this->max = $max;
 
@@ -78,11 +90,13 @@ class StringLength extends AbstractRule
    /**
     * Valide la longueur d'une chaîne
     *
+    * @param string $field
     * @param mixed $value
+    * @param array $parameters
     * @param array $data
     * @return bool
     */
-   public function validate($value, array $data = []): bool
+   public function validate(string $field, $value, array $parameters = [], array $data = []): bool
    {
       if (empty($value) && $value !== '0') {
          return true; // Pas d'erreur si vide (utiliser Required pour vérifier la présence)

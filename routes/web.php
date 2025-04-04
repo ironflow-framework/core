@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-
+use App\Controllers\CategoryController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\DashboardController;
@@ -20,8 +20,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
    ->middleware('auth')
    ->name('dashboard');
 
-// Routes resource pour les produits
-Route::resource('/products', ProductController::class);
+Route::resource('products', ProductController::class);
+Route::resource('categories', CategoryController::class);
 
 // Routes pour les commandes
 Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');

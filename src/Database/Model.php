@@ -268,7 +268,7 @@ abstract class Model
          static::create($item),
          $data
       );
-      
+
       return new Collection($records);
    }
 
@@ -352,7 +352,7 @@ abstract class Model
       } else {
          $sql = "SELECT $columns FROM ";
       }
-      
+
       $sql .= static::$table;
       $stmt = (new static())->getConnection()->query($sql);
       $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -398,7 +398,8 @@ abstract class Model
    {
       $model = static::find($id);
       if (!$model) {
-         throw new Exception("Model not found");
+         $className = static::class;
+         throw new Exception("Le modèle {$className} avec l'ID {$id} n'a pas été trouvé.");
       }
       return $model;
    }
@@ -893,11 +894,24 @@ abstract class Model
     */
    public function __toString(): string
    {
-      try {
-         return json_encode($this->attributes, JSON_PRETTY_PRINT);
-      } catch (Exception $e) {
-         return get_class($this);
+      return json_encode($this->toArray());
+   }
+
+   /**
+    * Convertit le modèle en tableau
+    * 
+    * @return array
+    */
+   public function toArray(): array
+   {
+      $array = $this->attributes;
+
+      // Exclure les attributs cachés
+      foreach ($this->hidden as $hidden) {
+         unset($array[$hidden]);
       }
+
+      return $array;
    }
 
    /**

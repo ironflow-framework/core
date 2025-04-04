@@ -219,19 +219,35 @@ class Router implements RouterInterface
    /**
     * Ajoute les routes RESTful pour une ressource
     * 
-    * @param string $uri L'URI de base de la ressource
+    * @param string $name Le nom de la ressource ou l'URI de base de la resource
     * @param string $controller Le contrôleur à utiliser
     * @return self
     */
-   public function resource(string $uri, string $controller): self
+   public function resource(string $name, string $controller): self
    {
-      $this->get($uri, [$controller, 'index'])->name($uri . '.index');
-      $this->get($uri . '/create', [$controller, 'create'])->name($uri . '.create');
-      $this->post($uri, [$controller, 'store'])->name($uri . '.store');
-      $this->get($uri . '/{id}', [$controller, 'show'])->name($uri . '.show');
-      $this->get($uri . '/{id}/edit', [$controller, 'edit'])->name($uri . '.edit');
-      $this->put($uri . '/{id}', [$controller, 'update'])->name($uri . '.update');
-      $this->delete($uri . '/{id}', [$controller, 'destroy'])->name($uri . '.destroy');
+      // Route index (liste)
+      $this->get($name, [$controller, 'index'])->name($name . '.index');
+
+      // Route create (formulaire de création)
+      $this->get($name . '/create', [$controller, 'create'])->name($name . '.create');
+
+      // Route store (stockage)
+      $this->post($name, [$controller, 'store'])->name($name . '.store');
+
+      // Route show (affichage)
+      $this->get($name . '/{id}', [$controller, 'show'])->name($name . '.show');
+
+      // Routes edit (formulaire de modification) - deux formats
+      $this->get($name . '/{id}/edit', [$controller, 'edit'])->name($name . '.edit');
+      $this->get($name . '/edit/{id}', [$controller, 'edit'])->name($name . '.edit.alt');
+
+      // Routes update (mise à jour) - deux formats
+      $this->put($name . '/{id}', [$controller, 'update'])->name($name . '.update');
+      $this->put($name . '/edit/{id}', [$controller, 'update'])->name($name . '.update.alt');
+
+      // Routes destroy (suppression) - deux formats
+      $this->delete($name . '/{id}', [$controller, 'destroy'])->name($name . '.destroy');
+      $this->delete($name . '/delete/{id}', [$controller, 'destroy'])->name($name . '.destroy.alt');
 
       return $this;
    }
@@ -314,8 +330,7 @@ class Router implements RouterInterface
     */
    public function url(string $name, array $parameters = []): string
    {
-      $route = $this->getRoute($name);
-      return $route->getPath();
+      return $this->generateUrl($name, $parameters);
    }
 
    /**
@@ -331,14 +346,38 @@ class Router implements RouterInterface
       $method = $request->getMethod();
 
       foreach ($this->routes as $name => $route) {
-         if ($route->getMethods() === [$method] && $route->getPath() === $path) {
-            $controller = $route->getDefault('_controller');
-            if (is_array($controller)) {
-               [$class, $method] = $controller;
-               $instance = $this->container->make($class);
-               return $instance->$method($request);
+         if ($route->getMethods() === [$method]) {
+            // Convertir le pattern de la route en expression régulière
+            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $route->getPath());
+            $pattern = '#^' . $pattern . '$#';
+
+            if (preg_match($pattern, $path, $matches)) {
+               // Extraire les paramètres de l'URL
+               $params = array_filter($matches, function ($key) {
+                  return !is_numeric($key);
+               }, ARRAY_FILTER_USE_KEY);
+
+               // Ajouter les paramètres à la requête
+               foreach ($params as $key => $value) {
+                  $request->attributes->set((string)$key, $value);
+               }
+
+               $controller = $route->getDefault('_controller');
+               if (is_array($controller)) {
+                  [$class, $method] = $controller;
+                  $instance = $this->container->make($class);
+
+                  // Récupérer les paramètres de la route
+                  $routeParams = [];
+                  foreach ($params as $key => $value) {
+                     $routeParams[] = $value;
+                  }
+
+                  // Appeler la méthode du contrôleur avec la requête et les paramètres
+                  return call_user_func_array([$instance, $method], array_merge([$request], $routeParams));
+               }
+               return $controller($request);
             }
-            return $controller($request);
          }
       }
 
@@ -354,12 +393,14 @@ class Router implements RouterInterface
     */
    public function generateUrl(string $name, array $parameters = []): string
    {
-      foreach ($this->routes as $route) {
-         if ($route->getDefault('_name') === $name) {
-            return $route->getPath();
-         }
+      $route = $this->getRoute($name);
+      $path = $route->getPath();
+
+      // Remplacer les paramètres dans l'URL en utilisant une expression régulière
+      foreach ($parameters as $key => $value) {
+         $path = preg_replace('/\{' . preg_quote($key, '/') . '\}/', (string) $value, $path);
       }
 
-      throw new \RuntimeException("Route non trouvée : {$name}");
+      return $path;
    }
 }

@@ -1,12 +1,45 @@
 # Historique des Changements
 
+## [03/04/25]
+
+### Refactoring et Améliorations
+
+- Début de la refactorisation majeure du framework pour améliorer la maintenabilité et la scalabilité
+- Mise en place d'une nouvelle structure de documentation PHPDoc complète
+- Amélioration de la modularité du framework
+- Préparation de la version 2.0.0 pour la mise en production
+- Proposition d'améliorations pour la version 3.0.0 avec focus sur le front-end
+- Création d'une librairie de composants réutilisables
+
+### Base de données
+
+- Amélioration du système de factory et de seeding
+- Mise en place d'une nouvelle interface de gestion de base de données
+- Ajout de fonctionnalités avancées pour la gestion des données
+
+### Console
+
+- Analyse complète des commandes existantes
+- Début du développement de l'installateur interactif
+
+### Services
+
+- Intégration initiale du système de paiement
+- Mise en place du service de mail
+- Amélioration du système de channel
+- Préparation pour l'intégration d'IA
+
+### Documentation
+
+- Création d'une documentation détaillée avec exemples
+- Mise en place de cas d'usage concrets
+
 ## [02/04/25]
 
 ### Restructuration
 
 - Refonte de l'architecture du framework pour mieux separer les responsabilités
 - Mise à jour du système d'injection de dependance
-
 
 ## [29/03/25]
 

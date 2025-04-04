@@ -17,24 +17,30 @@
 
         <div class="bg-white shadow rounded-lg p-6">
             <div class="mb-4">
-                <h2 class="text-lg font-medium text-gray-900">ID</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ id }}</p>
-            </div>
-
-            <div class="mb-4">
                 <h2 class="text-lg font-medium text-gray-900">Nom</h2>
-                <p class="mt-1 text-sm text-gray-500">Produit exemple</p>
+                <p class="mt-1 text-sm text-gray-500">{{ product.name }}</p>
             </div>
 
             <div class="mb-4">
                 <h2 class="text-lg font-medium text-gray-900">Prix</h2>
-                <p class="mt-1 text-sm text-gray-500">99.99 €</p>
+                <p class="mt-1 text-sm text-gray-500">{{ product.price|format_currency('EUR') }}</p>
             </div>
 
             <div class="mb-4">
                 <h2 class="text-lg font-medium text-gray-900">Description</h2>
-                <p class="mt-1 text-sm text-gray-500">Description du produit...</p>
+                <p class="mt-1 text-sm text-gray-500">{{ product.description }}</p>
             </div>
+
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">Catégorie</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ product.category.name }}</p>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-lg font-medium text-gray-900">Stock</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ product.stock }}</p>
+            </div>
+            
         </div>
     </div>
 </div>

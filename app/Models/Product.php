@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use IronFlow\Database\Factories\HasFactory;
+use IronFlow\Database\Traits\HasFactory;
 use IronFlow\Database\Model;
-use IronFlow\Forms\Furnace\HasForm;
+use IronFlow\Database\Traits\HasForm;
 
 class Product extends Model
 {

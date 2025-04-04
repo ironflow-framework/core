@@ -229,18 +229,14 @@ if (!function_exists('route')) {
     * Retourner la route sous la forme d'une URL.
     *
     * @param string $name
+    * @param array $parameters
     * @return string
     */
-   function route(string $name): string
+   function route(string $name, array $parameters = []): string
    {
-      $name = str_replace('.', '/', $name);
-      $route = IronFlow\Routing\Router::getRoute($name);
-
-      if (!$route) {
-         throw new \Exception("Route {$name} not found");
-      }
-
-      return $route->getPath();
+      $app = IronFlow\Core\Application\Application::getInstance();
+      $router = $app->getContainer()->get(IronFlow\Routing\RouterInterface::class);
+      return $router->generateUrl($name, $parameters);
    }
 }
 

@@ -12,7 +12,12 @@ use IronFlow\Database\Connection;
  * Gestionnaire des seeders de base de données
  * 
  * Cette classe permet d'exécuter les seeders de base de données
- * de manière centralisée.
+ * de manière centralisée. Elle gère l'ordre d'exécution des seeders
+ * et assure que chaque seeder n'est exécuté qu'une seule fois.
+ * 
+ * @package IronFlow\Database\Seeder
+ * @author IronFlow Team
+ * @version 1.0.0
  */
 class SeederManager
 {
@@ -24,9 +29,17 @@ class SeederManager
    protected PDO $connection;
 
    /**
+    * Liste des seeders exécutés
+    * 
+    * @var array<string>
+    */
+   protected array $executedSeeders = [];
+
+   /**
     * Constructeur
     * 
     * @param PDO|Connection|null $connection Instance de la connexion
+    * @throws \InvalidArgumentException Si la connexion n'est pas valide
     */
    public function __construct($connection = null)
    {
@@ -42,7 +55,11 @@ class SeederManager
    /**
     * Exécute tous les seeders
     * 
+    * Cette méthode charge et exécute le seeder principal (DatabaseSeeder)
+    * qui est responsable d'appeler tous les autres seeders dans le bon ordre.
+    * 
     * @return void
+    * @throws \RuntimeException Si le seeder principal n'existe pas
     */
    public function run(): void
    {
@@ -66,9 +83,11 @@ class SeederManager
     * Exécute un seeder spécifique
     * 
     * @param string $seeder Nom du seeder (sans le suffixe "Seeder")
+    * @param array<string, mixed> $options Options supplémentaires pour le seeder
     * @return void
+    * @throws \RuntimeException Si le seeder n'existe pas
     */
-   public function runSpecific(string $seeder): void
+   public function runSpecific(string $seeder, array $options = []): void
    {
       $class = $this->getSeederClass($seeder);
 
@@ -76,8 +95,14 @@ class SeederManager
          throw new \RuntimeException("La classe de seeder '{$class}' n'existe pas");
       }
 
+      // Vérifie si le seeder a déjà été exécuté
+      if (in_array($class, $this->executedSeeders)) {
+         return;
+      }
+
       $instance = new $class($this->connection);
       $instance->run();
+      $this->executedSeeders[] = $class;
    }
 
    /**
@@ -85,6 +110,7 @@ class SeederManager
     * 
     * @param string $seeder Nom du seeder (sans le suffixe "Seeder")
     * @return string
+    * @throws \RuntimeException Si le fichier de seeder n'existe pas
     */
    protected function getSeederClass(string $seeder): string
    {
@@ -113,7 +139,7 @@ class SeederManager
    /**
     * Liste tous les seeders disponibles
     * 
-    * @return array
+    * @return array<string>
     */
    public function listSeeders(): array
    {
@@ -131,5 +157,39 @@ class SeederManager
 
       sort($seeders);
       return $seeders;
+   }
+
+   /**
+    * Réinitialise la liste des seeders exécutés
+    * 
+    * @return void
+    */
+   public function resetExecutedSeeders(): void
+   {
+      $this->executedSeeders = [];
+   }
+
+   /**
+    * Vérifie si un seeder a été exécuté
+    * 
+    * @param string $seeder Nom du seeder
+    * @return bool
+    */
+   public function hasSeederBeenExecuted(string $seeder): bool
+   {
+      return in_array($this->getSeederClass($seeder), $this->executedSeeders);
+   }
+
+   /**
+    * Exécute plusieurs seeders dans l'ordre spécifié
+    * 
+    * @param array<string> $seeders Liste des seeders à exécuter
+    * @return void
+    */
+   public function runMultiple(array $seeders): void
+   {
+      foreach ($seeders as $seeder) {
+         $this->runSpecific($seeder);
+      }
    }
 }

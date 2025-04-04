@@ -130,7 +130,7 @@ class Response extends HttpFoundationResponse
     */
    public function withSuccess(mixed $data): static
    {
-      return $this->with(['success', $data]);
+      return $this->with(['success' => $data]);
    }
 
    /**
@@ -141,18 +141,33 @@ class Response extends HttpFoundationResponse
     */
    public function withErrors(mixed $data): static
    {
-      return $this->with(['errors', $data]);
+      if (is_array($data)) {
+         $errors = [];
+         foreach ($data as $key => $value) {
+            $errors[(string)$key] = $value;
+         }
+         return $this->with(['errors' => $errors]);
+      }
+      return $this->with(['errors' => $data]);
    }
 
-   
-   public function withOld(array $old): self
+   /**
+    * Ajouter les anciennes données à la reponse
+    *
+    * @param array $old Les anciennes données
+    * @return static
+    */
+   public function withOld(array $old): static
    {
-      return $this->with(['old', $old]);
+      $formattedOld = [];
+      foreach ($old as $key => $value) {
+         $formattedOld[(string)$key] = $value;
+      }
+      return $this->with(['old' => $formattedOld]);
    }
 
    public function withInput(): self
    {
       return $this->withOld($_POST);
    }
-
 }

@@ -6,7 +6,7 @@ namespace IronFlow\View\Twig;
 
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
-use IronFlow\Routing\Router;
+use IronFlow\Support\Facades\Route;
 
 class RouteExtension extends AbstractExtension
 {
@@ -20,7 +20,7 @@ class RouteExtension extends AbstractExtension
 
    public function route(string $name, array $parameters = []): string
    {
-      return Router::url($name, $parameters);
+      return Route::url($name, $parameters);
    }
 
    public function asset(string $path): string

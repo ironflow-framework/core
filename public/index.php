@@ -67,6 +67,11 @@ if ($_ENV['APP_ENV'] === 'development') {
    error_log("================================\n");
 }
 
+// Démarrage de la session
+if (session_status() === PHP_SESSION_NONE) {
+   session_start();
+}
+
 // Création du répertoire de logs si nécessaire
 if (!is_dir(BASE_PATH . '/storage/logs')) {
    mkdir(BASE_PATH . '/storage/logs', 0755, true);

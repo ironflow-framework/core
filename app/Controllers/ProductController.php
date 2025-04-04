@@ -37,7 +37,7 @@ class ProductController extends Controller
          ->select('category_id', 'Catégorie du produit', $categories)
          ->button('Créer le produit');
 
-      return $this->view('products.create', [
+      return $this->view('products.create', [   
          'title' => 'Créer un produit',
          'form' => $form->render()
       ]);
@@ -49,15 +49,15 @@ class ProductController extends Controller
          $data = $request->all();
 
          $validator = Validator::make($data, [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id'
+            'name' => ['required', 'stringLength:min=1,max=255'],
+            'description' => ['nullable', 'stringLength:min=0'],
+            'price' => ['required', 'numeric', 'number:min=0'],
+            'stock' => ['required', 'numeric', 'number:min=0'],
+            'category_id' => ['required', 'numeric', 'exists:categories,id']
          ]);
 
          if ($validator->fails()) {
-            return $this->redirect('/products')->withErrors($validator->getErrors());
+            return $this->back()->withErrors($validator->getErrors())->withInput();
          }
 
          $product = Product::create($data);
@@ -74,6 +74,7 @@ class ProductController extends Controller
 
    public function show(Request $request, $id): Response
    {
+
       $product = Product::findOrFail($id);
 
       return $this->view('products.show', [
@@ -105,16 +106,16 @@ class ProductController extends Controller
 
    public function update(Request $request, $id): Response
    {
-      if ($request->isMethod('post')){
+      if ($request->isMethod('post')) {
          $product = Product::findOrFail($id);
          $data = $request->all();
 
          $validator = Validator::make($data, [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id'
+            'name' => ['required', 'stringLength:min=1,max=255'],
+            'description' => ['nullable', 'stringLength:min=0'],
+            'price' => ['required', 'numeric', 'number:min=0'],
+            'stock' => ['required', 'numeric', 'number:min=0'],
+            'category_id' => ['required', 'numeric', 'exists:categories,id']
          ]);
 
          if (!$validator->fails()) {
@@ -126,13 +127,13 @@ class ProductController extends Controller
 
          return $this->redirect('/products')->with(['success' => 'Produit mis à jour avec succès']);
       }
-      
+
       return $this->back();
    }
 
    public function destroy(Request $request, $id): Response
    {
-      if ($request->isMethod('POST')){
+      if ($request->isMethod('POST')) {
          $product = Product::findOrFail($id);
          $product->delete();
 
@@ -140,6 +141,5 @@ class ProductController extends Controller
       }
 
       return $this->back();
-     
    }
 }

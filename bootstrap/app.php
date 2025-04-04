@@ -7,7 +7,8 @@ require_once __DIR__ . '/../src/helpers.php';
 use IronFlow\Core\Application\Application;
 
 // Création de l'application
-$app = Application::getInstance(dirname(__DIR__));
+$app = Application::getInstance(dirname(__DIR__))
+   ->withRouter('routes/web.php', 'routes/api.php');
 
 // Initialisation de l'application
 $app->bootstrap();

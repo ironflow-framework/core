@@ -9,6 +9,13 @@ use IronFlow\Database\Connection;
 
 /**
  * Classe de base pour les seeders de base de données
+ * 
+ * Cette classe fournit une base pour la création de seeders qui permettent
+ * de remplir la base de données avec des données de test ou initiales.
+ * 
+ * @package IronFlow\Database\Seeder
+ * @author IronFlow Team
+ * @version 1.0.0
  */
 abstract class Seeder
 {
@@ -20,9 +27,17 @@ abstract class Seeder
    protected PDO $connection;
 
    /**
+    * Liste des seeders déjà exécutés
+    *
+    * @var array<string>
+    */
+   protected static array $executedSeeders = [];
+
+   /**
     * Constructeur
     *
     * @param PDO|Connection $connection Connexion à la base de données
+    * @throws \InvalidArgumentException Si le paramètre de connexion n'est pas valide
     */
    public function __construct($connection)
    {
@@ -46,15 +61,23 @@ abstract class Seeder
     * Exécute un autre seeder
     *
     * @param string $class Nom de la classe du seeder
+    * @param array<string, mixed> $options Options supplémentaires pour le seeder
     * @return void
+    * @throws \InvalidArgumentException Si la classe de seeder n'existe pas
     */
-   protected function call(string $class): void
+   protected function call(string $class, array $options = []): void
    {
       if (!class_exists($class)) {
          throw new \InvalidArgumentException("La classe de seeder '$class' n'existe pas.");
       }
 
+      // Évite l'exécution multiple du même seeder
+      if (in_array($class, self::$executedSeeders)) {
+         return;
+      }
+
       $seeder = new $class($this->connection);
+      self::$executedSeeders[] = $class;
       $seeder->run();
    }
 
@@ -62,8 +85,9 @@ abstract class Seeder
     * Insère des données dans une table
     *
     * @param string $table Nom de la table
-    * @param array $data Données à insérer
+    * @param array<string, mixed> $data Données à insérer
     * @return bool Succès de l'insertion
+    * @throws \PDOException Si l'insertion échoue
     */
    protected function insert(string $table, array $data): bool
    {
@@ -80,8 +104,9 @@ abstract class Seeder
     * Insère plusieurs enregistrements dans une table
     *
     * @param string $table Nom de la table
-    * @param array $records Tableau d'enregistrements à insérer
+    * @param array<array<string, mixed>> $records Tableau d'enregistrements à insérer
     * @return bool Succès de l'insertion
+    * @throws \PDOException Si l'insertion échoue
     */
    protected function insertMany(string $table, array $records): bool
    {
@@ -110,6 +135,7 @@ abstract class Seeder
     * @param string $table Nom de la table
     * @param bool $cascade Supprimer en cascade
     * @return bool Succès de l'opération
+    * @throws \PDOException Si l'opération échoue
     */
    protected function truncate(string $table, bool $cascade = false): bool
    {
@@ -141,12 +167,51 @@ abstract class Seeder
     * Exécute une requête SQL brute
     *
     * @param string $sql Requête SQL
-    * @param array $params Paramètres de la requête
+    * @param array<string, mixed> $params Paramètres de la requête
     * @return bool Succès de l'exécution
+    * @throws \PDOException Si l'exécution échoue
     */
    protected function rawQuery(string $sql, array $params = []): bool
    {
       $stmt = $this->connection->prepare($sql);
       return $stmt->execute($params);
+   }
+
+   /**
+    * Vérifie si une table existe
+    *
+    * @param string $table Nom de la table
+    * @return bool
+    */
+   protected function tableExists(string $table): bool
+   {
+      $driver = $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+      switch ($driver) {
+         case 'mysql':
+            $result = $this->rawQuery("SHOW TABLES LIKE ?", [$table]);
+            return $result && $this->connection->query("SELECT FOUND_ROWS()")->fetchColumn() > 0;
+
+         case 'sqlite':
+            $result = $this->rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [$table]);
+            return $result && $this->connection->query("SELECT changes()")->fetchColumn() > 0;
+
+         case 'pgsql':
+            $result = $this->rawQuery("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = ?)", [$table]);
+            return $result && $this->connection->query("SELECT row_count()")->fetchColumn() > 0;
+
+         default:
+            return false;
+      }
+   }
+
+   /**
+    * Réinitialise la liste des seeders exécutés
+    *
+    * @return void
+    */
+   public static function resetExecutedSeeders(): void
+   {
+      self::$executedSeeders = [];
    }
 }

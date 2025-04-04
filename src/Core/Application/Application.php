@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Application;
 
-use Exception;
 use IronFlow\Cache\Hammer\Hammer;
 use IronFlow\Cache\Hammer\HammerManager;
 use IronFlow\Core\Container\ContainerInterface;
@@ -27,51 +26,79 @@ use IronFlow\Support\Facades\Config;
 use IronFlow\Support\Facades\Trans;
 use IronFlow\View\TwigView;
 
-
+/**
+ * Classe principale de l'application IronFlow
+ * 
+ * Cette classe est responsable de l'initialisation et de la gestion du cycle de vie
+ * de l'application. Elle implémente le pattern Singleton pour garantir une instance
+ * unique de l'application.
+ * 
+ * @package IronFlow\Core\Application
+ * @author IronFlow Team
+ * @version 1.0.0
+ */
 class Application implements ApplicationInterface
 {
    /**
-    * Version du framework
+    * Version actuelle du framework
+    * 
+    * @var string
     */
    public const VERSION = '1.0.0';
 
    /**
-    * Instance unique de l'application
+    * Instance unique de l'application (pattern Singleton)
+    * 
+    * @var self|null
     */
    private static ?self $instance = null;
 
    /**
     * Container d'injection de dépendances
+    * 
+    * @var ContainerInterface
     */
    private ContainerInterface $container;
 
    /**
     * Chemin de base de l'application
+    * 
+    * @var string
     */
    private string $basePath;
 
    /**
     * Liste des fournisseurs de services enregistrés
+    * 
+    * @var array<string>
     */
    private array $serviceProviders = [];
 
    /**
     * Liste des fournisseurs de services démarrés
+    * 
+    * @var array<string>
     */
    private array $bootedServiceProviders = [];
 
    /**
     * Chemin vers le fichier de routes web
+    * 
+    * @var string
     */
    private string $webRouterPath = '';
 
    /**
     * Chemin vers le fichier de routes API
+    * 
+    * @var string
     */
    private string $apiRouterPath = '';
 
    /**
     * Constructeur privé pour le pattern Singleton
+    * 
+    * @param string $basePath Chemin de base de l'application
     */
    private function __construct(string $basePath)
    {
@@ -82,6 +109,10 @@ class Application implements ApplicationInterface
 
    /**
     * Obtient l'instance unique de l'application
+    * 
+    * @param string|null $basePath Chemin de base de l'application (requis lors de la première initialisation)
+    * @return self
+    * @throws \RuntimeException Si le chemin de base n'est pas fourni lors de la première initialisation
     */
    public static function getInstance(?string $basePath = null): self
    {
@@ -96,17 +127,29 @@ class Application implements ApplicationInterface
 
    /**
     * Enregistre les liaisons de base dans le conteneur
+    * 
+    * Cette méthode initialise les services fondamentaux de l'application
+    * comme le conteneur, la configuration, le routeur, etc.
+    * 
+    * @return void
     */
    private function registerBaseBindings(): void
    {
+      // Liaisons de base
       $this->container->singleton('app', fn() => $this);
       $this->container->singleton('config', fn() => new Config());
       $this->container->singleton(ContainerInterface::class, fn() => $this->container);
+
+      // Services HTTP
       $this->container->singleton(RouterInterface::class, fn() => new Router($this->container));
       $this->container->singleton(Request::class, fn() => Request::createFromGlobals());
+
+      // Services de vue et de base de données
       $this->container->singleton('view', fn() => new TwigView(view_path() ?? '/resources/views'));
       $this->container->singleton('db', fn() => Connection::getInstance());
       $this->container->singleton('db.manager', fn() => new IronManager());
+
+      // Services de cache et de traduction
       $this->container->singleton('cache', fn() => Hammer::getInstance());
       $this->container->singleton('cache.manager', fn() => new HammerManager(config('cache')));
       $this->container->singleton('translator', fn() => new Trans());
@@ -124,6 +167,11 @@ class Application implements ApplicationInterface
 
    /**
     * Initialise l'application
+    * 
+    * Cette méthode charge la configuration, enregistre la gestion des erreurs,
+    * initialise les fournisseurs de services et charge les routes.
+    * 
+    * @return void
     */
    public function bootstrap(): void
    {
@@ -135,7 +183,12 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Charge la configuration
+    * Charge la configuration de l'application
+    * 
+    * Cette méthode charge les fichiers de configuration depuis le dossier config
+    * et définit les valeurs par défaut si nécessaire.
+    * 
+    * @return void
     */
    private function loadConfiguration(): void
    {
@@ -153,7 +206,12 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Enregistre la gestion des erreurs
+    * Enregistre le gestionnaire d'erreurs
+    * 
+    * Cette méthode configure la gestion des erreurs et des exceptions
+    * pour l'application.
+    * 
+    * @return void
     */
    private function registerErrorHandling(): void
    {
@@ -162,7 +220,12 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Enregistre les fournisseurs de services
+    * Enregistre tous les fournisseurs de services
+    * 
+    * Cette méthode initialise tous les fournisseurs de services
+    * enregistrés dans l'application.
+    * 
+    * @return void
     */
    private function registerServiceProviders(): void
    {
@@ -172,7 +235,12 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Démarre les fournisseurs de services
+    * Démarre tous les fournisseurs de services
+    * 
+    * Cette méthode appelle la méthode boot() sur chaque fournisseur
+    * de service qui n'a pas encore été démarré.
+    * 
+    * @return void
     */
    private function bootServiceProviders(): void
    {
@@ -188,7 +256,10 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Enregistre un fournisseur de service
+    * Enregistre un fournisseur de service spécifique
+    * 
+    * @param string $provider Nom de la classe du fournisseur de service
+    * @return void
     */
    public function registerServiceProvider(string $provider): void
    {
@@ -203,6 +274,11 @@ class Application implements ApplicationInterface
 
    /**
     * Exécute l'application
+    * 
+    * Cette méthode est le point d'entrée principal de l'application.
+    * Elle traite la requête HTTP et renvoie la réponse appropriée.
+    * 
+    * @return void
     */
    public function run(): void
    {
@@ -212,7 +288,13 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Gère une exception
+    * Gère une exception non capturée
+    * 
+    * Cette méthode convertit les exceptions en réponses HTTP appropriées
+    * et affiche une page d'erreur selon le mode de débogage.
+    * 
+    * @param \Throwable $e L'exception à gérer
+    * @return Response La réponse HTTP générée
     */
    public function handleException(\Throwable $e): Response
    {
@@ -245,6 +327,8 @@ class Application implements ApplicationInterface
 
    /**
     * Obtient le conteneur d'injection de dépendances
+    * 
+    * @return ContainerInterface
     */
    public function getContainer(): ContainerInterface
    {
@@ -252,7 +336,9 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Obtient le routeur
+    * Obtient le routeur de l'application
+    * 
+    * @return RouterInterface
     */
    public function getRouter(): RouterInterface
    {
@@ -261,6 +347,8 @@ class Application implements ApplicationInterface
 
    /**
     * Obtient le chemin de base de l'application
+    * 
+    * @return string
     */
    public function getBasePath(): string
    {
@@ -268,68 +356,58 @@ class Application implements ApplicationInterface
    }
 
    /**
-    * Définit les chemins des fichiers de routes
+    * Configure les chemins des fichiers de routes
     * 
     * @param string $web Chemin vers le fichier de routes web
     * @param string $api Chemin vers le fichier de routes API
-    * @return static Instance courante de l'application
+    * @return static
     */
    public function withRouter(string $web, string $api): static
    {
-      $this->webRouterPath = ltrim($web, '/');
-      $this->apiRouterPath = ltrim($api, '/');
-
+      $this->webRouterPath = $web;
+      $this->apiRouterPath = $api;
       return $this;
    }
 
    /**
-    * Définit les fournisseurs de service
+    * Ajoute des fournisseurs de services supplémentaires
     * 
-    * @param array<string> $providers Liste des fournisseurs de service
-    * @return static Instance courante de l'application
+    * @param array<string> $providers Liste des fournisseurs de services à ajouter
+    * @return static
     */
    public function withProvider(array $providers): static
    {
-      foreach ($providers as $provider) {
-         $this->registerServiceProvider($provider);
-      }
+      $this->serviceProviders = array_merge($this->serviceProviders, $providers);
       return $this;
    }
 
-
    /**
-    * Charge les routes de l'application
+    * Charge les fichiers de routes
+    * 
+    * Cette méthode charge les fichiers de routes web et API si ils existent.
+    * 
+    * @return void
     */
    private function loadRoutes(): void
    {
-      // Vérification des fichiers de routes
-      $this->webRouterPath = ($this->webRouterPath != '') ? $this->webRouterPath : '/routes/web.php';
-      $this->apiRouterPath = ($this->apiRouterPath != '') ? $this->apiRouterPath : '/routes/api.php';
-
-      $webRoutesFile = $this->isAbsolutePath($this->webRouterPath)
-         ? $this->webRouterPath
-         : $this->basePath . '/' . $this->webRouterPath;
-
-      $apiRoutesFile = $this->isAbsolutePath($this->apiRouterPath)
-         ? $this->apiRouterPath
-         : $this->basePath . '/' . $this->apiRouterPath;
-
-      if (!file_exists($webRoutesFile)) {
-         throw new Exception("Fichier de routes web non trouvé: {$webRoutesFile}");
+      if ($this->webRouterPath && file_exists($this->webRouterPath)) {
+         require $this->webRouterPath;
       }
 
-      if (!file_exists($apiRoutesFile)) {
-         throw new Exception("Fichier de routes API non trouvé: {$apiRoutesFile}");
+      if ($this->apiRouterPath && file_exists($this->apiRouterPath)) {
+         require $this->apiRouterPath;
       }
-
-      // Chargement des fichiers de routes
-      require_once $webRoutesFile;
-      require_once $apiRoutesFile;
    }
 
+   /**
+    * Vérifie si un chemin est absolu
+    * 
+    * @param string $path Le chemin à vérifier
+    * @return bool
+    */
    private function isAbsolutePath(string $path): bool
    {
-      return str_starts_with($path, '/') || preg_match('/^[A-Za-z]:\\\\/', $path);
+      return str_starts_with($path, '/') || str_starts_with($path, '\\') ||
+         preg_match('~^[a-zA-Z]:[/\\]~', $path) === 1;
    }
-
 }

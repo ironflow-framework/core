@@ -75,11 +75,13 @@ class Number extends AbstractRule
    /**
     * Valide un nombre
     *
+    * @param string $field
     * @param mixed $value
+    * @param array $parameters
     * @param array $data
     * @return bool
     */
-   public function validate($value, array $data = []): bool
+   public function validate(string $field, $value, array $parameters = [], array $data = []): bool
    {
       if (empty($value) && $value !== '0' && $value !== 0) {
          return true; // Pas d'erreur si vide (utiliser Required pour vérifier la présence)
@@ -90,22 +92,20 @@ class Number extends AbstractRule
          return false;
       }
 
-      // Convertir en nombre
-      $numValue = (float)$value;
+      $number = (float)$value;
 
-      // Vérifier si c'est un entier si nécessaire
-      if ($this->integerOnly && floor($numValue) != $numValue) {
+      // Vérifier si c'est un entier si requis
+      if ($this->integerOnly && !is_int($number)) {
          return false;
       }
 
-      // Vérifier min/max
-      if ($this->min !== null && $numValue < $this->min) {
-         $this->defaultMessage = 'Le champ :field doit être supérieur ou égal à :min';
+      // Vérifier la valeur minimale
+      if ($this->min !== null && $number < $this->min) {
          return false;
       }
 
-      if ($this->max !== null && $numValue > $this->max) {
-         $this->defaultMessage = 'Le champ :field doit être inférieur ou égal à :max';
+      // Vérifier la valeur maximale
+      if ($this->max !== null && $number > $this->max) {
          return false;
       }
 

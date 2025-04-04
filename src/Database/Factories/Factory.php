@@ -12,6 +12,14 @@ use IronFlow\Database\Contracts\FactoryInterface;
 
 /**
  * Classe de base pour les factories de modèles
+ * 
+ * Cette classe fournit une base pour la génération de données de test
+ * pour les modèles de l'application. Elle utilise Faker pour générer
+ * des données aléatoires réalistes.
+ * 
+ * @package IronFlow\Database\Factories
+ * @author IronFlow Team
+ * @version 1.0.0
  */
 abstract class Factory implements FactoryInterface
 {
@@ -39,36 +47,44 @@ abstract class Factory implements FactoryInterface
    /**
     * États disponibles pour la factory
     *
-    * @var array
+    * @var array<string, callable>
     */
    protected array $states = [];
 
    /**
     * États actifs pour la génération en cours
     *
-    * @var array
+    * @var array<string>
     */
    protected array $activeStates = [];
 
    /**
     * Valeurs écrasées pour la génération en cours
     *
-    * @var array
+    * @var array<string, mixed>
     */
    protected array $overrides = [];
 
    /**
-    * Instance de Faker
+    * Instance de Faker pour la génération de données
     *
     * @var Generator
     */
    protected Generator $faker;
 
    /**
+    * Séquence d'attributs incrémentaux
+    *
+    * @var array<string, mixed>|null
+    */
+   protected ?array $sequence = null;
+
+   /**
     * Constructeur
     *
     * @param PDO $connection Connexion à la base de données
     * @param string|null $locale Locale pour Faker (default: fr_FR)
+    * @throws \InvalidArgumentException Si le modèle n'existe pas
     */
    public function __construct(PDO $connection, ?string $locale = 'fr_FR')
    {
@@ -83,7 +99,8 @@ abstract class Factory implements FactoryInterface
    /**
     * Définit les attributs par défaut du modèle
     *
-    * @return array
+    * @param Generator $faker Instance de Faker
+    * @return array<string, mixed>
     */
    abstract public function definition(Generator $faker): array;
 
@@ -91,9 +108,9 @@ abstract class Factory implements FactoryInterface
     * Définit le nombre d'instances à créer
     *
     * @param int $count Nombre d'instances
-    * @return $this
+    * @return static
     */
-   public function count(int $count): self
+   public function count(int $count): static
    {
       $this->count = $count;
       return $this;
@@ -102,7 +119,7 @@ abstract class Factory implements FactoryInterface
    /**
     * Retourne une nouvelle instance du modèle avec les attributs générés
     *
-    * @param array $overrides Attributs supplémentaires
+    * @param array<string, mixed> $overrides Attributs supplémentaires
     * @return Model
     */
    public function make(array $overrides = []): Model
@@ -117,7 +134,7 @@ abstract class Factory implements FactoryInterface
    /**
     * Crée et sauvegarde une nouvelle instance du modèle dans la base de données
     *
-    * @param array $overrides Attributs supplémentaires
+    * @param array<string, mixed> $overrides Attributs supplémentaires
     * @return Model
     */
    public function create(array $overrides = []): Model
@@ -131,8 +148,8 @@ abstract class Factory implements FactoryInterface
    /**
     * Crée et sauvegarde plusieurs instances du modèle dans la base de données
     *
-    * @param array $overrides Attributs supplémentaires
-    * @return array
+    * @param array<string, mixed> $overrides Attributs supplémentaires
+    * @return array<Model>
     */
    public function createMany(array $overrides = []): array
    {
@@ -149,9 +166,10 @@ abstract class Factory implements FactoryInterface
     * Applique un état à la factory
     *
     * @param string $state Nom de l'état
-    * @return $this
+    * @return static
+    * @throws \InvalidArgumentException Si l'état n'existe pas
     */
-   public function state(string $state): self
+   public function state(string $state): static
    {
       if (!isset($this->states[$state])) {
          throw new \InvalidArgumentException("L'état '{$state}' n'est pas défini.");
@@ -162,22 +180,48 @@ abstract class Factory implements FactoryInterface
    }
 
    /**
+    * Applique plusieurs états à la factory
+    *
+    * @param array<string> $states Liste des états à appliquer
+    * @return static
+    */
+   public function states(array $states): static
+   {
+      foreach ($states as $state) {
+         $this->state($state);
+      }
+      return $this;
+   }
+
+   /**
     * Écrase certains attributs pour la génération en cours
     *
-    * @param array $overrides Attributs à écraser
-    * @return $this
+    * @param array<string, mixed> $overrides Attributs à écraser
+    * @return static
     */
-   public function withOverrides(array $overrides): self
+   public function withOverrides(array $overrides): static
    {
       $this->overrides = array_merge($this->overrides, $overrides);
       return $this;
    }
 
    /**
+    * Réinitialise les états et les écrasements
+    *
+    * @return static
+    */
+   public function reset(): static
+   {
+      $this->activeStates = [];
+      $this->overrides = [];
+      return $this;
+   }
+
+   /**
     * Obtient les attributs complets pour la création du modèle
     *
-    * @param array $overrides Attributs supplémentaires
-    * @return array
+    * @param array<string, mixed> $overrides Attributs supplémentaires
+    * @return array<string, mixed>
     */
    protected function getAttributes(array $overrides = []): array
    {
@@ -186,7 +230,7 @@ abstract class Factory implements FactoryInterface
 
       // Appliquer les états actifs
       foreach ($this->activeStates as $state) {
-         $stateAttributes = $this->states[$state]();
+         $stateAttributes = $this->states[$state]($this->faker);
          $finalAttributes = array_merge($finalAttributes, $stateAttributes);
       }
 
@@ -213,11 +257,23 @@ abstract class Factory implements FactoryInterface
     * Change la locale de Faker
     *
     * @param string $locale Nouvelle locale
-    * @return $this
+    * @return static
     */
-   public function setLocale(string $locale): self
+   public function setLocale(string $locale): static
    {
       $this->faker = FakerFactory::create($locale);
+      return $this;
+   }
+
+   /**
+    * Crée une séquence d'instances avec des attributs incrémentaux
+    *
+    * @param array<string, mixed> $sequence Liste des attributs à incrémenter
+    * @return static
+    */
+   public function sequence(array $sequence): static
+   {
+      $this->sequence = $sequence;
       return $this;
    }
 }
