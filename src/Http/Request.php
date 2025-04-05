@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Http;
 
 use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
-
+use IronFlow\Support\Collection;
+use IronFlow\Validation\Validator;
 
 /**
  * Classe de requête HTTP
@@ -63,7 +64,7 @@ class Request extends HttpFoundationRequest
     */
    public function input(string $key, mixed $default = null): mixed
    {
-      return $this->request->get($key, $default);
+      return $this->request->get($key, $this->query->get($key, $default));
    }
 
    /**
@@ -108,6 +109,34 @@ class Request extends HttpFoundationRequest
    public function file(string $key): ?\Symfony\Component\HttpFoundation\File\UploadedFile
    {
       return $this->files->get($key);
+   }
+
+   /**
+    * Vérifie si la requête contient un fichier
+    * 
+    * @param string $key La clé du fichier
+    * @return bool
+    */
+   public function hasFile(string $key): bool
+   {
+      return $this->files->has($key) && $this->files->get($key)->getError() !== UPLOAD_ERR_NO_FILE;
+   }
+
+   /**
+    * Valide les données de la requête
+    * 
+    * @param array $rules Les règles de validation
+    * @return array Les données validées
+    */
+   public function validate(array $rules): array
+   {
+      $validator = new Validator($this->all(), $rules);
+      
+      if (!$validator->passes()) {
+         throw new ValidationException($validator->errors());
+      }
+
+      return $validator->validated();
    }
 
    /**

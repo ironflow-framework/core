@@ -76,6 +76,25 @@ class Form
       return $this;
    }
 
+   public function date(string $name, string $label, array $options = [], bool $showTime = false): self
+   {
+      $this->fields[] = new Components\DatePicker($name, $label, $options, $showTime);
+      return $this;
+   }
+
+   public function color(string $name, string $label, array $options = []): self
+   {
+      $this->fields[] = new Components\ColorPicker($name, $label, $options);
+      return $this;
+   }
+
+
+   public function file(string $name, string $label, array $options = [], array $accept = []): self
+   {
+      $this->fields[] = new Components\File($name, $label, $options, []);
+      return $this;
+   }
+
    public function button(string $text, array $options = []): self
    {
       $this->fields[] = new Components\Button($text, $options);

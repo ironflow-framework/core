@@ -61,53 +61,51 @@ class Checkbox extends Component
       return $this;
    }
 
+   /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
       $value = $this->getValue() ?? $this->defaultValue;
       $error = $this->getError();
-      $errorClass = $error ? ' is-invalid' : '';
-      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
-      $wrapperClass = $this->inline ? 'form-check-inline' : 'form-check';
-
-      $attributes = [
-         'type' => $this->type,
-         'name' => $this->name,
-         'id' => $this->name,
-         'class' => 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded',
-      ];
-
-      if ($this->value !== null) {
-         $attributes['value'] = $this->value;
-      }
-
-      if ($this->required) {
-         $attributes['required'] = 'required';
-      }
-
-      if ($this->pattern) {
-         $attributes['pattern'] = $this->pattern;
-      }
-
-      if ($this->disabled) {
-         $attributes['disabled'] = 'disabled';
-         $attributes['class'] .= ' opacity-50 cursor-not-allowed';
-      }
-
-      if ($this->checked || $this->value === '1') {
-         $attributes['checked'] = 'checked';
-      }
-
-      $html = '<div class="space-y-2">';
-      $html .= '<div class="' . ($this->inline ? 'inline-flex items-center mr-4' : 'flex items-center') . '">';
-      $html .= '<input ' . $this->buildAttributes($attributes) . '>';
-      $html .= '<label class="ml-2 block text-sm text-gray-700" for="' . $this->name . '">' . $this->label . '</label>';
-      $html .= '</div>';
-
+      
+      // Combine les classes de base avec les classes d'erreur si nécessaire
+      $checkboxClasses = $this->combineClasses('checkbox');
       if ($error) {
-         $html .= '<p class="mt-1 text-sm text-red-600">' . $error . '</p>';
+         $checkboxClasses .= ' ' . $this->getErrorClasses('input');
       }
 
-      $html .= '</div>';
+      $checked = $value ? ' checked' : '';
+
+      $html = "
+         <div class='" . $this->getDefaultClasses('container') . " flex items-start'>
+            <div class='flex h-5 items-center'>
+               <input
+                  type='checkbox'
+                  name='{$this->name}'
+                  id='{$this->name}'
+                  class='{$checkboxClasses}'
+                  {$checked}
+                  " . $this->renderAttributes() . "
+               />
+            </div>
+            <div class='ml-3 text-sm'>
+               <label for='{$this->name}' class='" . $this->getDefaultClasses('label') . "'>{$this->label}</label>
+               " . ($error ? "<p class='" . $this->getDefaultClasses('error') . "'>{$error}</p>" : "") . "
+            </div>
+         </div>";
 
       return $html;
    }

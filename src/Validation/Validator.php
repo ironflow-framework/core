@@ -27,6 +27,11 @@ class Validator
    private array $customMessages = [];
 
    /**
+    * Les données validées
+    */
+   private array $validated = [];
+
+   /**
     * Crée une nouvelle instance du validateur
     */
    public static function make(array $data, array $rules, array $messages = []): self
@@ -79,6 +84,10 @@ class Validator
 
       if (!$result) {
          $this->addError($field, $rule->getMessage());
+      }
+
+      if ($result) {
+         $this->validated[$field] = $value;
       }
 
       return $result;
@@ -160,5 +169,21 @@ class Validator
    public function fails(): bool
    {
       return !$this->passes();
+   }
+
+   /**
+    * Récupère les données validées
+    */
+   public function validated(): array
+   {
+      return $this->validated;
+   }
+
+   /**
+    * Récupère les erreurs de validation
+    */
+   public function errors(): array
+   {
+      return $this->errors;
    }
 }

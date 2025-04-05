@@ -15,23 +15,48 @@ class Button extends Component
       $this->icon = $options['icon'] ?? null;
    }
 
+   /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
-      $attributes = [
-         'type' => $this->type,
-         'class' => $this->getOption('class', 'btn btn-primary'),
-      ];
-
-      $html = '<button ' . $this->buildAttributes($attributes) . '>';
-
-      if ($this->icon) {
-         $html .= '<i class="' . $this->icon . '"></i> ';
+      $buttonClasses = $this->combineClasses('button');
+      
+      // Ajout des classes spécifiques selon le type de bouton
+      switch ($this->type) {
+         case 'submit':
+            $buttonClasses .= ' bg-indigo-600 hover:bg-indigo-700';
+            break;
+         case 'reset':
+            $buttonClasses .= ' bg-gray-600 hover:bg-gray-700';
+            break;
+         case 'button':
+            $buttonClasses .= ' bg-blue-600 hover:bg-blue-700';
+            break;
       }
 
-      $html .= $this->label;
-      $html .= '</button>';
-
-      return $html;
+      return "
+         <button
+            type='{$this->type}'
+            name='{$this->name}'
+            id='{$this->name}'
+            class='{$buttonClasses}'
+            " . $this->renderAttributes() . "
+         >
+            {$this->label}
+         </button>";
    }
 
    protected function buildAttributes(array $attributes): string

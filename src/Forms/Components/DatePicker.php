@@ -23,13 +23,28 @@ class DatePicker extends Component
       $this->max = $options['max'] ?? null;
    }
 
+   /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
+    * Rendu du composant
+    *
+    * @return string
+    */
    public function render(): string
    {
       $attributes = [
          'type' => $this->type,
          'name' => $this->name,
          'id' => $this->name,
-         'class' => $this->getOption('class', 'form-control'),
+         'class' => 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300'
       ];
 
       if ($this->value !== null) {
@@ -60,8 +75,8 @@ class DatePicker extends Component
       $html .= '<label for="' . $this->name . '">' . $this->label . '</label>';
       $html .= '<input ' . $this->buildAttributes($attributes) . '>';
 
-      if ($this->hasError()) {
-         $html .= '<div class="error-message">' . implode(', ', $this->errors) . '</div>';
+      if ($this->getError()) {
+         $html .= '<div class="error-message">' . $this->getError() . '</div>';
       }
 
       $html .= '</div>';

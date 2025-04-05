@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Channel\Controllers;
 
-use IronFlow\Http\Controllers\Controller;
+use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
 use IronFlow\Channel\Events\ChannelEvent;
@@ -39,8 +39,8 @@ class ChannelController extends Controller
     */
    public function auth(Request $request): Response
    {
-      $channelName = $request->post('channel_name');
-      $socketId = $request->post('socket_id');
+      $channelName = $request->input('channel_name');
+      $socketId = $request->input('socket_id');
 
       if (empty($channelName) || empty($socketId)) {
          return $this->jsonResponse([
@@ -93,7 +93,7 @@ class ChannelController extends Controller
     */
    public function subscribe(Request $request): Response
    {
-      $channelName = $request->post('channel');
+      $channelName = $request->input('channel');
 
       if (empty($channelName)) {
          return $this->jsonResponse([
@@ -124,7 +124,7 @@ class ChannelController extends Controller
     */
    public function unsubscribe(Request $request): Response
    {
-      $channelName = $request->post('channel');
+      $channelName = $request->input('channel');
 
       if (empty($channelName)) {
          return $this->jsonResponse([
@@ -155,9 +155,9 @@ class ChannelController extends Controller
     */
    public function broadcast(Request $request): Response
    {
-      $channelName = $request->post('channel');
-      $eventName = $request->post('event');
-      $data = $request->post('data', []);
+      $channelName = $request->input('channel');
+      $eventName = $request->input('event');
+      $data = $request->input('data', []);
 
       if (empty($channelName) || empty($eventName)) {
          return $this->jsonResponse([

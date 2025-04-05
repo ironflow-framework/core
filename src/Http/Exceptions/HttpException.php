@@ -2,7 +2,9 @@
 
 namespace IronFlow\Http\Exceptions;
 
-abstract class HttpException extends \Exception
+use Exception;
+
+class HttpException extends Exception
 {
    protected int $statusCode = 500;
 

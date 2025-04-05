@@ -78,6 +78,16 @@ class Radio extends Component
    }
 
    /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
     * Rendu du composant
     *
     * @return string
@@ -86,37 +96,42 @@ class Radio extends Component
    {
       $value = $this->getValue() ?? $this->defaultValue;
       $error = $this->getError();
-      $errorClass = $error ? ' is-invalid' : '';
-      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
-      $wrapperClass = $this->inline ? 'form-check-inline' : 'form-check';
+      
+      // Combine les classes de base avec les classes d'erreur si nécessaire
+      $radioClasses = $this->combineClasses('radio');
+      if ($error) {
+         $radioClasses .= ' ' . $this->getErrorClasses('input');
+      }
 
-      $radios = '';
+      $html = "
+         <div class='" . $this->getDefaultClasses('container') . "'>
+            <label class='" . $this->getDefaultClasses('label') . "'>{$this->label}</label>
+            <div class='mt-2 space-y-2'>";
+
       foreach ($this->options as $optionValue => $optionLabel) {
          $checked = $value == $optionValue ? ' checked' : '';
-         $radios .= "
-            <div class='" . ($this->inline ? 'inline-flex items-center mr-4' : 'flex items-center') . "'>
-               <input 
+         $html .= "
+            <div class='flex items-center'>
+               <input
                   type='radio'
                   name='{$this->name}'
                   id='{$this->name}_{$optionValue}'
                   value='{$optionValue}'
+                  class='{$radioClasses}'
                   {$checked}
-                  class='h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300'
-                  {$this->renderAttributes()}
-               >
-               <label class='ml-2 block text-sm text-gray-700' for='{$this->name}_{$optionValue}'>{$optionLabel}</label>
-            </div>
-         ";
+                  " . $this->renderAttributes() . "
+               />
+               <label for='{$this->name}_{$optionValue}' class='ml-3 block text-sm font-medium text-gray-700'>
+                  {$optionLabel}
+               </label>
+            </div>";
       }
 
-      return "
-         <div class='space-y-2'>
-            <label class='block text-sm font-medium text-gray-700'>{$this->label}</label>
-            <div class='space-y-2'>
-               {$radios}
+      $html .= "
             </div>
-            " . ($error ? "<p class='mt-1 text-sm text-red-600'>{$error}</p>" : '') . "
-         </div>
-      ";
+            " . ($error ? "<p class='" . $this->getDefaultClasses('error') . "'>{$error}</p>" : "") . "
+         </div>";
+
+      return $html;
    }
 }

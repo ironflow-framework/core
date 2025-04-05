@@ -76,6 +76,16 @@ class Input extends Component
    }
 
    /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
     * Rendu du composant
     *
     * @return string
@@ -84,23 +94,28 @@ class Input extends Component
    {
       $value = $this->getValue() ?? $this->defaultValue;
       $error = $this->getError();
-      $errorClass = $error ? ' is-invalid' : '';
-      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
+      
+      // Combine les classes de base avec les classes d'erreur si nécessaire
+      $inputClasses = $this->combineClasses('input');
+      if ($error) {
+         $inputClasses .= ' ' . $this->getErrorClasses('input');
+      }
 
-      return "
-            <div class='form-group'>
-                <label for='{$this->name}'>{$this->label}</label>
-                <input 
-                    type='{$this->type}'
-                    name='{$this->name}'
-                    id='{$this->name}'
-                    value='{$value}'
-                    placeholder='{$this->placeholder}'
-                    class='form-control{$errorClass}'
-                    {$this->renderAttributes()}
-                >
-                {$errorMessage}
-            </div>
-        ";
+      $html = "
+         <div class='" . $this->getDefaultClasses('container') . "'>
+            <label for='{$this->name}' class='" . $this->getDefaultClasses('label') . "'>{$this->label}</label>
+            <input
+               type='{$this->type}'
+               name='{$this->name}'
+               id='{$this->name}'
+               value='{$value}'
+               placeholder='{$this->placeholder}'
+               class='{$inputClasses}'
+               " . $this->renderAttributes() . "
+            />
+            " . ($error ? "<p class='" . $this->getDefaultClasses('error') . "'>{$error}</p>" : "") . "
+         </div>";
+
+      return $html;
    }
 }

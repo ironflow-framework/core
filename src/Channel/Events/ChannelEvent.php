@@ -7,7 +7,7 @@ namespace IronFlow\Channel\Events;
 /**
  * Classe de base pour tous les événements des channels
  */
-abstract class ChannelEvent
+class ChannelEvent
 {
    /**
     * Nom de l'événement

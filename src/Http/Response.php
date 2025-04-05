@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
-use IronFlow\Support\Facades\Session;
 use Symfony\Component\HttpFoundation\Response as HttpFoundationResponse;
 use IronFlow\View\TwigView;
 
@@ -21,13 +20,16 @@ class Response extends HttpFoundationResponse
     * @param mixed $content Le contenu de la réponse
     * @param int $status Le code de statut HTTP
     * @param array<string, string> $headers Les en-têtes de la réponse
+    * @param array<string, mixed> $session Les données de session
     */
    public function __construct(
       mixed $content = '',
       int $status = 200,
-      array $headers = []
+      array $headers = [],
+      array $session = []
    ) {
       parent::__construct($content, $status, $headers);
+      $this->session = $session;
    }
 
    /**
@@ -116,7 +118,7 @@ class Response extends HttpFoundationResponse
    public function with(array $data): static
    {
       foreach ($data as $key => $value) {
-         Session::set($key, $value);
+         $this->session[$key] = $value;
       }
 
       return $this;
@@ -169,5 +171,59 @@ class Response extends HttpFoundationResponse
    public function withInput(): self
    {
       return $this->withOld($_POST);
+   }
+
+   protected array $session = [];
+
+   public function withSession(array $session): self
+   {
+      $this->session = array_merge($this->session, $session);
+      return $this;
+   }
+
+   public function withFlash(string $key, mixed $value): static
+   {
+      return $this->with(['flash' => [$key => $value]]);
+   }
+
+   public function getSession(): array
+   {
+      return $this->session;
+   }
+
+   public function getHeaders(): array
+   {
+      return $this->headers->all();
+   }
+
+   public function send(): static
+   {
+      if (!headers_sent()) {
+         http_response_code($this->getStatusCode());
+         
+         foreach ($this->getHeaders() as $name => $values) {
+            if (is_array($values)) {
+               foreach ($values as $value) {
+                  header("$name: $value", false);
+               }
+            } else {
+               header("$name: $values");
+            }
+         }
+
+         foreach ($this->session as $key => $value) {
+            $_SESSION[$key] = $value;
+         }
+      }
+
+      if ($this->getContent() !== '') {
+         if (is_string($this->getContent())) {
+            echo $this->getContent();
+         } elseif (is_array($this->getContent()) || is_object($this->getContent())) {
+            echo json_encode($this->getContent());
+         }
+      }
+
+      return $this;
    }
 }

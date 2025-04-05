@@ -76,6 +76,16 @@ class Textarea extends Component
    }
 
    /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
     * Rendu du composant
     *
     * @return string
@@ -84,22 +94,27 @@ class Textarea extends Component
    {
       $value = $this->getValue() ?? $this->defaultValue;
       $error = $this->getError();
-      $errorClass = $error ? ' is-invalid' : '';
-      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
+      
+      // Combine les classes de base avec les classes d'erreur si nécessaire
+      $textareaClasses = $this->combineClasses('textarea');
+      if ($error) {
+         $textareaClasses .= ' ' . $this->getErrorClasses('input');
+      }
 
-      return "
-            <div class='form-group'>
-                <label for='{$this->name}'>{$this->label}</label>
-                <textarea 
-                    name='{$this->name}'
-                    id='{$this->name}'
-                    rows='{$this->rows}'
-                    placeholder='{$this->placeholder}'
-                    class='form-control{$errorClass}'
-                    {$this->renderAttributes()}
-                >{$value}</textarea>
-                {$errorMessage}
-            </div>
-        ";
+      $html = "
+         <div class='" . $this->getDefaultClasses('container') . "'>
+            <label for='{$this->name}' class='" . $this->getDefaultClasses('label') . "'>{$this->label}</label>
+            <textarea
+               name='{$this->name}'
+               id='{$this->name}'
+               class='{$textareaClasses}'
+               placeholder='{$this->placeholder}'
+               rows='{$this->rows}'
+               " . $this->renderAttributes() . "
+            >{$value}</textarea>
+            " . ($error ? "<p class='" . $this->getDefaultClasses('error') . "'>{$error}</p>" : "") . "
+         </div>";
+
+      return $html;
    }
 }

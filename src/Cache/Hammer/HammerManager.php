@@ -44,6 +44,15 @@ class HammerManager
         $this->defaultDriver = $config['default'] ?? 'file';
     }
 
+    public static function getInstance(): self
+    {
+        static $instance;
+        if ($instance === null) {
+            $instance = new self(config('cache') ??'', config('') ??'');
+        }
+        return $instance;
+    }
+
     /**
      * Définit le driver de cache par défaut
      * @param string $driver Nom du driver

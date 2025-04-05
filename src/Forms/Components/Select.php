@@ -13,7 +13,7 @@ class Select extends Component
     *
     * @var array
     */
-   protected array $options = [];
+   protected array|Collection $options = [];
 
    /**
     * Valeur par défaut
@@ -37,12 +37,12 @@ class Select extends Component
    /**
     * Définit les options
     *
-    * @param array $options
+    * @param array|Collection $options
     * @return self
     */
-   public function options(array $options): self
+   public function options(array|Collection $options): self
    {
-      $this->options = $options;
+      $this->options = is_array($options) ? $options : $options->toArray();
       return $this;
    }
 
@@ -59,6 +59,16 @@ class Select extends Component
    }
 
    /**
+    * Récuperer l'attribut name
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   /**
     * Rendu du composant
     *
     * @return string
@@ -67,8 +77,12 @@ class Select extends Component
    {
       $value = $this->getValue() ?? $this->defaultValue;
       $error = $this->getError();
-      $errorClass = $error ? ' is-invalid' : '';
-      $errorMessage = $error ? "<div class='invalid-feedback'>{$error}</div>" : '';
+      
+      // Combine les classes de base avec les classes d'erreur si nécessaire
+      $selectClasses = $this->combineClasses('select');
+      if ($error) {
+         $selectClasses .= ' ' . $this->getErrorClasses('input');
+      }
 
       $options = '';
       foreach ($this->options as $optionValue => $optionLabel) {
@@ -76,20 +90,21 @@ class Select extends Component
          $options .= "<option value='{$optionValue}'{$selected}>{$optionLabel}</option>";
       }
 
-      return "
-            <div class='form-group'>
-                <label for='{$this->name}'>{$this->label}</label>
-                <select 
-                    name='{$this->name}'
-                    id='{$this->name}'
-                    class='form-control{$errorClass}'
-                    {$this->renderAttributes()}
-                >
-                    {$options}
-                </select>
-                {$errorMessage}
-            </div>
-        ";
+      $html = "
+         <div class='" . $this->getDefaultClasses('container') . "'>
+            <label for='{$this->name}' class='" . $this->getDefaultClasses('label') . "'>{$this->label}</label>
+            <select
+               name='{$this->name}'
+               id='{$this->name}'
+               class='{$selectClasses}'
+               " . $this->renderAttributes() . "
+            >
+               {$options}
+            </select>
+            " . ($error ? "<p class='" . $this->getDefaultClasses('error') . "'>{$error}</p>" : "") . "
+         </div>";
+
+      return $html;
    }
 
    protected function buildAttributes(array $attributes): string

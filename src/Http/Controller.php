@@ -7,6 +7,7 @@ namespace IronFlow\Http;
 use IronFlow\Core\Application\Application;
 use IronFlow\View\ViewInterface;
 use IronFlow\Http\Response;
+use IronFlow\Support\Facades\Auth;
 use IronFlow\View\TwigView;
 use IronFlow\Validation\Validator;
 use IronFlow\Support\Facades\Session;
@@ -73,6 +74,13 @@ abstract class Controller
       throw new \IronFlow\Http\Exceptions\HttpException($message, $status);
    }
 
+   protected function authorize(string $ability, $model): void
+    {
+        if (!Auth::can($ability, $model)) {
+            abort(403);
+        }
+    }
+
    protected function response(): Response
    {
       return $this->response;
@@ -95,13 +103,6 @@ abstract class Controller
    {
       $validator = Validator::make($data, $rules);
       return $validator->passes() ? true : $validator->getErrors();
-   }
-
-   protected function authorize(bool $condition, string $message = "Non autorisé"): void
-   {
-      if (!$condition) {
-         $this->abort(403, $message);
-      }
    }
 
    protected function middleware(string|array $middleware): self

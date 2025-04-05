@@ -1,0 +1,141 @@
+{% extends "layouts/app.twig" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            {% if post.image %}
+                <img src="{{ asset(post.image) }}" alt="{{ post.title }}" class="w-full h-64 object-cover">
+            {% endif %}
+            
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-4xl font-bold">{{ post.title }}</h1>
+                    {% if can('update', post) %}
+                        <div class="space-x-2">
+                            <a href="{{ url('/posts/' ~ post.id ~ '/edit') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                Modifier
+                            </a>
+                            <form action="{{ url('/posts/' ~ post.id) }}" method="POST" class="inline">
+                                {{ csrf_field() }}
+                                {{ method_field('DELETE') }}
+                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" onclick="return confirm('Êtes-vous sûr ?')">
+                                    Supprimer
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="prose max-w-none mb-8">
+                    {{ post.content|nl2br }}
+                </div>
+
+                <div class="text-gray-500 text-sm">
+                    Par {{ post.user.name }} le {{ post.created_at|date('d/m/Y à H:i') }}
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold mb-4">Commentaires</h2>
+
+            {% if auth() %}
+                <form action="{{ url('/posts/' ~ post.id ~ '/comments') }}" method="POST" class="mb-8">
+                    {{ csrf_field() }}
+                    <div class="mb-4">
+                        <textarea name="content" rows="3" class="w-full p-3 border rounded-lg" placeholder="Votre commentaire..."></textarea>
+                        {{ error('content') }}
+                    </div>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        Commenter
+                    </button>
+                </form>
+            {% endif %}
+
+            <div id="comments" class="space-y-6">
+                {% for comment in post.comments %}
+                    <div class="bg-gray-50 rounded-lg p-6" data-comment-id="{{ comment.id }}">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <span class="font-semibold">{{ comment.user.name }}</span>
+                                    <span class="mx-2 text-gray-500">•</span>
+                                    <span class="text-gray-500 text-sm">{{ comment.created_at|date('d/m/Y à H:i') }}</span>
+                                </div>
+                                <p>{{ comment.content|nl2br }}</p>
+                            </div>
+                            {% if can('delete', comment) %}
+                                <form action="{{ url('/comments/' ~ comment.id) }}" method="POST">
+                                    {{ csrf_field() }}
+                                    {{ method_field('DELETE') }}
+                                    <button type="submit" class="text-red-500 hover:text-red-600" onclick="return confirm('Supprimer ce commentaire ?')">
+                                        Supprimer
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-center py-8">Aucun commentaire pour le moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    const channel = Channel.subscribe('post.{{ post.id }}');
+    
+    channel.on('comment.created', (data) => {
+        const comments = document.getElementById('comments');
+        const noComments = comments.querySelector('p.text-center');
+        if (noComments) {
+            noComments.remove();
+        }
+        
+        const comment = document.createElement('div');
+        comment.className = 'bg-gray-50 rounded-lg p-6';
+        comment.dataset.commentId = data.id;
+        comment.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center mb-2">
+                        <span class="font-semibold">${data.user.name}</span>
+                        <span class="mx-2 text-gray-500">•</span>
+                        <span class="text-gray-500 text-sm">À l'instant</span>
+                    </div>
+                    <p>${data.content}</p>
+                </div>
+                ${data.user.id === {{ auth().id }} ? `
+                    <form action="/comments/${data.id}" method="POST">
+                        {{ csrf_field() }}
+                        {{ method_field('DELETE') }}
+                        <button type="submit" class="text-red-500 hover:text-red-600" onclick="return confirm('Supprimer ce commentaire ?')">
+                            Supprimer
+                        </button>
+                    </form>
+                ` : ''}
+            </div>
+        `;
+        
+        comments.insertBefore(comment, comments.firstChild);
+    });
+    
+    channel.on('comment.deleted', (data) => {
+        const comment = document.querySelector(`[data-comment-id="${data.id}"]`);
+        if (comment) {
+            comment.remove();
+        }
+        
+        const comments = document.getElementById('comments');
+        if (!comments.children.length) {
+            comments.innerHTML = '<p class="text-gray-500 text-center py-8">Aucun commentaire pour le moment.</p>';
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

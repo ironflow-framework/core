@@ -22,6 +22,10 @@ return [
             'path' => env('WEBSOCKET_PATH', '/socket'),
             'secure' => env('WEBSOCKET_SECURE', false),
             'timeout' => env('WEBSOCKET_TIMEOUT', 30),
+            'max_reconnect_attempts' => env('WEBSOCKET_MAX_RECONNECT_ATTEMPTS', 5),
+            'reconnect_interval' => env('WEBSOCKET_RECONNECT_INTERVAL', 1000),
+            'heartbeat_interval' => env('WEBSOCKET_HEARTBEAT_INTERVAL', 30000),
+            'ping_timeout' => env('WEBSOCKET_PING_TIMEOUT', 5000),
         ],
         
         'pusher' => [
@@ -49,6 +53,25 @@ return [
     // Authentification
     'auth' => [
         'enabled' => env('CHANNEL_AUTH_ENABLED', true),
-        'route' => env('CHANNEL_AUTH_ROUTE', '/broadcasting/auth'),
+        'middleware' => env('CHANNEL_AUTH_MIDDLEWARE', 'auth'),
+        'route_prefix' => env('CHANNEL_AUTH_ROUTE_PREFIX', 'channel'),
+    ],
+
+    // Logging
+    'logging' => [
+        'enabled' => env('CHANNEL_LOGGING_ENABLED', true),
+        'level' => env('CHANNEL_LOG_LEVEL', 'info'),
+        'channel' => env('CHANNEL_LOG_CHANNEL', 'channel'),
+    ],
+
+    // Monitoring
+    'monitoring' => [
+        'enabled' => env('CHANNEL_MONITORING_ENABLED', true),
+        'metrics' => [
+            'connections' => true,
+            'messages' => true,
+            'errors' => true,
+            'latency' => true,
+        ],
     ],
 ];

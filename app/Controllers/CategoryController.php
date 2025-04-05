@@ -37,10 +37,7 @@ class CategoryController extends Controller
             'rows' => 3,
             'placeholder' => 'Entrez une description pour la catégorie'
          ])
-         ->select('parent_id', 'Catégorie parente', [
-            'options' => ['' => 'Aucune'] + Category::pluck('name', 'id')->toArray()
-         ])
-         ->checkbox('is_active', 'Actif', [], [
+         ->checkbox('is_active', 'Actif',  [
             'checked' => true
          ])
          ->radio('type', 'Type', [
@@ -112,12 +109,6 @@ class CategoryController extends Controller
          return $this->route('categories.index')->with(['error' => 'Catégorie non trouvée']);
       }
 
-      $categories = Category::where('id', '!=', $id)->get();
-      $categoryOptions = ['' => 'Sélectionnez une catégorie parente'];
-      foreach ($categories as $cat) {
-         $categoryOptions[$cat->id] = $cat->name;
-      }
-
       $form = Category::form()
          ->method('POST')
          ->action(route('categories.update', ['id' => $id]))
@@ -131,10 +122,7 @@ class CategoryController extends Controller
             'rows' => 3,
             'placeholder' => 'Entrez une description pour la catégorie'
          ])
-         ->select('parent_id', 'Catégorie parente', [
-            'options' => $categoryOptions
-         ])
-         ->checkbox('is_active', 'Actif', [], [
+         ->checkbox('is_active', 'Actif',  [
             'checked' => $category->is_active
          ])
          ->radio('type', 'Type', [

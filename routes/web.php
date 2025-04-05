@@ -7,6 +7,8 @@ use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\DashboardController;
 use App\Controllers\WelcomeController;
+use App\Controllers\PostController;
+use App\Controllers\CommentController;
 use IronFlow\Support\Facades\Route;
 
 // Route d'exemple
@@ -19,6 +21,11 @@ Route::auth();
 Route::get('/dashboard', [DashboardController::class, 'index'])
    ->middleware('auth')
    ->name('dashboard');
+
+// Routes pour les articles
+Route::resource('posts', PostController::class);
+Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
 
 Route::resource('products', ProductController::class);
 Route::resource('categories', CategoryController::class);
