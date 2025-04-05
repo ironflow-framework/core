@@ -62,7 +62,7 @@ class WebSocketServer implements MessageComponentInterface
         if (!$this->connectionIds->contains($conn)) {
             $this->connectionIds[$conn] = $this->generateConnectionId();
         }
-        return $this->connectionIds[$conn];
+        return (string)$this->connectionIds[$conn];
     }
 
     /**
