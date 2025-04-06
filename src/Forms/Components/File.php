@@ -2,6 +2,8 @@
 
 namespace IronFlow\Forms\Components;
 
+use IronFlow\Validation\Validator;
+
 class File extends Component
 {
    protected string $type = 'file';
@@ -13,9 +15,9 @@ class File extends Component
    protected bool $multiple = false;
    protected bool $disabled = false;
 
-   public function __construct(string $name, string $label, array $options = [], ?array $accept = null)
+   public function __construct(string $name, string $label, array $options = [], array|Validator $validator = [], ?array $accept = null)
    {
-      parent::__construct($name, $label, $options);
+      parent::__construct($name, $label, $options, $validator);
 
       $this->placeholder = $options['placeholder'] ?? null;
       $this->required = $options['required'] ?? false;

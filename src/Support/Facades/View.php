@@ -2,12 +2,18 @@
 
 namespace IronFlow\Support\Facades;
 
-use IronFlow\View\TwigView;
+use IronFlow\Core\Application\Application;
+use IronFlow\View\ViewInterface;
 
-class View
+class View extends Facade
 {
-   public static function __callStatic(string $method, array $arguments)
+   protected static function getFacadeAccessor(): string
    {
-      return TwigView::$method(...$arguments);
+      return 'view';
+   }
+
+   public static function render(string $name, array $data = [])
+   {
+      return Application::getInstance()->getContainer()->get('view')::getInstance()->render($name, $data);
    }
 }

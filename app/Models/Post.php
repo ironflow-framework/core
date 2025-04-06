@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use IronFlow\Database\Iron\Relations\BelongsTo;
 use IronFlow\Database\Model;
-use IronFlow\Database\Relations\HasMany;
-use IronFlow\Database\Relations\BelongsTo;
+use IronFlow\Database\Iron\Relations\HasMany;
+use IronFlow\Database\Traits\HasForm;
 
 class Post extends Model
 {
+    use HasForm;
+    protected static string $table = "posts";
     protected array $fillable = [
         'title',
         'content',

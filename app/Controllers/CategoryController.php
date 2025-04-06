@@ -28,24 +28,11 @@ class CategoryController extends Controller
       $form = Category::form()
          ->method('POST')
          ->action(route('categories.store'))
-         ->theme('floating')
+         ->theme('tailwind')
+         ->title('Créer une catégorie')
          ->input('name', 'Nom de la catégorie', [
             'required' => true,
             'placeholder' => 'Entrez le nom de la catégorie'
-         ])
-         ->textarea('description', 'Description', [
-            'rows' => 3,
-            'placeholder' => 'Entrez une description pour la catégorie'
-         ])
-         ->checkbox('is_active', 'Actif',  [
-            'checked' => true
-         ])
-         ->radio('type', 'Type', [
-            'options' => [
-               'product' => 'Produit',
-               'service' => 'Service'
-            ],
-            'value' => 'product'
          ])
          ->button('Créer la catégorie', [
             'class' => 'btn btn-primary',
@@ -53,7 +40,6 @@ class CategoryController extends Controller
          ]);
 
       return $this->view('categories.create', [
-         'title' => 'Créer une catégorie',
          'form' => $form->render()
       ]);
    }
@@ -65,10 +51,6 @@ class CategoryController extends Controller
 
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
-            'description' => ['nullable', 'stringLength:max=1000'],
-            'parent_id' => ['nullable', 'exists:categories,id'],
-            'is_active' => ['boolean'],
-            'type' => ['required', 'in:product,service'],
          ]);
 
          if ($validator->fails()) {

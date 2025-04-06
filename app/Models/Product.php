@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use IronFlow\Database\Iron\Relations\BelongsTo;
+use IronFlow\Database\Iron\Relations\BelongsToMany;
 use IronFlow\Database\Traits\HasFactory;
 use IronFlow\Database\Model;
 use IronFlow\Database\Traits\HasForm;
@@ -28,12 +30,12 @@ class Product extends Model
         'updated_at' => 'datetime'
     ];
     
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
     
-    public function orders()
+    public function orders(): BelongsToMany
     {
         return $this->belongsToMany(Order::class, 'order_products');
     }

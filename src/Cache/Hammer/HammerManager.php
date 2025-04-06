@@ -48,7 +48,7 @@ class HammerManager
     {
         static $instance;
         if ($instance === null) {
-            $instance = new self(config('cache') ??'', config('') ??'');
+            $instance = new self(config('cache') ??'');
         }
         return $instance;
     }
@@ -150,7 +150,7 @@ class HammerManager
 
     /**
      * Récupuère une valeur du cache ou l'enregistre si elle n'existe pas
-     * @param string $key Clé u00e0 récupérer
+     * @param string $key Clé à récupérer
      * @param callable $callback Fonction u00e0 exécuter pour générer la valeur si non trouvée
      * @param int|null $ttl Durée de vie en secondes (null pour pas d'expiration)
      * @return mixed La valeur stockée ou générée

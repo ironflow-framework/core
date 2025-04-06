@@ -7,7 +7,7 @@
     <div class="flex justify-between items-center mb-8">
         <h1 class="text-3xl font-bold">Articles</h1>
         {% if auth() %}
-            <a href="{{ url('/posts/create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+            <a href="{{ route('posts.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
                 Nouvel article
             </a>
         {% endif %}
@@ -21,7 +21,7 @@
                 {% endif %}
                 <div class="p-6">
                     <h2 class="text-xl font-semibold mb-2">
-                        <a href="{{ url('/posts/' ~ post.id) }}" class="hover:text-blue-500">
+                        <a href="{{ route('posts.show', post.id) }}" class="hover:text-blue-500">
                             {{ post.title }}
                         </a>
                     </h2>

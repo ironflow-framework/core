@@ -34,17 +34,10 @@ use IronFlow\Support\Utils\Str as StrUtils;
  * @method static string randomNumber(int $length = 16)
  * @method static string limit(string $string, int $limit = 100, string $end = '...')
  */
-class Str
+class Str extends Facade
 {
-   /**
-    * Gère les appels statiques et les redirige vers la classe utilitaire
-    *
-    * @param string $method
-    * @param array $arguments
-    * @return mixed
-    */
-   public static function __callStatic(string $method, array $arguments)
+   protected static function getFacadeAccessor(): string
    {
-      return StrUtils::$method(...$arguments);
+      return StrUtils::class;
    }
 }

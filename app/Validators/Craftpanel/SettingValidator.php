@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Validation\Craftpanel;
+namespace App\Validators\Craftpanel;
 
 use IronFlow\Validation\Validator;
 

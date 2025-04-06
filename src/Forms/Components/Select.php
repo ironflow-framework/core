@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Forms\Components;
 
 use IronFlow\Database\Collection;
+use IronFlow\Validation\Validator;
+use Symfony\Component\VarDumper\VarDumper;
 
 class Select extends Component
 {
@@ -29,9 +31,10 @@ class Select extends Component
     * @param string $label Label du champ
     * @param array $attributes Attributs HTML
     */
-   public function __construct(string $name, string $label = '', array $attributes = [])
+   public function __construct(string $name, string $label = '', array|Collection $options = [], array $attributes = [], array|Validator $validator = [])
    {
-      parent::__construct($name, $label, $attributes);
+      parent::__construct($name, $label, $attributes, $validator);
+      $this->options($options);
    }
 
    /**
@@ -87,6 +90,7 @@ class Select extends Component
       $options = '';
       foreach ($this->options as $optionValue => $optionLabel) {
          $selected = $value == $optionValue ? ' selected' : '';
+         $optionValue = is_string($optionValue) ? $optionValue : $optionValue + 1;
          $options .= "<option value='{$optionValue}'{$selected}>{$optionLabel}</option>";
       }
 

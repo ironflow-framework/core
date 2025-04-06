@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Http;
 
+use IronFlow\Http\Exceptions\ValidationException;
 use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
 use IronFlow\Support\Collection;
 use IronFlow\Validation\Validator;
@@ -100,6 +101,31 @@ class Request extends HttpFoundationRequest
       return $this->query->has($key) || $this->request->has($key);
    }
 
+   public function only(array $keys): array
+   {
+      $data = [];
+      foreach ($keys as $key) {
+         if ($this->query->keys() === $key) {
+            $data[] = $this->query->get($key, $this->request->get($key, $this->query->get($key)));
+         }
+      }
+
+      return $data;
+   }
+
+   public function except(array $keys): array
+   {  
+      $data = [];
+
+      foreach ($keys as $key) {
+         if ($this->query->keys() !== $key) {
+            $data[] = $this->query->get($key, $this->request->get($key, $this->query->get($key)));
+         }
+      }
+
+      return $data;
+   }
+
    /**
     * Récupère un fichier uploadé
     * 
@@ -131,7 +157,7 @@ class Request extends HttpFoundationRequest
    public function validate(array $rules): array
    {
       $validator = new Validator($this->all(), $rules);
-      
+
       if (!$validator->passes()) {
          throw new ValidationException($validator->errors());
       }
@@ -229,5 +255,31 @@ class Request extends HttpFoundationRequest
    public function userAgent(): string
    {
       return $this->headers->get('User-Agent', '');
+   }
+
+   /**
+    * Récupère un paramètre sous forme de booléen
+    * 
+    * @param string $key La clé du paramètre
+    * @param bool $default La valeur par défaut si le paramètre n'existe pas
+    * @return bool
+    */
+   public function boolean(string $key, bool $default = false): bool
+   {
+      $value = $this->get($key, $default);
+      
+      if (is_bool($value)) {
+         return $value;
+      }
+
+      if (is_string($value)) {
+         return in_array(strtolower($value), ['true', '1', 'on', 'yes'], true);
+      }
+
+      if (is_numeric($value)) {
+         return $value == 1;
+      }
+
+      return $default;
    }
 }

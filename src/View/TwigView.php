@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\View;
 
 use IronFlow\Support\Facades\Filesystem;
+use IronFlow\View\Twig\AuthExtension;
 use IronFlow\View\Twig\CustomFilterExtension;
 use IronFlow\View\Twig\ViteExtension;
 use IronFlow\View\Twig\RouteExtension;
@@ -60,11 +61,16 @@ class TwigView implements ViewInterface
 
       $this->twig->addExtension(new ViteExtension());
       $this->twig->addExtension(new RouteExtension());
+      $this->twig->addExtension(new AuthExtension());
       $this->twig->addExtension(new CustomFilterExtension());
 
       $this->twig->addGlobal('session', $_SESSION);
    }
 
+   public static function getInstance(): self
+   {
+      return new self(view_path());
+   }
    public function render(string $template, array $data = []): string
    {
       try {

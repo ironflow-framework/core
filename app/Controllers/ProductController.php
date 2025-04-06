@@ -29,6 +29,7 @@ class ProductController extends Controller
          ->method('POST')
          ->action(route('products.store'))
          ->theme('floating')
+         ->title('Creation d\'un produit')
          ->input('name', 'Nom du produit', [
             'required' => true,
             'placeholder' => 'Entrez le nom du produit'
@@ -40,19 +41,17 @@ class ProductController extends Controller
          ->input('price', 'Prix', [
             'type' => 'number',
             'step' => '0.01',
-            'min' => '0',
             'required' => true,
             'placeholder' => 'Entrez le prix du produit'
          ])
          ->input('stock', 'Stock', [
             'type' => 'number',
-            'min' => '0',
             'required' => true,
             'placeholder' => 'Entrez la quantité en stock'
          ])
-         ->select('category_id', 'Catégorie', [
-            'options' => ['' => 'Sélectionnez une catégorie'] + Category::pluck('name', 'id')->toArray(),
-            'required' => true
+         ->select('category_id', 'Catégorie', ['' => 'Sélectionnez une catégorie'] + Category::pluck(['name', 'id'])->toArray(),
+         [  
+         'required' => true
          ])
          ->checkbox('is_active', 'Actif', [], [
             'checked' => true
@@ -76,10 +75,9 @@ class ProductController extends Controller
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
             'description' => ['nullable', 'stringLength:max=1000'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
+            'price' => ['required', 'numeric:min=0'],
+            'stock' => ['required', 'number:min=0'],
             'category_id' => ['required', 'exists:categories,id'],
-            'is_active' => ['boolean'],
          ]);
 
          if ($validator->fails()) {
@@ -120,16 +118,11 @@ class ProductController extends Controller
          return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
       }
 
-      $categories = Category::all();
-      $categoryOptions = ['' => 'Sélectionnez une catégorie'];
-      foreach ($categories as $category) {
-         $categoryOptions[$category->id] = $category->name;
-      }
-
       $form = Product::form()
-         ->method('POST')
+         ->method('post')
          ->action(route('products.update', ['id' => $id]))
          ->theme('floating')
+         ->title('Modifier un produit')
          ->fill($product->toArray())
          ->input('name', 'Nom du produit', [
             'required' => true,
@@ -152,13 +145,14 @@ class ProductController extends Controller
             'required' => true,
             'placeholder' => 'Entrez la quantité en stock'
          ])
-         ->select('category_id', 'Catégorie', [
-            'options' => $categoryOptions,
-            'required' => true
-         ])
-         ->checkbox('is_active', 'Actif', [], [
-            'checked' => $product->is_active
-         ])
+         ->select(
+            'category_id',
+            'Catégorie',
+            Category::pluck(['name', 'id'])->toArray(),
+            [
+               'required' => true
+            ]
+         )
          ->button('Modifier le produit', [
             'class' => 'btn btn-primary',
             'icon' => 'fas fa-save'
@@ -185,13 +179,14 @@ class ProductController extends Controller
          $validator = Validator::make($data, [
             'name' => ['required', 'stringLength:min=1,max=255'],
             'description' => ['nullable', 'stringLength:max=1000'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
+            'price' => ['required', 'numeric:min=0'],
+            'stock' => ['required', 'number:min=0'],
             'category_id' => ['required', 'exists:categories,id'],
-            'is_active' => ['boolean'],
+            
          ]);
 
          if ($validator->fails()) {
+            dump($validator->getErrors());
             return $this->back()->withErrors($validator->getErrors())->withInput();
          }
 
@@ -213,7 +208,7 @@ class ProductController extends Controller
             return $this->route('products.index')->with(['error' => 'Produit non trouvé']);
          }
 
-         $product->delete();
+         $product->remove();
 
          return $this->route('products.index')->with(['success' => 'Produit supprimé avec succès']);
       }

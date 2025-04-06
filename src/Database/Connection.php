@@ -47,7 +47,7 @@ class Connection
     * 
     * @throws PDOException Si la connexion échoue
     */
-   private function __construct()
+   public function __construct()
    {
       $this->config = config('database', []);
       $this->connect();

@@ -9,6 +9,7 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use JsonSerializable;
+use Closure;
 
 /**
  * Classe Collection
@@ -22,15 +23,11 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
 {
     /**
      * Les éléments de la collection
-     *
-     * @var array
      */
     protected array $items = [];
 
     /**
      * Crée une nouvelle collection
-     *
-     * @param array $items Les éléments initiaux
      */
     public function __construct(array $items = [])
     {
@@ -39,9 +36,6 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
 
     /**
      * Crée une nouvelle collection à partir d'un tableau
-     *
-     * @param array $items Les éléments
-     * @return static
      */
     public static function make(array $items = []): static
     {
@@ -49,21 +43,42 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
-     * Ajoute un élément à la collection
-     *
-     * @param mixed $item L'élément à ajouter
-     * @return $this
+     * Exécute une callback sur chaque élément
      */
-    public function add(mixed $item): self
+    public function each(Closure $callback): static
     {
-        $this->items[] = $item;
+        foreach ($this->items as $key => $item) {
+            $callback($item, $key);
+        }
         return $this;
     }
 
     /**
-     * Récupère tous les éléments
-     *
-     * @return array
+     * Applique une callback à chaque élément et retourne une nouvelle collection
+     */
+    public function map(Closure $callback): static
+    {
+        return new static(array_map($callback, $this->items));
+    }
+
+    /**
+     * Filtre les éléments selon une callback
+     */
+    public function filter(Closure $callback = null): static
+    {
+        return new static($callback ? array_filter($this->items, $callback) : array_filter($this->items));
+    }
+
+    /**
+     * Vérifie si un élément existe dans la collection
+     */
+    public function contains($value): bool
+    {
+        return in_array($value, $this->items, true);
+    }
+
+    /**
+     * Retourne tous les éléments
      */
     public function all(): array
     {
@@ -71,47 +86,34 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
-     * Filtre les éléments avec un callback
-     *
-     * @param callable $callback
-     * @return static
+     * Implémentation de ArrayAccess
      */
-    public function filter(callable $callback): static
+    public function offsetExists($key): bool
     {
-        return new static(array_filter($this->items, $callback, ARRAY_FILTER_USE_BOTH));
+        return isset($this->items[$key]);
     }
 
-    /**
-     * Transforme les éléments avec un callback
-     *
-     * @param callable $callback
-     * @return static
-     */
-    public function map(callable $callback): static
+    public function offsetGet($key): mixed
     {
-        return new static(array_map($callback, $this->items));
+        return $this->items[$key];
     }
 
-    /**
-     * Vérifie si la collection contient un élément
-     *
-     * @param mixed $key La clé ou valeur à chercher
-     * @param mixed $value La valeur optionnelle si $key est une clé
-     * @return bool
-     */
-    public function contains(mixed $key, mixed $value = null): bool
+    public function offsetSet($key, $value): void
     {
-        if (func_num_args() === 2) {
-            return isset($this->items[$key]) && $this->items[$key] === $value;
+        if (is_null($key)) {
+            $this->items[] = $value;
+        } else {
+            $this->items[$key] = $value;
         }
+    }
 
-        return in_array($key, $this->items);
+    public function offsetUnset($key): void
+    {
+        unset($this->items[$key]);
     }
 
     /**
-     * Compte les éléments de la collection
-     *
-     * @return int
+     * Implémentation de Countable
      */
     public function count(): int
     {
@@ -119,9 +121,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
-     * Récupère l'itérateur de la collection
-     *
-     * @return ArrayIterator
+     * Implémentation de IteratorAggregate
      */
     public function getIterator(): ArrayIterator
     {
@@ -129,56 +129,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
-     * Vérifie si un offset existe
-     *
-     * @param mixed $offset
-     * @return bool
-     */
-    public function offsetExists(mixed $offset): bool
-    {
-        return isset($this->items[$offset]);
-    }
-
-    /**
-     * Récupère un élément à un offset
-     *
-     * @param mixed $offset
-     * @return mixed
-     */
-    public function offsetGet(mixed $offset): mixed
-    {
-        return $this->items[$offset];
-    }
-
-    /**
-     * Définit un élément à un offset
-     *
-     * @param mixed $offset
-     * @param mixed $value
-     */
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-        if (is_null($offset)) {
-            $this->items[] = $value;
-        } else {
-            $this->items[$offset] = $value;
-        }
-    }
-
-    /**
-     * Supprime un élément à un offset
-     *
-     * @param mixed $offset
-     */
-    public function offsetUnset(mixed $offset): void
-    {
-        unset($this->items[$offset]);
-    }
-
-    /**
-     * Sérialise la collection en JSON
-     *
-     * @return array
+     * Implémentation de JsonSerializable
      */
     public function jsonSerialize(): array
     {

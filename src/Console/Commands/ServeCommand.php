@@ -29,22 +29,25 @@ class ServeCommand extends Command
       $host = $input->getOption('host');
       $port = $input->getOption('port');
       $showLogs = !$input->getOption('no-logs');
-
-      $io->section('Serveur de développement IronFlow');
-      $io->text("Serveur démarré sur http://{$host}:{$port}");
-      $io->text('Appuyez sur Ctrl+C pour arrêter le serveur.');
-
+      
       // Démarrer le serveur PHP
       $serverProcess = new Process(['php', '-S', "{$host}:{$port}", '-t', 'public']);
       $serverProcess->start();
+
+      $io->text("--------------------------------------------------------------------");
+      $io->text("|    Serveur développement démarré sur http://{$host}:{$port}       |");
 
       // Démarrer le processus de surveillance des logs si activé
       if ($showLogs) {
          $logProcess = new Process(['tail', '-f', 'storage/logs/ironflow.log']);
          $logProcess->start();
 
-         $io->text('Surveillance des logs activée...');
+         $io->text("|    Watch mode activée...                                         |");
       }
+
+      $io->text("|    Appuyez sur Ctrl+C pour arrêter le serveur.                   |");
+      $io->text("--------------------------------------------------------------------");
+
 
       try {
          // Afficher la sortie du serveur en temps réel

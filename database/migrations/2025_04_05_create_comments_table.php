@@ -1,14 +1,14 @@
 <?php
 
-use IronFlow\Database\Migration;
-use IronFlow\Database\Schema;
-use IronFlow\Database\Table;
+use IronFlow\Database\Migrations\Migration;
+use IronFlow\Database\Schema\Anvil;
+use IronFlow\Database\Schema\Schema;
 
-class CreateCommentsTable extends Migration
+return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('comments', function (Table $table) {
+        Schema::createTable('comments', function (Anvil $table) {
             $table->id();
             $table->text('content');
             $table->foreignId('post_id')->constrained()->onDelete('cascade');
@@ -19,6 +19,6 @@ class CreateCommentsTable extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('comments');
+        Schema::dropTableIfExists('comments');
     }
-}
+};

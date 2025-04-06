@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Database\Seeders;
+namespace Database\Seeders;
 
 use App\Models\Category;
-use IronFlow\Database\Seeder\Seeder;
+use IronFlow\Database\Seeders\Seeder;
 
 class CategorySeeder extends Seeder
 {

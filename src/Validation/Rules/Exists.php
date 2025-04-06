@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Validation\Rules;
 
+use IronFlow\Database\Connection;
 use IronFlow\Validation\AbstractRule;
 use IronFlow\Support\Facades\DB;
 
@@ -39,9 +40,7 @@ class Exists extends AbstractRule
       $table = $parameters[0];
       $column = $parameters[1] ?? 'id';
 
-      $result = DB::table($table)
-         ->where($column, $value)
-         ->first();
+      $result = DB::tableExists($table);
 
       return $result !== null;
    }

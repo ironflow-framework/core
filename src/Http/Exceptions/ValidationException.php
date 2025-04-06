@@ -1,6 +1,6 @@
 <?php
 
-namespace IronFlow\Http;
+namespace IronFlow\Http\Exceptions;
 
 use Exception;
 

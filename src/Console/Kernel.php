@@ -93,9 +93,9 @@ class Kernel extends ConsoleApplication
          \IronFlow\Console\Commands\Auth\AuthInstallCommand::class,
 
          // Commandes CraftPanel - utilisent le namespace Generator
-         \IronFlow\Console\Commands\Generator\CraftPanelInstallCommand::class,
-         \IronFlow\Console\Commands\Generator\MakeAdminCommand::class,
-         \IronFlow\Console\Commands\Generator\RegisterModelCommand::class,
+         \IronFlow\Console\Commands\CraftPanel\CraftPanelInstallCommand::class,
+         \IronFlow\Console\Commands\CraftPanel\MakeAdminCommand::class,
+         \IronFlow\Console\Commands\CraftPanel\RegisterModelCommand::class,
 
          // Commandes Channel
          \IronFlow\Console\Commands\Channel\ChannelInitCommand::class,

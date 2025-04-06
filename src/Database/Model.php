@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace IronFlow\Database;
 
+use Carbon\Carbon;
 use DateTime;
 use Exception;
-
 use IronFlow\Database\Collection;
 use IronFlow\Database\Connection;
 use IronFlow\Database\Iron\Query\Builder;
@@ -15,10 +15,10 @@ use IronFlow\Database\Iron\Relations\BelongsTo;
 use IronFlow\Database\Iron\Relations\BelongsToMany;
 use IronFlow\Database\Iron\Relations\HasMany;
 use IronFlow\Database\Iron\Relations\HasOne;
-
 use IronFlow\Database\Iron\Relations\MorphTo;
 use PDO;
 use PDOException;
+use function PHPUnit\Framework\isInstanceOf;
 
 /**
  * Classe de base pour tous les modèles
@@ -62,6 +62,23 @@ abstract class Model
          $this->setAttribute($key, $value);
       }
       return $this;
+   }
+
+   /**
+    * Récuperer toutes données visible de $this->getModel()
+    * @return array
+    */
+   public function data(): array
+   {
+      $data = [];
+
+      foreach ($this->attributes as $key => $value) {
+         if (in_array(strtolower($key), $this->fillable)) {
+            $data[$key] = $value;
+         }
+      }
+
+      return $data;
    }
 
    /**
@@ -216,12 +233,22 @@ abstract class Model
       }
    }
 
+   public function remove(): bool
+   {
+      if (isset($this->attributes[static::$primaryKey])) {
+         $this->query()->where(static::$primaryKey, '=', $this->attributes[static::$primaryKey])->delete();
+         return true;
+      }
+
+      return false;
+   }
+
    /**
     * Définit les timestamps sur un tableau de données
     */
    protected static function setTimestamps(array &$data): void
    {
-      $currentTimestamp = self::formatDateToString(new DateTime());
+      $currentTimestamp = now()->getTimestamp();
 
       if (!isset($data['created_at'])) {
          $data['created_at'] = $currentTimestamp;
@@ -275,20 +302,21 @@ abstract class Model
    /**
     * Met à jour un enregistrement existant dans la base de données
     * 
-    * @param array $attributes Attributs à mettre à jour
+    * @param array $data Donnée à mettre à jour
     * @return bool Succès de l'opération
     */
-   public static function update(array $attributes): bool
+   public static function update(array $data): bool
    {
-      if (!isset($attributes[static::$primaryKey])) {
+      if (!isset($data[static::$primaryKey])) {
          throw new Exception("Primary key not set for update operation");
       }
 
       // Définir le timestamp mis à jour
-      $attributes['updated_at'] = self::formatDateToString(new DateTime());
+      $data['created_at'] = $data['created_at']->format('Y-m-d H:i:s');
+      $data['updated_at'] = now()->toDateTimeLocalString();
 
       $sets = [];
-      foreach (array_keys($attributes) as $key) {
+      foreach (array_keys($data) as $key) {
          if ($key !== static::$primaryKey) {
             $sets[] = "$key = :$key";
          }
@@ -299,9 +327,11 @@ abstract class Model
 
       $stmt = (new static())->getConnection()->prepare($query);
 
+
       try {
-         return $stmt->execute($attributes);
+         return $stmt->execute($data);
       } catch (PDOException $e) {
+         error_log($e->getMessage());
          throw new Exception("Database error: " . $e->getMessage());
       }
    }
@@ -309,14 +339,11 @@ abstract class Model
    /**
     * Supprime un enregistrement de la base de données
     * 
-    * @param mixed|null $id Identifiant de l'enregistrement à supprimer
+    * @param string|int|array $id Identifiant de l'enregistrement à supprimer
     * @return bool Succès de l'opération
     */
-   public static function delete($id = null): bool
+   public static function delete(string|int|array $id): bool
    {
-      if (is_null($id)) {
-         $id = self::$primaryKey;
-      }
 
       if (is_array($id)) {
          $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " IN (" . implode(", ", $id) . ")";
@@ -325,7 +352,7 @@ abstract class Model
       }
 
       $stmt = (new static())->getConnection()->prepare($query);
-      $stmt->bindValue(':id', $id);
+      $stmt->bindValue(':id', (int) $id);
       return $stmt->execute();
    }
 
@@ -348,7 +375,7 @@ abstract class Model
    public static function pluck(string|array $columns): Collection
    {
       if (is_array($columns)) {
-         $sql = "SELECT  FROM ";
+         $sql = "SELECT " . implode(', ', $columns) . " FROM ";
       } else {
          $sql = "SELECT $columns FROM ";
       }
@@ -401,6 +428,19 @@ abstract class Model
          $className = static::class;
          throw new Exception("Le modèle {$className} avec l'ID {$id} n'a pas été trouvé.");
       }
+      return $model;
+   }
+
+   public static function findOrCreate($id, $data = []): static
+   {
+      $model = static::find($id);
+      if (!$model) {
+         $className = static::class;
+         $data['id'] = $id;
+         $model = new $className($data);
+         $model->save();
+      }
+
       return $model;
    }
 
@@ -523,14 +563,19 @@ abstract class Model
          $stmt->bindValue(":$column", $value);
       }
       $stmt->execute();
+      $results = $stmt->fetch(PDO::FETCH_ASSOC);
 
       $models = [];
-      foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $data) {
+      foreach ($results as $result) {
+
          $model = new static();
-         $model->fill($data);
+         $model->fill($result);
          $model->exists = true;
+         $model->save();
+
          $models[] = $model;
       }
+
 
       return new Collection($models);
    }
@@ -915,17 +960,11 @@ abstract class Model
    }
 
    /**
-    * Formate une date en chaîne de caractères
-    * 
-    * @param DateTime|null $date Date à formater
-    * @return string|null Date formatée
+    * Initialise le modèle
     */
-   private static function formatDateToString($date): ?string
+   protected static function boot(): void
    {
-      if ($date === null) {
-         return null;
-      }
-
-      return $date->format('Y-m-d H:i:s');
+      // Cette méthode sera appelée lors de l'initialisation du modèle
+      // et peut être étendue par les classes enfants
    }
 }

@@ -1,95 +1,101 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\CraftPanel;
 
-use IronFlow\Http\Controller;    
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
+use IronFlow\Http\Controller;
 use IronFlow\Support\Facades\Auth;
-
+use IronFlow\Support\Facades\View;
+use IronFlow\Support\Facades\Session;
+use IronFlow\Support\Facades\Redirect;
+use IronFlow\Support\Facades\Notification;
 
 class AuthController extends Controller
 {
-   
-   public function showLoginForm(): Response
-   {
-      if (Auth::guard('craftpanel')->check()) {
-         return $this->redirect('craftpanel.dashboard');
-      }
+    /**
+     * Affiche le formulaire de connexion
+     */
+    public function showLoginForm(): Response
+    {
+        if (Auth::guard('craftpanel')->check()) {
+            return $this->redirect('craftpanel.dashboard');
+        }
 
-      return $this->view('craftpanel.auth.login');
-   }
+        return $this->view('craftpanel.auth.login');
+    }
 
-   public function login(Request $request): Response
-   {
-      $credentials = $request->only(['email', 'password']);
-      $remember = $request->boolean('remember', false);
+    /**
+     * Gère la tentative de connexion
+     */
+    public function login(Request $request): Response
+    {
+        $credentials = $request->only(['email', 'password']);
+        $remember = $request->boolean('remember', false);
 
-      if (Auth::guard('craftpanel')->attempt($credentials, $remember)) {
-         $user = Auth::guard('craftpanel')->user();
+        if (Auth::guard('craftpanel')->attempt($credentials, $remember)) {
+            $user = Auth::guard('craftpanel')->user();
 
-         // Vérification de l'état du compte
-         if (!$user->is_active) {
-            Auth::guard('craftpanel')->logout();
-            return Redirect::back()
-               ->withInput()
-               ->withErrors(['email' => 'Votre compte est désactivé.']);
-         }
+            // Vérification de l'état du compte
+            if (!$user->is_active) {
+                Auth::guard('craftpanel')->logout();
+                Notification::error('Votre compte est désactivé.');
+                return $this->redirectBack()->withInput();
+            }
 
-         // Vérification de la 2FA si activée
-         if (config('craftpanel.security.require_2fa') && !$user->two_factor_enabled) {
-            return Redirect::route('craftpanel.2fa.setup');
-         }
+            // Vérification de la 2FA si activée
+            if (config('craftpanel.security.require_2fa') && !$user->two_factor_enabled) {
+                Notification::warning('La double authentification est requise pour votre compte.');
+                return $this->redirectToRoute('craftpanel.2fa.setup');
+            }
 
-         Session::regenerate();
-         return Redirect::intended(route('craftpanel.dashboard'));
-      }
+            Session::regenerate();
+            Notification::success('Connexion réussie ! Bienvenue dans le CraftPanel.');
+            return $this->redirectIntended(route('craftpanel.dashboard'));
+        }
 
-      return Redirect::back()
-         ->withInput()
-         ->withErrors(['email' => 'Ces identifiants ne correspondent pas à nos enregistrements.']);
-   }
+        Notification::error('Ces identifiants ne correspondent pas à nos enregistrements.');
+        return $this->redirectBack()->withInput();
+    }
 
-   /**
-    * Déconnecte l'utilisateur
-    *
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function logout()
-   {
-      Auth::guard('craftpanel')->logout();
-      Session::flush();
-      return Redirect::route('craftpanel.login');
-   }
+    /**
+     * Déconnecte l'utilisateur
+     */
+    public function logout(): Response
+    {
+        Auth::guard('craftpanel')->logout();
+        Session::invalidate();
+        
+        Notification::info('Vous avez été déconnecté avec succès.');
+        return $this->redirectToRoute('craftpanel.login');
+    }
 
-   /**
-    * Affiche le formulaire de configuration 2FA
-    *
-    * @return \IronFlow\Support\Facades\View
-    */
-   public function show2FASetup()
-   {
-      $user = Auth::guard('craftpanel')->user();
-      return View::make('craftpanel.auth.2fa-setup', compact('user'));
-   }
+    /**
+     * Affiche le formulaire de configuration 2FA
+     */
+    public function show2FASetup(): Response
+    {
+        $user = Auth::guard('craftpanel')->user();
+        return View::make('craftpanel.auth.2fa-setup', compact('user'));
+    }
 
-   /**
-    * Configure la 2FA pour l'utilisateur
-    *
-    * @return \IronFlow\Support\Facades\Redirect
-    */
-   public function setup2FA()
-   {
-      $user = Auth::guard('craftpanel')->user();
-      $code = Request::input('code');
+    /**
+     * Configure la 2FA pour l'utilisateur
+     */
+    public function setup2FA(Request $request): Response
+    {
+        $user = Auth::guard('craftpanel')->user();
+        $code = $request->input('code');
 
-      if ($user->verify2FACode($code)) {
-         $user->enable2FA();
-         return Redirect::route('craftpanel.dashboard')
-            ->with('success', 'La 2FA a été activée avec succès.');
-      }
+        if ($user->verify2FACode($code)) {
+            $user->enable2FA();
+            return Redirect::route('craftpanel.dashboard')
+                ->with(['success' => 'La 2FA a été activée avec succès.']);
+        }
 
-      return Redirect::back()
-         ->withErrors(['code' => 'Le code 2FA est invalide.']);
-   }
+        return Redirect::back()
+            ->withErrors(['code' => 'Le code 2FA est invalide.']);
+    }
 }

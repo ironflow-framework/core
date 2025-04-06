@@ -37,7 +37,7 @@ class Button extends Component
       // Ajout des classes spécifiques selon le type de bouton
       switch ($this->type) {
          case 'submit':
-            $buttonClasses .= ' bg-indigo-600 hover:bg-indigo-700';
+            $buttonClasses .= ' bg-[linear-gradient(145deg, #ff4d00 0%, #ff6b00 100%)] hover:bg-indigo-700';
             break;
          case 'reset':
             $buttonClasses .= ' bg-gray-600 hover:bg-gray-700';

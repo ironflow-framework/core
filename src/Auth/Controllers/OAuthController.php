@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Auth\Controllers;
 
+use App\Models\User;
 use IronFlow\Auth\OAuth\OAuthManager;
-use IronFlow\CraftPanel\Models\AdminUser;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
@@ -27,43 +27,43 @@ class OAuthController extends Controller
                 'scope' => ['email', 'profile']
             ]);
 
-            session()->put('oauth2state', $provider->getState());
+            session()->set('oauth2state', $provider->getState());
             return Response::redirect($authUrl);
         } catch (\Exception $e) {
             return Response::redirect('/login')
-                ->with('error', 'Unable to connect with ' . ucfirst($provider));
-        }   
+                ->with(['error' => 'Unable to connect with ' . ucfirst($provider)]);
+        }
     }
 
     public function callback(Request $request, string $provider): Response
     {
-        if (!$request->query('code')) {
+        if (!$request->get('code')) {
             return Response::redirect('/login')
-                ->with('error', 'Authorization code not received');
+                ->with(['error' => 'Authorization code not received']);
         }
 
-        if ($request->query('state') !== session()->get('oauth2state')) {
-            session()->forget('oauth2state');
+        if ($request->get('state') !== session()->get('oauth2state')) {
+            session()->remove('oauth2state');
             return Response::redirect('/login')
-                ->with('error', 'Invalid state parameter');
+                ->with(['error' => 'Invalid state parameter']);
         }
 
         try {
             $user = auth()->user();
-            if (!$user instanceof AdminUser) {
+            if (!$user instanceof User) {
                 return Response::redirect('/login')
-                    ->with('error', 'Unauthorized access');
+                    ->with(['error' => 'Unauthorized access']);
             }
 
             auth()->attempt([
                 'provider' => $provider,
-                'code' => $request->query('code')
+                'code' => $request->get('code')
             ]);
 
             return Response::redirect('/dashboard');
         } catch (\Exception $e) {
             return Response::redirect('/login')
-                ->with('error', 'Unable to authenticate with ' . ucfirst($provider));
+                ->with(['error' => 'Unable to authenticate with ' . ucfirst($provider)]);
         }
     }
 }

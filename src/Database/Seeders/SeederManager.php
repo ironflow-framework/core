@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Seeder;
+namespace IronFlow\Database\Seeders;
 
 use PDO;
-use Database\Seeder\DatabaseSeeder;
+use Database\Seeders\DatabaseSeeder;
 use IronFlow\Database\Connection;
 
 /**
@@ -71,7 +71,7 @@ class SeederManager
 
       require_once $seederPath;
 
-      if (!class_exists("Database\\Seeder\\DatabaseSeeder")) {
+      if (!class_exists("Database\\Seeders\\DatabaseSeeder")) {
          throw new \RuntimeException("La classe DatabaseSeeder n'existe pas");
       }
 

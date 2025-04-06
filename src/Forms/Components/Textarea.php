@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Forms\Components;
 
+use IronFlow\Validation\Validator;
+
 class Textarea extends Component
 {
    /**
@@ -12,13 +14,6 @@ class Textarea extends Component
     * @var int
     */
    protected int $rows = 3;
-
-   /**
-    * Placeholder
-    *
-    * @var string
-    */
-   protected string $placeholder = '';
 
    /**
     * Valeur par défaut
@@ -34,10 +29,10 @@ class Textarea extends Component
     * @param string $label Label du champ
     * @param array $attributes Attributs HTML
     */
-   public function __construct(string $name, string $label = '', array $attributes = [])
-   {
-      parent::__construct($name, $label, $attributes);
-   }
+    public function __construct(string $name, string $label = '', array $attributes = [], array|Validator $validator = [])
+    {
+       parent::__construct($name, $label, $attributes, $validator);
+    }
 
    /**
     * Définit le nombre de lignes
@@ -59,7 +54,7 @@ class Textarea extends Component
     */
    public function placeholder(string $placeholder): self
    {
-      $this->placeholder = $placeholder;
+      $this->attribute('placeholder', $placeholder);
       return $this;
    }
 
@@ -108,7 +103,6 @@ class Textarea extends Component
                name='{$this->name}'
                id='{$this->name}'
                class='{$textareaClasses}'
-               placeholder='{$this->placeholder}'
                rows='{$this->rows}'
                " . $this->renderAttributes() . "
             >{$value}</textarea>

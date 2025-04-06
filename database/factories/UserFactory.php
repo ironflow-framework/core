@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace IronFlow\Database\Factories;
+namespace Database\Factories;
 
 use App\Models\User;
-
-use Faker\Generator as FakerGenerator;
+use DateTime;
+use IronFlow\Database\Factories\Factory;
 
 /**
  * Factory pour le modèle User
@@ -28,7 +28,7 @@ class UserFactory extends Factory
    /**
     * Initialisation des états
     */
-   protected function configure(): void
+   public function configure(): void
    {
       $this->states = [
          'admin' => function () {
@@ -47,20 +47,21 @@ class UserFactory extends Factory
 
    /**
     * Définit les attributs par défaut pour le modèle User
-    *
-    * @return array
     */
-   public function definition(FakerGenerator $faker): array
+   public function defineDefaults(): void
    {
-      return [
+      $this->defaultAttributes = [
          'name' => $this->faker->name(),
          'email' => $this->faker->unique()->safeEmail(),
-         'email_verified_at' => $this->faker->dateTime(),
          'password' => password_hash('password', PASSWORD_BCRYPT),
+         'email_verified_at' => new DateTime(),
+         'remember_token' => bin2hex(random_bytes(5)),
+         'role' => 'user',
+         'is_admin' => false,
          'phone' => $this->faker->phoneNumber(),
          'address' => $this->faker->address(),
          'created_at' => $this->faker->dateTimeBetween('-1 year', 'now')->format('Y-m-d H:i:s'),
-         'updated_at' => $this->faker->dateTimeBetween('-1 month', 'now')->format('Y-m-d H:i:s'),
+         'updated_at' => $this->faker->dateTimeBetween('-1 year', 'now')->format('Y-m-d H:i:s'),
       ];
    }
 

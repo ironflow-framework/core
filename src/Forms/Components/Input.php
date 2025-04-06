@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Forms\Components;
 
+use IronFlow\Validation\Validator;
+
 class Input extends Component
 {
    /**
@@ -12,13 +14,6 @@ class Input extends Component
     * @var string
     */
    protected string $type = 'text';
-
-   /**
-    * Placeholder de l'input
-    *
-    * @var string
-    */
-   protected string $placeholder = '';
 
    /**
     * Valeur par défaut
@@ -34,9 +29,9 @@ class Input extends Component
     * @param string $label Label du champ
     * @param array $attributes Attributs HTML
     */
-   public function __construct(string $name, string $label = '', array $attributes = [])
+   public function __construct(string $name, string $label = '', array $attributes = [], array|Validator $validator = [])
    {
-      parent::__construct($name, $label, $attributes);
+      parent::__construct($name, $label, $attributes, $validator);
    }
 
    /**
@@ -59,7 +54,7 @@ class Input extends Component
     */
    public function placeholder(string $placeholder): self
    {
-      $this->placeholder = $placeholder;
+      $this->attribute('placeholder', $placeholder);
       return $this;
    }
 
@@ -109,7 +104,6 @@ class Input extends Component
                name='{$this->name}'
                id='{$this->name}'
                value='{$value}'
-               placeholder='{$this->placeholder}'
                class='{$inputClasses}'
                " . $this->renderAttributes() . "
             />

@@ -50,7 +50,7 @@ class Regex extends AbstractRule
     * @param array $data
     * @return bool
     */
-   public function validate($value, array $data = []): bool
+    public function validate(string $field, mixed $value, array $parameters = [], array $data = []): bool
    {
       if (empty($value) && $value !== '0') {
          return true; // Pas d'erreur si vide (utiliser Required pour vérifier la présence)

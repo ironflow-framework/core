@@ -2,6 +2,7 @@
 
 namespace IronFlow\Forms;
 
+use IronFlow\Database\Collection;
 use IronFlow\Forms\Components\Component;
 use IronFlow\Forms\Themes\ThemeInterface;
 use IronFlow\Forms\Themes\DefaultTheme;
@@ -13,6 +14,8 @@ class Form
 {
    protected array $fields = [];
    protected array $data = [];
+   protected string $title = "Formulaire";
+   protected string $icon = "";
    protected string $method = 'POST';
    protected string $action = '';
    protected string $theme = 'default';
@@ -31,6 +34,18 @@ class Form
       return $this;
    }
 
+   public function title(string $title): self
+   {
+      $this->title = $title;
+      return $this;
+   }
+
+   public function icon(string $icon): self
+   {
+      $this->icon = $icon;
+      return $this;
+   }
+
    public function action(string $action): self
    {
       $this->action = $action;
@@ -46,58 +61,58 @@ class Form
       return $this;
    }
 
-   public function input(string $name, string $label, array $options = []): self
+   public function input(string $name, string $label, array $attributes = []): self
    {
-      $this->fields[] = new Components\Input($name, $label, $options);
+      $this->fields[] = new Components\Input($name, $label, $attributes);
       return $this;
    }
 
-   public function textarea(string $name, string $label, array $options = []): self
+   public function textarea(string $name, string $label, array $attributes = []): self
    {
-      $this->fields[] = new Components\Textarea($name, $label, $options);
+      $this->fields[] = new Components\Textarea($name, $label, $attributes);
       return $this;
    }
 
-   public function select(string $name, string $label, array $options = []): self
+   public function select(string $name, string $label, array|Collection $options, array $attributes = []): self
    {
-      $this->fields[] = new Components\Select($name, $label, $options);
+      $this->fields[] = new Components\Select($name, $label, $options, $attributes);
       return $this;
    }
 
-   public function checkbox(string $name, string $label, array $options = []): self
+   public function checkbox(string $name, string $label, array|Collection $choices = [], array $attributes = []): self
    {
-      $this->fields[] = new Components\Checkbox($name, $label, $options);
+      $this->fields[] = new Components\Checkbox($name, $label, $choices, $attributes);
       return $this;
    }
 
-   public function radio(string $name, string $label, array $options = []): self
+   public function radio(string $name, string $label, array|Collection $choices, array $attributes = []): self
    {
-      $this->fields[] = new Components\Radio($name, $label, $options);
+      $this->fields[] = new Components\Radio($name, $choices, $label, $attributes);
       return $this;
    }
 
-   public function date(string $name, string $label, array $options = [], bool $showTime = false): self
+   public function date(string $name, string $label, array $attributes = [], bool $showTime = false): self
    {
-      $this->fields[] = new Components\DatePicker($name, $label, $options, $showTime);
+      $this->fields[] = new Components\DatePicker($name, $label, $attributes, $showTime);
       return $this;
    }
 
-   public function color(string $name, string $label, array $options = []): self
+   public function color(string $name, string $label, array $attributes = []): self
    {
-      $this->fields[] = new Components\ColorPicker($name, $label, $options);
+      $this->fields[] = new Components\ColorPicker($name, $label, $attributes);
       return $this;
    }
 
 
-   public function file(string $name, string $label, array $options = [], array $accept = []): self
+   public function file(string $name, string $label, array $attributes = [], array $accept = []): self
    {
-      $this->fields[] = new Components\File($name, $label, $options, []);
+      $this->fields[] = new Components\File($name, $label, $attributes, []);
       return $this;
    }
 
-   public function button(string $text, array $options = []): self
+   public function button(string $text, array $attributes = []): self
    {
-      $this->fields[] = new Components\Button($text, $options);
+      $this->fields[] = new Components\Button($text, $attributes);
       return $this;
    }
 
@@ -114,6 +129,16 @@ class Form
       $theme = new $themeClass();
 
       return $theme->render($this);
+   }
+
+   public function getTitle(): string
+   {
+      return $this->title;
+   }
+
+   public function getIcon(): string
+   {
+      return $this->icon;
    }
 
    public function getFields(): array
@@ -139,5 +164,25 @@ class Form
    public function getModel(): ?string
    {
       return $this->model;
+   }
+
+   public function getTheme(): ?string
+   {
+      return $this->theme;
+   }
+
+   public function hasTitle(): bool 
+   {
+      return $this->title !== null;
+   }
+
+   public function hasIcon(): bool
+   {
+      return $this->icon !== null;
+   }
+
+   public function __toString(): string
+   {
+      return $this->render();
    }
 }

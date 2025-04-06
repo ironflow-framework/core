@@ -140,7 +140,7 @@ class Router implements RouterInterface
     */
    public function put(string $uri, array|callable $action): self
    {
-      $this->addRoute('PUT', $uri, $action);
+      $this->addRoute('POST', $uri, $action);
       return $this;
    }
 
@@ -153,7 +153,7 @@ class Router implements RouterInterface
     */
    public function delete(string $uri, array|callable $action): self
    {
-      $this->addRoute('DELETE', $uri, $action);
+      $this->addRoute('POST', $uri, $action);
       return $this;
    }
 
@@ -241,13 +241,11 @@ class Router implements RouterInterface
       $this->get($name . '/{id}/edit', [$controller, 'edit'])->name($name . '.edit');
       $this->get($name . '/edit/{id}', [$controller, 'edit'])->name($name . '.edit.alt');
 
-      // Routes update (mise à jour) - deux formats
-      $this->put($name . '/{id}', [$controller, 'update'])->name($name . '.update');
-      $this->put($name . '/edit/{id}', [$controller, 'update'])->name($name . '.update.alt');
+      // Routes update
+      $this->put($name . '/update/{id}', [$controller, 'update'])->name($name . '.update');
 
-      // Routes destroy (suppression) - deux formats
-      $this->delete($name . '/{id}', [$controller, 'destroy'])->name($name . '.destroy');
-      $this->delete($name . '/delete/{id}', [$controller, 'destroy'])->name($name . '.destroy.alt');
+      // Routes destroy
+      $this->delete($name . '/delete/{id}', [$controller, 'destroy'])->name($name . '.destroy');
 
       return $this;
    }

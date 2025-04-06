@@ -2,6 +2,8 @@
 
 namespace IronFlow\Forms\Components;
 
+use IronFlow\Validation\Validator;
+
 class DatePicker extends Component
 {
    protected string $type = 'date';
@@ -11,9 +13,9 @@ class DatePicker extends Component
    protected ?string $min = null;
    protected ?string $max = null;
 
-   public function __construct(string $name, string $label, array $options = [], bool $showTime)
+   public function __construct(string $name, string $label, array $options = [], bool $showTime,array|Validator $validator = [])
    {
-      parent::__construct($name, $label, $options);
+      parent::__construct($name, $label, $options, $validator);
 
       $this->type = $showTime ? "datetime-local" : "date";
       $this->placeholder = $options['placeholder'] ?? null;

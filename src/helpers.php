@@ -1,5 +1,56 @@
 <?php
 
+if (!function_exists("dump"))
+{
+   function dump($data) {
+      return Symfony\Component\VarDumper\VarDumper::dump($data);
+   }
+}
+
+if (!function_exists('app')) {
+    /**
+     * Récupère une instance du conteneur ou résout une dépendance
+     *
+     * @param string|null $abstract
+     * @param array $parameters
+     * @return mixed
+     */
+    function app($abstract = null, array $parameters = []): mixed
+    {
+        if (is_null($abstract)) {
+            return \IronFlow\Core\Application\Application::getInstance();
+        }
+
+        return \IronFlow\Core\Application\Application::getInstance()->getContainer()->make($abstract, $parameters);
+    }
+}
+
+if (!function_exists('bcrypt')) {
+   /**
+    * Hash un mot de passe avec Bcrypt
+    */
+   function bcrypt(string $value): string
+   {
+       return password_hash($value, PASSWORD_BCRYPT);
+   }
+}
+
+if (!function_exists('str_random')) {
+   /**
+    * Génère une chaîne aléatoire
+    */
+   function str_random(int $length = 16): string
+   {
+       $string = '';
+       while (($len = strlen($string)) < $length) {
+           $size = $length - $len;
+           $bytes = random_bytes($size);
+           $string .= substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $size);
+       }
+       return $string;
+   }
+}
+
 if (!function_exists('view_path')) {
    /**
     * Obtient le chemin vers le dossier des vues.
@@ -249,7 +300,7 @@ if (!function_exists('flash')) {
     */
    function flash(string $key, mixed $value): void
    {
-      session()->flash($key, $value);
+      session()->set($key, $value);
    }
 }
 
@@ -257,9 +308,9 @@ if (!function_exists('session')) {
    /**
     * Retourne l'instance de session.
     *
-    * @return IronFlow\Session\SessionManager
+    * @return IronFlow\Session\Session
     */
-   function session(): IronFlow\Session\SessionManager
+   function session(): IronFlow\Session\Session
    {
       return IronFlow\Support\Facades\Session::getInstance();
    }
@@ -285,7 +336,7 @@ if (!function_exists('auth')) {
     */
    function auth(): IronFlow\Auth\AuthManager
    {
-      return new IronFlow\Auth\AuthManager()->getInstance();
+      return new IronFlow\Auth\AuthManager()->getInstance(config('auth'));
    }
 }
 
@@ -321,7 +372,7 @@ if (!function_exists('excel')) {
    /**
     * Retourne l'instance de Excel.
     *
-    * @return IIronFlow\Support\Facades\Excel
+    * @return IronFlow\Support\Facades\Excel
     */
    function excel(): IronFlow\Support\Facades\Excel
    {

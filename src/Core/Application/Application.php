@@ -408,6 +408,6 @@ class Application implements ApplicationInterface
    private function isAbsolutePath(string $path): bool
    {
       return str_starts_with($path, '/') || str_starts_with($path, '\\') ||
-         preg_match('~^[a-zA-Z]:[/\\]~', $path) === 1;
+         preg_match('~^[a-zA-Z]:[/\\\\]~', $path) === 1;
    }
 }

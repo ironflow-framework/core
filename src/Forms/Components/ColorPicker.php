@@ -2,6 +2,8 @@
 
 namespace IronFlow\Forms\Components;
 
+use IronFlow\Validation\Validator;
+
 class ColorPicker extends Component
 {
    protected string $type = 'color';
@@ -11,9 +13,9 @@ class ColorPicker extends Component
    protected array $presetColors = [];
    protected bool $showAlpha = false;
 
-   public function __construct(string $name, string $label, array $options = [])
+   public function __construct(string $name, string $label, array $options = [], array|Validator $validator = [])
    {
-      parent::__construct($name, $label, $options);
+      parent::__construct($name, $label, $options, $validator);
 
       $this->placeholder = $options['placeholder'] ?? null;
       $this->required = $options['required'] ?? false;

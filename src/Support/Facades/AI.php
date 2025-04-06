@@ -2,8 +2,6 @@
 
 namespace IronFlow\Support\Facades;
 
-use IronFlow\Support\Facade;
-
 /**
  * @method static \IronFlow\Framework\AI\AIProvider provider(?string $provider = null)
  * @method static string generate(string $prompt, array $options = [], ?string $provider = null)
@@ -17,8 +15,9 @@ class AI extends Facade
     *
     * @return string
     */
-   protected static function getFacadeAccessor()
+   protected static function getFacadeAccessor(): string
    {
       return 'ai';
    }
+
 }

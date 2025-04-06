@@ -7,7 +7,6 @@ namespace App\Database\Factories;
 use App\Models\Product;
 use App\Models\Category;
 use IronFlow\Database\Factories\Factory;
-use Faker\Generator;
 
 class ProductFactory extends Factory
 {
@@ -19,22 +18,42 @@ class ProductFactory extends Factory
    protected string $model = Product::class;
 
    /**
-    * Définit les attributs par défaut du modèle
-    *
-    * @param Generator $faker
-    * @return array
+    * Configure les états disponibles pour cette factory
     */
-   public function definition(Generator $faker): array
+   protected function configure(): void
    {
-      return [
-         'name' => $faker->words(3, true),
-         'description' => $faker->paragraph,
-         'price' => $faker->randomFloat(2, 5, 1000),
-         'stock' => $faker->numberBetween(0, 100),
+      $this->states = [
+         'featured' => function () {
+            return [
+               'featured' => true,
+               'stock' => $this->faker->numberBetween(10, 100),
+            ];
+         },
+         'out_of_stock' => function () {
+            return [
+               'stock' => 0,
+               'status' => 'unavailable',
+            ];
+         },
+      ];
+   }
+
+   /**
+    * Définit les attributs par défaut pour le modèle Product
+    */
+   public function defineDefaults(): void
+   {
+      $this->defaultAttributes = [
+         'name' => $this->faker->words(3, true),
+         'description' => $this->faker->paragraph,
+         'price' => $this->faker->randomFloat(2, 5, 1000),
+         'stock' => $this->faker->numberBetween(1, 50),
+         'featured' => false,
+         'status' => 'available',
          'category_id' => Category::factory()->create()->id,
-         'is_active' => $faker->boolean(80),
-         'created_at' => $faker->dateTimeThisYear,
-         'updated_at' => $faker->dateTimeThisYear,
+         'is_active' => $this->faker->boolean(80),
+         'created_at' => $this->faker->dateTimeThisYear,
+         'updated_at' => $this->faker->dateTimeThisYear,
       ];
    }
 

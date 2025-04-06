@@ -109,6 +109,14 @@ class Response extends HttpFoundationResponse
       return new static($content, $status);
    }
 
+   public static function abort(int $status = 403, string $message = ''): static
+   {
+      $response = new static($message, $status);
+      $response->headers->set('errors',$message);
+      $response->setContent($response->getContent());
+      return $response;
+   }
+
    /**
     * Ajouter des données à la reponse
     *

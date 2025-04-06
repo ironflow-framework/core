@@ -36,9 +36,11 @@ class Radio extends Component
     * @param string $label Label du champ
     * @param array $attributes Attributs HTML
     */
-   public function __construct(string $name, string $label = '', array $attributes = [])
+   public function __construct(string $name, array|Collection $choices, string $label = '', array $attributes = [])
    {
       parent::__construct($name, $label, $attributes);
+
+      $this->options(array_merge($this->options, $choices));
    }
 
    /**

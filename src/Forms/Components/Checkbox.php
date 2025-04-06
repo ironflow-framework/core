@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Forms\Components;
 
 use IronFlow\Database\Collection;
+use IronFlow\Validation\Validator;
 
 class Checkbox extends Component
 {
@@ -24,9 +25,9 @@ class Checkbox extends Component
     */
    protected mixed $defaultValue = false;
 
-   public function __construct(string $name, string $label, array|Collection $choices, array $options = [])
+   public function __construct(string $name, string $label, array|Collection $choices, array $options = [], array|Validator $validator = [])
    {
-      parent::__construct($name, $label, $options);
+      parent::__construct($name, $label, $options, $validator);
 
       $this->choices = is_array($choices) ? $choices : $choices->toArray() ?? [];
       $this->required = $options['required'] ?? false;

@@ -11,41 +11,10 @@ use IronFlow\Support\Security\PasswordHasher;
  * @method static bool verify(string $password, string $hash)
  * @method static bool needsRehash(string $hash, array $options = [])
  */
-class Password
+class Password extends Facade
 {
-   /**
-    * Hache un mot de passe
-    *
-    * @param string $password
-    * @param array $options
-    * @return string
-    */
-   public static function hash(string $password, array $options = []): string
+   protected static function getFacadeAccessor(): string
    {
-      return PasswordHasher::hash($password, $options);
-   }
-
-   /**
-    * Vérifie un mot de passe
-    *
-    * @param string $password
-    * @param string $hash
-    * @return bool
-    */
-   public static function verify(string $password, string $hash): bool
-   {
-      return PasswordHasher::verify($password, $hash);
-   }
-
-   /**
-    * Vérifie si un hash doit être recalculé
-    *
-    * @param string $hash
-    * @param array $options
-    * @return bool
-    */
-   public static function needsRehash(string $hash, array $options = []): bool
-   {
-      return PasswordHasher::needsRehash($hash, $options);
+      return PasswordHasher::class;
    }
 }

@@ -29,4 +29,10 @@ return [
             'redirect_uri' => env('APP_URL') . '/auth/facebook/callback',
         ],
     ],
+    'redirectTo'=> env('REDIRECT_LOGIN','/dashboard'),
+    'callback' => [
+        'signIn' => '',
+        'signUp' => '',
+        'signOut'=> '',
+    ]
 ];

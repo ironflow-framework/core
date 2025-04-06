@@ -48,7 +48,7 @@ abstract class Component
     *
     * @var array
     */
-   protected array $rules = [];
+   protected array|Validator $rules = [];
 
    /**
     * Classes Tailwind par défaut pour les composants
@@ -76,11 +76,12 @@ abstract class Component
     * @param string $label Label du champ
     * @param array $attributes Attributs HTML
     */
-   public function __construct(string $name, string $label = '', array $attributes = [])
+   public function __construct(string $name, string $label = '', array $attributes = [], array|Validator $validator = [])
    {
       $this->name = $name;
       $this->label = $label;
       $this->attributes = $attributes;
+      $this->rules = $validator;
    }
 
    /**
@@ -162,11 +163,17 @@ abstract class Component
       if (empty($this->rules)) {
          return true;
       }
+      
+      if (!$this->rules instanceof Validator) {
+         $validator = Validator::make([$this->name => $this->value], [$this->name => $this->rules]);
+      }
+      else {
+         $validator = $this->rules;
+      }
 
-      $validator = Validator::make([$this->name => $this->value], [$this->name => $this->rules]);
       $validator->validate();
 
-      if ($validator->hasErrors()) {
+      if ($validator->fails()) {
          $this->error = $validator->getFirstError();
          return false;
       }

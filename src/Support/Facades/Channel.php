@@ -9,7 +9,7 @@ class Channel extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'channel';
+        return WebSocketProvider::class;
     }
 
     protected static function getFacadeInstance(): object

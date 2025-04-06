@@ -60,9 +60,9 @@ class WebSocketServer implements MessageComponentInterface
     protected function getConnectionId(ConnectionInterface $conn): string
     {
         if (!$this->connectionIds->contains($conn)) {
-            $this->connectionIds[$conn] = $this->generateConnectionId();
+            $this->connectionIds->attach($conn, $this->generateConnectionId());
         }
-        return (string)$this->connectionIds[$conn];
+        return (string)$this->connectionIds->offsetGet($conn);
     }
 
     /**

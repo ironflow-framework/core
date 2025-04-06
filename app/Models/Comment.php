@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use IronFlow\Database\Model;
-use IronFlow\Database\Relations\BelongsTo;
+use IronFlow\Database\Iron\Relations\BelongsTo;
 
 class Comment extends Model
 {
+    protected static string $table = "comments";
     protected array $fillable = [
         'content',
         'post_id',

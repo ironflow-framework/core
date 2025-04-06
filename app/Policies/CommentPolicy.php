@@ -8,7 +8,7 @@ use IronFlow\Auth\Policy;
 
 class CommentPolicy extends Policy
 {
-    public function delete(User $user, Comment $comment): bool
+    public function delete(User $user, $comment): bool
     {
         return $user->id === $comment->user_id;
     }

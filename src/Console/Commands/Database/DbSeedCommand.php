@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands\Database;
+namespace IronFlow\Console\Commands\Database;
 
 use App\Database\Seeders\DatabaseSeeder;
 use IronFlow\Database\Connection;
@@ -13,19 +13,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class DbSeedCommand extends Command
 {
-   /**
-    * Nom de la commande
-    *
-    * @var string
-    */
-   protected string $name = 'db:seed';
-
-   /**
-    * Description de la commande
-    *
-    * @var string
-    */
-   protected string $description = 'Exécute les seeders de la base de données';
+   
+    protected static $defaultName  = 'db:seed';
+    protected string $description = 'Exécute les seeders de la base de données';
 
    /**
     * Exécute la commande

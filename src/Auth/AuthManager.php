@@ -15,10 +15,12 @@ class AuthManager
     private ?GuardInterface $guard = null;
     private array $config;
 
-    private function __construct(array $config = [])
+    public function __construct(array $config = [])
     {
+        $defaultGuard = config('auth.defaults.guard');
+
         $this->config = array_merge([
-            'guard' => config('auth.defaults.guard'),
+            'guard' => config('auth.guards')[$defaultGuard]['driver'],
             'model' => config('auth.providers.users.model'),
             'session_key' => 'auth_user_id',
             'token_key' => 'api_token',

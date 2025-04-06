@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Post;
+use IronFlow\Database\Collection;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
@@ -16,27 +17,36 @@ class PostController extends Controller
 {
     public function index(): Response
     {
-        $posts = Cache::remember('posts.all', 60, function () {
-            return Post::with(['user'])
-                ->where('published', true)
-                ->orderBy('created_at', 'desc')
-                ->get();
-        });
+        $posts = Cache::remember(
+            'posts.all',
+            function (): Collection {
+                return Post::with(['user'])
+                    ->where('published', true)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            },
+            60
+        );
 
-        return $this->view('posts/index.twig', [
+        return $this->view('posts.index', [
             'posts' => $posts
         ]);
     }
 
     public function create(): Response
     {
-        $form = new Form();
-        $form->input('title', 'Titre', ['required' => true]);
-        $form->input('content', 'Contenu', ['type' => 'textarea', 'required' => true]);
-        $form->input('image', 'Image', ['type' => 'file', 'accept' => 'image/*']);
-        $form->input('published', 'Publier', ['type' => 'checkbox']);
+        $form = Post::form()
+            ->method('post')
+            ->action(route('posts.store'))
+            ->theme('tailwind')
+            ->title(trans('Ajouter un post'))
+            ->input('title', 'Titre', ['required' => true])
+            ->input('content', 'Contenu', ['type' => 'textarea', 'required' => true])
+            ->input('image', 'Image', ['type' => 'file', 'accept' => 'image/*'])
+            ->input('published', 'Publier', ['type' => 'checkbox'])
+            ->button('Enregistrer');
 
-        return $this->view('posts/create.twig', [
+        return $this->view('posts.create', [
             'form' => $form
         ]);
     }
@@ -52,7 +62,7 @@ class PostController extends Controller
 
         $post = new Post($data);
         $post->user_id = Auth::id();
-        
+
         if ($request->hasFile('image')) {
             $post->image = Storage::store($request->file('image'), 'posts');
         }
@@ -121,7 +131,7 @@ class PostController extends Controller
     {
         $this->authorize('delete', $post);
 
-        $post->delete();
+        $post->remove();
 
         Channel::broadcast('posts')
             ->event('post.deleted')

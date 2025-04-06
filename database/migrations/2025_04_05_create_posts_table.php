@@ -1,14 +1,14 @@
 <?php
 
-use IronFlow\Database\Migration;
-use IronFlow\Database\Schema;
-use IronFlow\Database\Table;
+use IronFlow\Database\Migrations\Migration;
+use IronFlow\Database\Schema\Schema;
+use IronFlow\Database\Schema\Anvil;
 
-class CreatePostsTable extends Migration
+return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('posts', function (Table $table) {
+        Schema::createTable('posts', function (Anvil $table) {
             $table->id();
             $table->string('title');
             $table->text('content');
@@ -21,6 +21,7 @@ class CreatePostsTable extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('posts');
+        Schema::dropTableIfExists('posts');
     }
-}
+};
+

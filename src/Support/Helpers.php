@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace IronFlow\Support;
 
 use IronFlow\Http\Request;
+use IronFlow\Support\Collection;
+use IronFlow\Session\Session;
+use Exception;
 
 /**
  * Classe utilitaire avec des helpers divers pour le framework

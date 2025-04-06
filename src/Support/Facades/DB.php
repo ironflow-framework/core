@@ -4,10 +4,10 @@ namespace IronFlow\Support\Facades;
 
 use IronFlow\Database\Connection as Database;
 
-class DB
+class DB extends Facade
 {
-   public static function __callStatic(string $method, array $arguments)
+   protected static function getFacadeAccessor(): string
    {
-      return Database::$method(...$arguments);
+      return Database::class;
    }
 }

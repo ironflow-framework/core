@@ -10,6 +10,10 @@ class MaterialTheme implements ThemeInterface
    {
       $html = '<form method="' . $form->getMethod() . '" action="' . $form->getAction() . '" class="form material">';
 
+      if ($form->hasTitle() && $form->hasIcon()) {
+         $html .= '<h1 class="text-3xl font-bold mb-6 text-[#ff4d00]><span class="' . $form->getIcon() . '"></span>' . $form->getTitle() . '</h1>';
+      }
+
       foreach ($form->getFields() as $field) {
          if ($field instanceof \IronFlow\Forms\Components\Button) {
             continue;

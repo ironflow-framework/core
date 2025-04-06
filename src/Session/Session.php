@@ -4,153 +4,75 @@ declare(strict_types=1);
 
 namespace IronFlow\Session;
 
-use IronFlow\Support\Facades\Config;
+use Symfony\Component\HttpFoundation\Session\Session as BaseSession;
 
-class Session
+class Session extends BaseSession
 {
-   /**
-    * Indique si la session a été démarrée
-    */
-   private bool $started = false;
+    public function __construct()
+    {
+        parent::__construct();
 
-   /**
-    * Les données de la session
-    */
-   private array $data = [];
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
 
-   /**
-    * Constructeur
-    */
-   public function __construct()
-   {
-      if (session_status() === PHP_SESSION_NONE) {
-         $this->start();
-      }
-   }
+    public function get(string $name, mixed $default = null): mixed
+    {
+        return parent::get($name, $default);
+    }
 
-   /**
-    * Démarre la session
-    */
-   public function start(): bool
-   {
-      if ($this->started) {
-         return true;
-      }
+    public function put(string $key, $value): void
+    {
+        $this->set($key, $value);
+    }
 
-      $config = Config::get('session', []);
+    public function pull(string $key, $default = null)
+    {
+        $value = $this->get($key, $default);
+        $this->remove($key);
+        return $value;
+    }
 
-      if (isset($config['cookie_secure'])) {
-         ini_set('session.cookie_secure', $config['cookie_secure']);
-      }
+    public function flash(string $key, $value): void
+    {
+        $this->getFlashBag()->add($key, $value);
+    }
 
-      if (isset($config['cookie_httponly'])) {
-         ini_set('session.cookie_httponly', $config['cookie_httponly']);
-      }
+    public function reflash(array $keys = null): void
+    {
+        $flash = $this->getFlashBag()->peekAll();
+        if ($keys === null) {
+            $keys = array_keys($flash);
+        }
+        foreach ($keys as $key) {
+            if (isset($flash[$key])) {
+                foreach ($flash[$key] as $value) {
+                    $this->flash($key, $value);
+                }
+            }
+        }
+    }
 
-      if (isset($config['cookie_samesite'])) {
-         ini_set('session.cookie_samesite', $config['cookie_samesite']);
-      }
+    public function now(string $key, $value): void
+    {
+        $this->put($key, $value);
+        $this->flash('_now', [$key => $value]);
+    }
 
-      $this->started = session_start();
+    public function keep(array $keys = null): void
+    {
+        $this->reflash($keys);
+    }
 
-      if ($this->started) {
-         $this->data = $_SESSION;
-      }
+    public function invalidate(?int $lifetime = null): bool
+    {
+        $this->clear();
+        return parent::invalidate($lifetime);
+    }
 
-      return $this->started;
-   }
-
-   /**
-    * Définit une valeur dans la session
-    */
-   public function set(string $key, mixed $value): void
-   {
-      $this->data[$key] = $value;
-      $_SESSION[$key] = $value;
-   }
-
-   /**
-    * Récupère une valeur de la session
-    */
-   public function get(string $key, mixed $default = null): mixed
-   {
-      return $this->data[$key] ?? $default;
-   }
-
-   /**
-    * Vérifie si une clé existe dans la session
-    */
-   public function has(string $key): bool
-   {
-      return isset($this->data[$key]);
-   }
-
-   /**
-    * Supprime une valeur de la session
-    */
-   public function remove(string $key): void
-   {
-      unset($this->data[$key], $_SESSION[$key]);
-   }
-
-   /**
-    * Vide la session
-    */
-   public function clear(): void
-   {
-      $this->data = [];
-      $_SESSION = [];
-   }
-
-   /**
-    * Génère un nouveau token CSRF
-    */
-   public function generateToken(): string
-   {
-      $token = bin2hex(random_bytes(32));
-      $this->set('_token', $token);
-      return $token;
-   }
-
-   /**
-    * Récupère le token CSRF actuel
-    */
-   public function getToken(): ?string
-   {
-      return $this->get('_token');
-   }
-
-   /**
-    * Vérifie si la session est active
-    */
-   public function isStarted(): bool
-   {
-      return $this->started;
-   }
-
-   /**
-    * Récupère l'ID de la session
-    */
-   public function getId(): string
-   {
-      return session_id();
-   }
-
-   /**
-    * Régénère l'ID de la session
-    */
-   public function regenerate(bool $deleteOldSession = true): bool
-   {
-      return session_regenerate_id($deleteOldSession);
-   }
-
-   /**
-    * Détruit la session
-    */
-   public function destroy(): bool
-   {
-      $this->clear();
-      $this->started = false;
-      return session_destroy();
-   }
+    public function all(): array
+    {
+        return parent::all();
+    }
 }

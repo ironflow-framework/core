@@ -8,6 +8,7 @@ use Exception;
 use IronFlow\Database\Collection;
 use IronFlow\Database\Connection;
 use IronFlow\Database\Model;
+use IronFlow\Http\Response;
 use PDO;
 use PDOException;
 
@@ -635,7 +636,7 @@ class Builder
          $modelClass = get_class($this->model);
 
          foreach ($results as $attributes) {
-            $model = new $modelClass();
+            $model = new $modelClass($attributes);
             $model->fill($attributes);
 
             // Charger les relations si nécessaire
@@ -644,6 +645,7 @@ class Builder
             }
 
             $models[] = $model;
+            
          }
 
          return new Collection($models);
@@ -674,6 +676,22 @@ class Builder
    public function find($id): ?Model
    {
       return $this->where($this->model->getKeyName(), $id)->first();
+   }
+
+   public function findOrFail($id, ?string $redirectTo = null): Response|Model
+   {
+      $data = $this->find($id);
+
+      if (empty($data)) {
+         
+         if ($redirectTo) {
+            return redirect($redirectTo);
+         }
+
+         return Response::abort(404, 'Not found');
+      }
+
+      return $data;
    }
 
    /**
@@ -771,6 +789,7 @@ class Builder
       foreach ($this->with as $relation) {
          if ($model->isRelation($relation)) {
             $model->setRelation($relation, $model->$relation()->get());
+            $model->setAttribute($relation, $model->$relation->get()[0]->data());
          }
       }
    }

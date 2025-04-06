@@ -10,7 +10,8 @@ use IronFlow\Http\Response;
 use IronFlow\Support\Facades\Auth;
 use IronFlow\View\TwigView;
 use IronFlow\Validation\Validator;
-use IronFlow\Support\Facades\Session;
+use IronFlow\Support\Facades\View;
+use IronFlow\Support\Facades\Redirect;
 
 abstract class Controller
 {
@@ -46,20 +47,50 @@ abstract class Controller
       return $this->middleware;
    }
 
-   protected function view(string $template, array $data = []): Response
+   /**
+    * Affiche une vue
+    */
+   protected function view(string $name, array $data = []): Response
    {
-      $content = $this->view->render($template, $data);
-      return $this->response->setContent($content);
+      $content = View::render($name, $data);
+      return new Response($content);
+   }
+
+   /**
+    * Redirige vers une URL
+    */
+   protected function redirect(string $url): Response
+   {
+      return Redirect::to($url);
+   }
+
+   /**
+    * Redirige vers une route nommée
+    */
+   protected function redirectToRoute(string $name, array $parameters = []): Response
+   {
+      return Redirect::route($name, $parameters);
+   }
+
+   /**
+    * Redirige vers l'URL précédente
+    */
+   protected function redirectBack(): Response
+   {
+      return Redirect::back();
+   }
+
+   /**
+    * Redirige vers l'URL prévue ou une URL par défaut
+    */
+   protected function redirectIntended(string $default = '/'): Response
+   {
+      return Redirect::intended($default);
    }
 
    protected function json(array $data, int $status = 200): Response
    {
       return Response::json($data, $status);
-   }
-
-   protected function redirect(?string $url = null): Response
-   {
-      return Response::redirect($url ?? '/');
    }
 
    public function route(string $name, array $parameters = []): Response

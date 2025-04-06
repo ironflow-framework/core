@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IronFlow\Auth\Guards;
 
 use IronFlow\Auth\Contracts\GuardInterface;
+use IronFlow\Database\Collection;
 use IronFlow\Database\Model;
 use IronFlow\Http\Session;
 
@@ -35,14 +36,14 @@ class SessionGuard implements GuardInterface
     public function login(Model $user): void
     {
         $this->user = $user;
-        session()->put($this->sessionKey, $user->id);
+        session()->set($this->sessionKey, $user->id);
         session()->regenerate();
     }
 
     public function logout(): void
     {
         $this->user = null;
-        session()->forget($this->sessionKey);
+        session()->remove($this->sessionKey);
         session()->regenerate();
     }
 
@@ -92,8 +93,7 @@ class SessionGuard implements GuardInterface
             return null;
         }
 
-        return $this->createModel()
-            ->where('email', $credentials['email']);
+        return $this->createModel()::where('email', $credentials['email'])->first();
     }
 
     protected function hasValidCredentials(Model $user, array $credentials): bool

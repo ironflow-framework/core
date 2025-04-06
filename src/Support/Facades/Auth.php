@@ -6,21 +6,16 @@ namespace IronFlow\Support\Facades;
 
 use IronFlow\Auth\AuthManager;
 
-class Auth
+class Auth extends Facade
 {
-   protected static $instance;
-
-   public static function getInstance()
+   protected static function getFacadeAccessor(): string
    {
-      if (!isset(self::$instance)) {
-         self::$instance = new AuthManager();
-      }
-      return self::$instance;
+      return AuthManager::class;
    }
 
-   public static function __callStatic($method, $args)
+   protected static function getFacadeInstance(): object
    {
-      return self::getInstance()->$method(...$args);
+      return AuthManager::getInstance();
    }
 
 }
