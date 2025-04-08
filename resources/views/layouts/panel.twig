@@ -11,31 +11,27 @@
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
       {{ vite_assets('app.js') }}
    </head>
-   <body class="bg-white dark:bg-gray-900 transition-colors duration-200">
+   <body class="bg-white dark:bg-[linear-gradient(135deg,#1a1a1a_0%,#2a2a2a_100%)] text-dark dark:text-white transition-colors duration-200 w-full">
       <nav class="bg-white dark:bg-[linear-gradient(135deg,#1a1a1a_0%,#2a2a2a_100%)] shadow-lg">
          <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
-               <div class="flex">
-                  <div class="flex-shrink-0 flex items-center">
-                     <a href="/" class="text-xl font-bold text-gray-800 dark:text-white">
-                        IronFlow | CraftPanel
-                     </a>
-                  </div>
-                  <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                     <a href="/" class="border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                        Voir le site
-                     </a>
-                     <a href="{{route('users.show') }}" class="border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                        Profile
-                     </a>
-                  </div>
+               <div class="flex-shrink-0 flex items-center">
+                  <h1 href="/" class="text-xl font-bold text-gray-800 dark:text-white">
+                     IronFlow
+</h1>
+               </div>
+               <div class="ml-6 flex space-x-8">
+                  <a href="/" class="border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                     Voir le site
+                  </a>
+                  <a href="{{ route('users.show') }}" class="border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                     Profile
+                  </a>
                </div>
             </div>
          </div>
       </nav>
-      {# Contenu principal #}
       <main>
-         {# Contenu de la page #}
          {% block content %}{% endblock %}
       </main>
       {% block javascript %}{% endblock %}
