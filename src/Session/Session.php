@@ -39,7 +39,7 @@ class Session extends BaseSession
         $this->getFlashBag()->add($key, $value);
     }
 
-    public function reflash(array $keys = null): void
+    public function reflash(?array $keys = null): void
     {
         $flash = $this->getFlashBag()->peekAll();
         if ($keys === null) {
@@ -60,7 +60,7 @@ class Session extends BaseSession
         $this->flash('_now', [$key => $value]);
     }
 
-    public function keep(array $keys = null): void
+    public function keep(?array $keys = null): void
     {
         $this->reflash($keys);
     }
