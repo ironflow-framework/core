@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Auth\Guards;
 
 use IronFlow\Auth\Contracts\GuardInterface;
-use IronFlow\Database\Collection;
 use IronFlow\Database\Model;
-use IronFlow\Http\Session;
+use IronFlow\Support\Security\Hasher;
 
 class SessionGuard implements GuardInterface
 {
@@ -98,7 +97,7 @@ class SessionGuard implements GuardInterface
 
     protected function hasValidCredentials(Model $user, array $credentials): bool
     {
-        return password_verify(
+        return Hasher::verify(
             $credentials['password'],
             $user->password
         );

@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Product;
+
 return [
     // Configuration générale
     'general' => [
@@ -34,6 +36,7 @@ return [
         ],
         'models' => [
             // Les permissions des modèles seront définies directement dans les modèles
+            Product::class
         ],
     ],
 

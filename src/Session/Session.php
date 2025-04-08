@@ -75,4 +75,11 @@ class Session extends BaseSession
     {
         return parent::all();
     }
+
+    public function regenerate()
+    {
+        $this->clear();
+        session_regenerate_id();
+        return true;
+    }
 }

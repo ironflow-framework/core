@@ -414,6 +414,7 @@ class Application implements ApplicationInterface
       if ($this->craftRouterPath && file_exists($this->craftRouterPath)) {
          require $this->craftRouterPath;
       }
+
    }
 
 }

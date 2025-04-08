@@ -1,0 +1,72 @@
+{% extends 'layouts/panel.twig' %}
+{% block title %}
+    {{ title }}
+{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">
+            {{ title }}
+        </h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Statistiques -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    Statistiques
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">
+                            Utilisateurs
+                        </span>
+                        <span class="font-medium">
+                            0
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">
+                            Produits
+                        </span>
+                        <span class="font-medium">
+                            0
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">
+                            Commandes
+                        </span>
+                        <span class="font-medium">
+                            0
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <!-- Activités récentes -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    Activités récentes
+                </h2>
+                <div class="space-y-4">
+                    <p class="text-gray-600">
+                        Aucune activité récente
+                    </p>
+                </div>
+            </div>
+            <!-- Actions rapides -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    Actions rapides
+                </h2>
+                <div class="space-y-4">
+                    {% if auth() %}
+                        <a href="{{ route('users.show', user().id ) }}" class="block w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 text-center">
+                            Modifier le profil
+                        </a>
+                    {% endif %}
+                    <a href="#" class="block w-full py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 text-center">
+                        Ajouter un produit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

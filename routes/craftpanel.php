@@ -11,14 +11,14 @@ $prefix = config('craftpanel.routes.prefix', 'craftpanel');
 $middleware = config('craftpanel.routes.middleware', ['web', 'auth']);
 $namespace = config('craftpanel.routes.namespace', 'App\\Controllers\\CraftPanel');
 
-Route::group($prefix, function () {
+Route::group($prefix, function () use ($prefix){
     // Routes d'authentification
     Route::get('login', [AuthController::class, 'showLoginForm'])->name('craftpanel.login');
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout'])->name('craftpanel.logout');
 
     // Routes protégées
-    Route::group('', function () {
+    Route::group($prefix, function () {
         // Dashboard
         Route::get('dashboard', [DashboardController::class, 'index'])->name('craftpanel.dashboard');
 

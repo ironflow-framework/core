@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
    public function index(Request $request): Response
    {
-      return $this->view('dashboard.index', [
+      return $this->view('craftpanel.dashboard.index', [
          'title' => 'Tableau de bord'
       ]);
    }

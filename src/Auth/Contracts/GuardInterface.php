@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Auth\Contracts;
 
+use IronFlow\Database\Collection;
 use IronFlow\Database\Model;
-use IronFlow\Database\Iron\Collection;
 
 interface GuardInterface
 {
