@@ -96,6 +96,13 @@ class Application implements ApplicationInterface
    private string $apiRouterPath = '';
 
    /**
+    * Chemin vers le fichier de routes CraftPanel (Panneau d'administration)
+    * 
+    * @var string
+    */
+   private string $craftRouterPath = '';
+
+   /**
     * Constructeur privé pour le pattern Singleton
     * 
     * @param string $basePath Chemin de base de l'application
@@ -366,6 +373,12 @@ class Application implements ApplicationInterface
    {
       $this->webRouterPath = $web;
       $this->apiRouterPath = $api;
+
+      if (file_exists($this->basePath . '/routes/craftpanel.php'))
+      {
+         $this->craftRouterPath = $this->basePath . '/routes/craftpanel.php';
+      }
+
       return $this;
    }
 
@@ -397,17 +410,10 @@ class Application implements ApplicationInterface
       if ($this->apiRouterPath && file_exists($this->apiRouterPath)) {
          require $this->apiRouterPath;
       }
+
+      if ($this->craftRouterPath && file_exists($this->craftRouterPath)) {
+         require $this->craftRouterPath;
+      }
    }
 
-   /**
-    * Vérifie si un chemin est absolu
-    * 
-    * @param string $path Le chemin à vérifier
-    * @return bool
-    */
-   private function isAbsolutePath(string $path): bool
-   {
-      return str_starts_with($path, '/') || str_starts_with($path, '\\') ||
-         preg_match('~^[a-zA-Z]:[/\\\\]~', $path) === 1;
-   }
 }
