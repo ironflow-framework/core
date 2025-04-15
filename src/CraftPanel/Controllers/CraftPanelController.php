@@ -5,13 +5,11 @@ namespace IronFlow\CraftPanel\Controllers;
 use IronFlow\Http\Controller;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Support\Flash;
 use IronFlow\Support\Utils\Str;
 use IronFlow\Validation\Validator;
 use IronFlow\Support\Collection;
-use IronFlow\Support\Config;
-use IronFlow\Support\Paginator;
-use IronFlow\Support\Excel;
+use IronFlow\Support\Facades\Config;
+use IronFlow\Support\Facades\Excel;
 
 class CraftPanelController extends Controller
 {
@@ -41,7 +39,7 @@ class CraftPanelController extends Controller
         $stats = $this->getDashboardStats();
         $models = $this->getAdminModels();
 
-        return $this->view('CraftPanel::dashboard', [
+        return $this->view('Craft.dashboard', [
             'stats' => $stats,
             'models' => $models,
             'title' => Config::get('craftpanel.title'),
@@ -109,14 +107,14 @@ class CraftPanelController extends Controller
         $validator = Validator::make($data, $modelClass::getValidationRules());
 
         if ($validator->validate()) {
-            return $this->back()->with('errors', $validator->errors());
+            return $this->back()->withErrors( $validator->errors());
         }
 
         $item = $modelClass::create($data);
         logger()->info("Nouvel élément créé dans le modèle {$model}", ['id' => $item->id]);
-        Flash::success('L\'élément a été créé avec succès.');
+        session()->success('L\'élément a été créé avec succès.');
 
-        return $this->redirect('craftpanel.index')->with('model', $model);
+        return $this->redirect('craftpanel.index')->with(['model' => $model]);
     }
 
     /**
@@ -161,7 +159,7 @@ class CraftPanelController extends Controller
         $validator = Validator::make($data, $modelClass::getValidationRules());
 
         if ($validator->validate()) {
-            return $this->back()->with('errors', $validator->errors());
+            return $this->back()->withErrors($validator->errors());
         }
 
         $oldData = $item->toArray();
@@ -170,7 +168,7 @@ class CraftPanelController extends Controller
             'id' => $id,
             'changes' => array_diff_assoc($item->toArray(), $oldData)
         ]);
-        Flash::success('L\'élément a été mis à jour avec succès.');
+        session()->success('L\'élément a été mis à jour avec succès.');
 
         return $this->redirect('craftpanel.index', ['model' => $model]);
     }
@@ -190,9 +188,9 @@ class CraftPanelController extends Controller
         $item = $modelClass::find($id);
         $item->delete();
         logger()->info("Élément supprimé du modèle {$model}", ['id' => $id]);
-        Flash::success('L\'élément a été supprimé avec succès.');
+        session()->success('L\'élément a été supprimé avec succès.');
 
-        return $this->redirect('craftpanel.index', ['model' => $model]);
+        return $this->redirect('craftpanel.index')->with(['model', $model]);
     }
 
     /**
@@ -210,9 +208,15 @@ class CraftPanelController extends Controller
      * Met à jour les paramètres
      * @return Response
      */
-    public function updateSettings(): Response
+    public function updateSettings(Request $request): Response
     {
-        // TODO: Implémenter la mise à jour des paramètres
+        $this->checkModelPermission($this->model, 'update');
+        $this->checkModelExists($this->model);
+
+        $modelClass = $this->getModelClass($this->model);
+        $modelClass::update($request->all());
+        logger()->info("Paramètres du modèle {$this->model} mis à jour");
+        session()->success('Les paramètres ont été mis à jour avec succès.');
         return $this->redirect('craftpanel.settings');
     }
 

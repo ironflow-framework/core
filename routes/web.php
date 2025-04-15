@@ -17,11 +17,6 @@ Route::get('/', [WelcomeController::class, 'index'])->name('home');
 // Routes pour l'authentification
 Route::auth();
 
-// Routes pour le dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])
-   ->middleware('auth')
-   ->name('dashboard');
-
 // Routes pour les articles
 Route::resource('posts', PostController::class);
 Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');

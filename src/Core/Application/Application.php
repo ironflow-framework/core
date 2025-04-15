@@ -374,9 +374,9 @@ class Application implements ApplicationInterface
       $this->webRouterPath = $web;
       $this->apiRouterPath = $api;
 
-      if (file_exists($this->basePath . '/routes/craftpanel.php'))
+      if (file_exists($this->basePath . '/routes/craft.php'))
       {
-         $this->craftRouterPath = $this->basePath . '/routes/craftpanel.php';
+         $this->craftRouterPath = $this->basePath . '/routes/craft.php';
       }
 
       return $this;

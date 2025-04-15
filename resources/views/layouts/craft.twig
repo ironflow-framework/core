@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CraftPanel{% endblock %} - IronFlow</title>
+    <link rel="stylesheet" href="/assets/craft/css/craft.css">
+    <script src="/assets/craft/js/craft.js" defer></script>
+</head>
+<body class="bg-forge-900 text-white">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-forge-800 border-r border-forge-700">
+            <div class="p-4">
+                <h1 class="text-2xl font-bold text-forge-100">CraftPanel</h1>
+            </div>
+            <nav class="mt-4">
+                {% for model in craft.getRegisteredModels() %}
+                <a href="/craft/{{ model|lower }}" class="flex items-center px-4 py-2 text-forge-300 hover:bg-forge-700 hover:text-white">
+                    <span class="mr-2">{{ craft.getModelConfig(model).icon|default('database') }}</span>
+                    {{ craft.getModelConfig(model).displayName }}
+                </a>
+                {% endfor %}
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 overflow-auto">
+            <header class="bg-forge-800 border-b border-forge-700 p-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-semibold">{% block header %}Dashboard{% endblock %}</h2>
+                    <div class="flex items-center space-x-4">
+                        <!-- User menu -->
+                        <div class="relative">
+                            <button class="flex items-center text-sm">
+                                <span class="mr-2">{{ auth.user.name }}</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-6">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

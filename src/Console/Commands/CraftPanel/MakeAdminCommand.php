@@ -3,140 +3,103 @@
 namespace IronFlow\Console\Commands\CraftPanel;
 
 use IronFlow\Support\Facades\Config;
+use IronFlow\Support\Facades\Validator;
+use IronFlow\Support\Security\Hasher;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use IronFlow\Support\Security\Hasher;
-use IronFlow\Validation\Validator;
+use Symfony\Component\Console\Question\Question;
 
 class MakeAdminCommand extends Command
 {
-    protected static $defaultName = 'craftpanel:make-admin';
-    protected static $defaultDescription = 'Assistant de création d\'un administrateur pour le CraftPanel';
+    protected static $defaultName = 'craft:make-admin';
+    protected static $defaultDescription = 'Crée un nouvel administrateur pour le CraftPanel';
+
+    protected function configure(): void
+    {
+        $this
+            ->addOption('email', null, InputOption::VALUE_OPTIONAL, 'Email de l\'administrateur')
+            ->addOption('password', null, InputOption::VALUE_OPTIONAL, 'Mot de passe de l\'administrateur')
+            ->addOption('name', null, InputOption::VALUE_OPTIONAL, 'Nom de l\'administrateur');
+    }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-
         $io->title('Assistant de création d\'administrateur CraftPanel');
 
-        // Validation d'email
-        $validator = new Validator();
-        $validator->addRule('email', 'required|email');
-        $validator->addRule('password', 'required|min:8');
-        $validator->addRule('name', 'string|max:255');
-
-        do {
-            $email = $io->ask('Entrez l\'adresse email de l\'administrateur', null, function ($email) use ($validator, $io) {
-                if (!$validator->validate(['email', $email])) {
-                    $io->error($validator->errors());
-                    return null;
-                }
-                return $email;
-            });
-        } while (!$validator->validate(['email', $email]));
-
-        do {
-            $password = $io->askHidden('Entrez le mot de passe', function ($password) use ($validator, $io) {
-                if (!$validator->validate(['password', $password])) {
-                    $io->error($validator->errors());
-                    return null;
-                }
-                return $password;
-            });
-        } while (!$validator->validate(['password', $password]));
-
-        do {
-            $name = $io->ask("Nom de l\'administrateur", null, function ($name) use ($validator, $io) {
-                if (!$validator->validate(['name', $name])) {
-                    $io->error($validator->errors());
-                    return null;
-                }
-                return $name;
-            });
-        } while (!$validator->validate(['name', $name]));
-
-        // Confirmation
-        $this->recap($io, [
-            ['Email', $email],
-            ['Nom', $name],
-            ['Mot de passe', $password]
-        ]);
-
         try {
-            $this->createRole('admin', $io);
-            $user = $this->createAdmin($email, $password, $name);
-            $this->assignAdminPermissions($user);
+            // Récupération des informations
+            $email = $input->getOption('email') ?? $this->askForEmail($io);
+            $password = $input->getOption('password') ?? $this->askForPassword($io);
+            $name = $input->getOption('name') ?? $this->askForName($io);
+
+            // Validation
+            $validator = Validator::make([
+                'email' => $email,
+                'password' => $password,
+                'name' => $name
+            ], [
+                'email' => 'required|email',
+                'password' => 'required|min:8',
+                'name' => 'required|string|max:255'
+            ]);
+
+            if (!$validator->passes()) {
+                foreach ($validator->errors() as $error) {
+                    $io->error($error);
+                }
+                return Command::FAILURE;
+            }
+
+            // Création de l'administrateur
+            $this->createAdmin($email, $password, $name);
 
             $io->success('Administrateur créé avec succès !');
-
-            $io->table(
-                ['Champ', 'Valeur'],
-                [
-                    ['Email', $email],
-                    ['Nom', $name],
-                    ['Mot de passe', $password]
-                ]
-            );
-
             return Command::SUCCESS;
+
         } catch (\Exception $e) {
-            $io->error('Erreur lors de la création : ' . $e->getMessage());
+            $io->error('Erreur lors de la création de l\'administrateur : ' . $e->getMessage());
             return Command::FAILURE;
         }
     }
 
-    private function recap(SymfonyStyle $io, array $admin)
+    protected function askForEmail(SymfonyStyle $io): string
     {
-        $io->section('Récapitulatif');
-        $io->table(['Champ', 'Valeur'], $admin);
-
-        if ($io->confirm('Voulez-vous continuer ?')) {
-            $io->warning('Création de l\'administrateur annulée.');
-            return;
-        }
-
-        return Command::FAILURE;
+        return $io->ask('Email de l\'administrateur', null, function ($email) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('Email invalide');
+            }
+            return $email;
+        });
     }
 
-    private function createRole(string $name, SymfonyStyle $io)
+    protected function askForPassword(SymfonyStyle $io): string
     {
-        $roleClass = Config::get('auth.providers.roles.model');
+        $question = new Question('Mot de passe de l\'administrateur');
+        $question->setHidden(true);
+        $question->setHiddenFallback(false);
 
-        if (!$roleClass) {
-            $io->error('Le modèle de rôle n\'est pas configuré.');
-            return;
-        }
-
-        $roleClass::create([
-            'name' => $name,
-        ]);
+        return $io->askQuestion($question);
     }
 
-    private function createAdmin(string $email, string $password, string $name)
+    protected function askForName(SymfonyStyle $io): string
+    {
+        return $io->ask('Nom de l\'administrateur');
+    }
+
+    protected function createAdmin(string $email, string $password, string $name): void
     {
         $userClass = Config::get('auth.providers.users.model');
-
-        return $userClass::create([
-            'name' => $name,
-            'email' => $email,
-            'password' => Hasher::hash($password),
-            'role' => 'admin'
-        ]);
-    }
-
-    private function assignAdminPermissions($user): void
-    {
-        $permissions = Config::get('craftpanel.permissions', [
-            'view_dashboard',
-            'manage_users',
-            'manage_settings',
-            'crud_all_models'
-        ]);
-
-        foreach ($permissions as $permission) {
-            $user->assignPermission($permission);
-        }
+        $user = new $userClass();
+        
+        $user->email = $email;
+        $user->password = Hasher::hash($password);
+        $user->name = $name;
+        $user->is_admin = true;
+        
+        $user->save();
     }
 }

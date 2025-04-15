@@ -24,7 +24,7 @@ class Router implements RouterInterface
    /**
     * La collection de routes
     */
-   private ?RouteCollection $routes = null;
+   private RouteCollection $routes;
 
    /**
     * Les middlewares globaux
@@ -43,7 +43,7 @@ class Router implements RouterInterface
    /**
     * Le préfixe du groupe de routes actuel
     */
-   private string|null $currentGroupPrefix = null;
+   private ?string $currentGroupPrefix = null;
 
    /**
     * La dernière route ajoutée
@@ -67,21 +67,12 @@ class Router implements RouterInterface
    }
 
    /**
-    * Initialise le routeur
-    */
-   public static function init(): void
-   {
-      if (self::$routes === null) {
-         self::$routes = new RouteCollection();
-      }
-   }
-
-   /**
     * Ajoute une route
     * 
     * @param string $method La méthode HTTP
     * @param string $path L'URI de la route
     * @param mixed $handler L'action à exécuter
+    * @return Route La route créée
     */
    public function addRoute(string $method, string $path, mixed $handler): Route
    {
@@ -96,13 +87,28 @@ class Router implements RouterInterface
       );
 
       if ($this->currentGroupPrefix !== null) {
-         $route->setPath($this->currentGroupPrefix . '/' . ltrim($path, '/'));
+         $route->setPath($this->normalizePath($this->currentGroupPrefix . '/' . ltrim($path, '/')));
       }
 
       $this->routes->add($method . '_' . $path, $route);
       $this->lastRoute = $route;
 
       return $route;
+   }
+
+   /**
+    * Normalise un chemin d'URL en supprimant les barres obliques redondantes
+    * 
+    * @param string $path Le chemin à normaliser
+    * @return string Le chemin normalisé
+    */
+   private function normalizePath(string $path): string
+   {
+      // Remplace les séquences multiples de "/" par un seul "/"
+      $path = preg_replace('#/+#', '/', $path);
+      
+      // Supprime le "/" trailing s'il existe, sauf si c'est le seul caractère
+      return $path !== '/' ? rtrim($path, '/') : $path;
    }
 
    /**
@@ -140,7 +146,7 @@ class Router implements RouterInterface
     */
    public function put(string $uri, array|callable $action): self
    {
-      $this->addRoute('POST', $uri, $action);
+      $this->addRoute('PUT', $uri, $action);
       return $this;
    }
 
@@ -153,7 +159,33 @@ class Router implements RouterInterface
     */
    public function delete(string $uri, array|callable $action): self
    {
-      $this->addRoute('POST', $uri, $action);
+      $this->addRoute('DELETE', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute une route PATCH
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function patch(string $uri, array|callable $action): self
+   {
+      $this->addRoute('PATCH', $uri, $action);
+      return $this;
+   }
+
+   /**
+    * Ajoute une route OPTIONS
+    * 
+    * @param string $uri L'URI de la route
+    * @param array|callable $action L'action à exécuter
+    * @return self
+    */
+   public function options(string $uri, array|callable $action): self
+   {
+      $this->addRoute('OPTIONS', $uri, $action);
       return $this;
    }
 
@@ -167,19 +199,24 @@ class Router implements RouterInterface
     */
    public function group(string $prefix, callable $callback, array $attributes = []): self
    {
+      // Sauvegarde de l'état actuel
       $previousPrefix = $this->currentGroupPrefix;
 
+      // Définition du nouveau préfixe
       if ($previousPrefix !== null) {
-         $this->currentGroupPrefix = $previousPrefix . '/' . ltrim($prefix, '/');
+         $this->currentGroupPrefix = $this->normalizePath($previousPrefix . '/' . ltrim($prefix, '/'));
       } else {
          $this->currentGroupPrefix = rtrim($prefix, '/');
       }
 
+      // Gestion des middlewares du groupe
       $previousMiddleware = $this->middleware;
       $this->middleware = array_merge($this->middleware, $attributes['middleware'] ?? []);
 
-      $callback();
+      // Exécution du callback avec le nouveau contexte
+      $callback($this);
 
+      // Restauration de l'état précédent
       $this->currentGroupPrefix = $previousPrefix;
       $this->middleware = $previousMiddleware;
 
@@ -192,18 +229,22 @@ class Router implements RouterInterface
     * @param array<string> $methods Les méthodes HTTP
     * @param string $uri L'URI de la route
     * @param array|callable $action L'action à exécuter
+    * @return self
     */
-   public function match(array $methods, string $uri, array|callable $action): void
+   public function match(array $methods, string $uri, array|callable $action): self
    {
       foreach ($methods as $method) {
-         $this->addRoute($method, $uri, $action);
+         $this->addRoute(strtoupper($method), $uri, $action);
       }
+      return $this;
    }
 
    /**
     * Ajoute les routes d'authentification par défaut
+    * 
+    * @return self
     */
-   public function auth(): void
+   public function auth(): self
    {
       $this->get('/login', [AuthController::class, 'showLoginForm'])->name('login');
       $this->post('/login', [AuthController::class, 'login']);
@@ -214,6 +255,8 @@ class Router implements RouterInterface
       $this->post('/password/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
       $this->get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
       $this->post('/password/reset', [AuthController::class, 'reset'])->name('password.update');
+      
+      return $this;
    }
 
    /**
@@ -225,27 +268,31 @@ class Router implements RouterInterface
     */
    public function resource(string $name, string $controller): self
    {
+      // Normaliser le nom de ressource
+      $basePath = $this->normalizePath($name);
+      
       // Route index (liste)
-      $this->get($name, [$controller, 'index'])->name($name . '.index');
+      $this->get($basePath, [$controller, 'index'])->name($name . '.index');
 
       // Route create (formulaire de création)
-      $this->get($name . '/create', [$controller, 'create'])->name($name . '.create');
+      $this->get($basePath . '/create', [$controller, 'create'])->name($name . '.create');
 
       // Route store (stockage)
-      $this->post($name, [$controller, 'store'])->name($name . '.store');
+      $this->post($basePath, [$controller, 'store'])->name($name . '.store');
 
       // Route show (affichage)
-      $this->get($name . '/{id}', [$controller, 'show'])->name($name . '.show');
+      $this->get($basePath . '/{id}', [$controller, 'show'])->name($name . '.show');
 
-      // Routes edit (formulaire de modification) - deux formats
-      $this->get($name . '/{id}/edit', [$controller, 'edit'])->name($name . '.edit');
-      $this->get($name . '/edit/{id}', [$controller, 'edit'])->name($name . '.edit.alt');
+      // Route edit (formulaire de modification)
+      $this->get($basePath . '/{id}/edit', [$controller, 'edit'])->name($name . '.edit');
 
-      // Routes update
-      $this->put($name . '/update/{id}', [$controller, 'update'])->name($name . '.update');
+      // Route update
+      $this->put($basePath . '/{id}', [$controller, 'update'])->name($name . '.update');
+      // Support pour les formulaires qui ne peuvent pas envoyer PUT directement
+      $this->patch($basePath . '/{id}', [$controller, 'update'])->name($name . '.update.patch');
 
-      // Routes destroy
-      $this->delete($name . '/delete/{id}', [$controller, 'destroy'])->name($name . '.destroy');
+      // Route destroy
+      $this->delete($basePath . '/{id}', [$controller, 'destroy'])->name($name . '.destroy');
 
       return $this;
    }
@@ -260,7 +307,7 @@ class Router implements RouterInterface
    {
       if ($this->lastRoute) {
          $currentPath = $this->lastRoute->getPath();
-         $this->lastRoute->setPath($prefix . '/' . ltrim($currentPath, '/'));
+         $this->lastRoute->setPath($this->normalizePath($prefix . '/' . ltrim($currentPath, '/')));
       }
       return $this;
    }
@@ -283,14 +330,15 @@ class Router implements RouterInterface
    /**
     * Ajoute des middlewares à la dernière route
     * 
-    * @param string|array $middleware Les middlewares à ajouter
+    * @param string|array<string> $middleware Les middlewares à ajouter
     * @return self
     */
    public function middleware(string|array $middleware): self
    {
       if ($this->lastRoute) {
          $currentMiddleware = $this->lastRoute->getDefault('_middleware') ?? [];
-         $this->lastRoute->setDefault('_middleware', array_merge($currentMiddleware, (array) $middleware));
+         $newMiddleware = is_array($middleware) ? $middleware : [$middleware];
+         $this->lastRoute->setDefault('_middleware', array_merge($currentMiddleware, $newMiddleware));
       }
       return $this;
    }
@@ -310,6 +358,7 @@ class Router implements RouterInterface
     * 
     * @param string $name Le nom de la route
     * @return Route
+    * @throws HttpException Si la route n'existe pas
     */
    public function getRoute(string $name): Route
    {
@@ -342,44 +391,83 @@ class Router implements RouterInterface
    {
       $path = $request->getPathInfo();
       $method = $request->getMethod();
+      
+      // Normaliser le chemin de la requête
+      $path = $this->normalizePath($path);
 
+      // Tableau pour stocker les routes correspondantes par leur score de correspondance
+      $matchingRoutes = [];
+      
       foreach ($this->routes as $name => $route) {
-         if ($route->getMethods() === [$method]) {
-            // Convertir le pattern de la route en expression régulière
-            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $route->getPath());
-            $pattern = '#^' . $pattern . '$#';
+         // Vérifier si la méthode HTTP correspond
+         if (!in_array($method, $route->getMethods(), true)) {
+            continue;
+         }
+         
+         // Convertir le pattern de la route en expression régulière
+         $routePath = $route->getPath();
+         $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routePath);
+         $pattern = '#^' . $pattern . '$#';
 
-            if (preg_match($pattern, $path, $matches)) {
-               // Extraire les paramètres de l'URL
-               $params = array_filter($matches, function ($key) {
-                  return !is_numeric($key);
-               }, ARRAY_FILTER_USE_KEY);
-
-               // Ajouter les paramètres à la requête
-               foreach ($params as $key => $value) {
-                  $request->attributes->set((string)$key, $value);
-               }
-
-               $controller = $route->getDefault('_controller');
-               if (is_array($controller)) {
-                  [$class, $method] = $controller;
-                  $instance = $this->container->make($class);
-
-                  // Récupérer les paramètres de la route
-                  $routeParams = [];
-                  foreach ($params as $key => $value) {
-                     $routeParams[] = $value;
-                  }
-
-                  // Appeler la méthode du contrôleur avec la requête et les paramètres
-                  return call_user_func_array([$instance, $method], array_merge([$request], $routeParams));
-               }
-               return $controller($request);
-            }
+         if (preg_match($pattern, $path, $matches)) {
+            // Extraire les paramètres de l'URL
+            $params = array_filter($matches, function ($key) {
+               return !is_numeric($key);
+            }, ARRAY_FILTER_USE_KEY);
+            
+            // Calculer un score de correspondance (plus le chemin est spécifique, plus le score est élevé)
+            $score = count(explode('/', trim($routePath, '/')));
+            
+            // Stocker la route et ses paramètres
+            $matchingRoutes[] = [
+                'score' => $score,
+                'route' => $route,
+                'params' => $params
+            ];
          }
       }
-
-      throw new HttpException(404, "Route non trouvée : {$path}");
+      
+      // Si aucune route ne correspond, lancer une exception
+      if (empty($matchingRoutes)) {
+         throw new HttpException(404, "Route non trouvée : {$path}");
+      }
+      
+      // Trier les routes par score (de la plus spécifique à la moins spécifique)
+      usort($matchingRoutes, function($a, $b) {
+         return $b['score'] - $a['score'];
+      });
+      
+      // Prendre la route la plus spécifique
+      $bestMatch = $matchingRoutes[0];
+      $route = $bestMatch['route'];
+      $params = $bestMatch['params'];
+      
+      // Ajouter les paramètres à la requête
+      foreach ($params as $key => $value) {
+         $request->attributes->set((string) $key, $value);
+      }
+      
+      // Exécuter les middlewares de la route
+      $middlewares = $route->getDefault('_middleware') ?? [];
+      // TODO: Implémenter l'exécution des middlewares
+      
+      // Exécuter le contrôleur
+      $controller = $route->getDefault('_controller');
+      
+      if (is_array($controller)) {
+         [$class, $method] = $controller;
+         $instance = $this->container->make($class);
+         
+         // Récupérer les paramètres comme tableau
+         $routeParams = array_values($params);
+         
+         // Appeler la méthode du contrôleur avec la requête et les paramètres
+         return call_user_func_array([$instance, $method], array_merge([$request], $routeParams));
+      } elseif (is_callable($controller)) {
+         return $controller($request, ...(array_values($params)));
+      }
+      
+      throw new HttpException(500, "Controller is not callable");
    }
 
    /**
@@ -388,13 +476,23 @@ class Router implements RouterInterface
     * @param string $name Le nom de la route
     * @param array<string, mixed> $parameters Les paramètres de la route
     * @return string L'URL générée
+    * @throws HttpException Si la route n'existe pas ou si des paramètres sont manquants
     */
    public function generateUrl(string $name, array $parameters = []): string
    {
       $route = $this->getRoute($name);
       $path = $route->getPath();
+      
+      // Vérifier les paramètres requis
+      preg_match_all('/\{([a-zA-Z0-9_]+)\}/', $path, $requiredParams);
+      
+      foreach ($requiredParams[1] as $param) {
+         if (!isset($parameters[$param])) {
+            throw new HttpException(500, "Missing parameter [{$param}] for route [{$name}]");
+         }
+      }
 
-      // Remplacer les paramètres dans l'URL en utilisant une expression régulière
+      // Remplacer les paramètres dans l'URL
       foreach ($parameters as $key => $value) {
          $path = preg_replace('/\{' . preg_quote($key, '/') . '\}/', (string) $value, $path);
       }

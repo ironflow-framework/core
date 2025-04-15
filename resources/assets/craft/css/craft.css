@@ -1,0 +1,61 @@
+@import "tailwindcss/preflight";
+
+/* Custom Forge theme colors */
+:root {
+    --forge-50: #f9fafb;
+    --forge-100: #f3f4f6;
+    --forge-200: #e5e7eb;
+    --forge-300: #d1d5db;
+    --forge-400: #9ca3af;
+    --forge-500: #6b7280;
+    --forge-600: #4b5563;
+    --forge-700: #374151;
+    --forge-800: #1f2937;
+    --forge-900: #111827;
+    --forge-accent: #ff6b6b;
+}
+
+/* Base styles */
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom components */
+.btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+.btn-primary {
+    @apply bg-forge-accent text-white hover:bg-forge-accent/90;
+}
+
+.btn-secondary {
+    @apply bg-forge-700 text-white hover:bg-forge-600;
+}
+
+/* Table styles */
+.craft-table {
+    @apply w-full bg-forge-800 rounded-lg overflow-hidden;
+}
+
+.craft-table th {
+    @apply px-6 py-3 bg-forge-700 text-left text-xs font-medium text-forge-300 uppercase tracking-wider;
+}
+
+.craft-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-forge-300 border-t border-forge-700;
+}
+
+/* Form styles */
+.craft-input {
+    @apply bg-forge-700 border border-forge-600 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-forge-accent;
+}
+
+.craft-label {
+    @apply block text-sm font-medium text-forge-300 mb-1;
+}
+
+/* Card styles */
+.craft-card {
+    @apply bg-forge-800 rounded-lg p-6 border border-forge-700;
+}

@@ -82,4 +82,24 @@ class Session extends BaseSession
         session_regenerate_id();
         return true;
     }
+
+    public function success(string $message): void
+    {
+        $this->flash('success', $message);
+    }
+
+    public function error(string $message): void
+    {
+        $this->flash('error', $message);
+    }
+
+    public function warning(string $message): void
+    {
+        $this->flash('warning', $message);
+    }
+
+    public function info(string $message): void
+    {
+        $this->flash('info', $message);
+    }
 }

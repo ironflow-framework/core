@@ -3,10 +3,9 @@
 namespace IronFlow\CraftPanel\Middleware;
 
 use IronFlow\Http\Middleware;
-use IronFlow\Http\Redirect;
 use IronFlow\Http\Response;
 use IronFlow\Http\Request;
-use IronFlow\Support\Config;
+use IronFlow\Support\Facades\Config;
 
 class CraftPanelAuthMiddleware extends Middleware
 {
@@ -21,7 +20,7 @@ class CraftPanelAuthMiddleware extends Middleware
     {
         // Vérifier si l'utilisateur est connecté
         if (!auth()->check()) {
-            return Redirect::guest(Config::get('auth.login.route', 'login'));
+            return Response::redirect(Config::get('auth.login.route', 'login'));
         }
 
         // Vérifier si l'utilisateur a accès au CraftPanel

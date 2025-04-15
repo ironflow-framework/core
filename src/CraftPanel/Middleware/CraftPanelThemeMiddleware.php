@@ -5,7 +5,7 @@ namespace IronFlow\CraftPanel\Middleware;
 use IronFlow\Http\Middleware;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
-use IronFlow\Support\Config;
+use IronFlow\Support\Facades\Config;
 
 class CraftPanelThemeMiddleware extends Middleware
 {
