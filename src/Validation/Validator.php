@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace IronFlow\Validation;
 
+use IronFlow\Validation\Rules\RuleInterface;
+use IronFlow\Validation\Exceptions\ValidationException;
+
 class Validator
 {
    /**
@@ -27,6 +30,11 @@ class Validator
    private array $customMessages = [];
 
    /**
+    * Les attributs personnalisés
+    */
+   private array $customAttributes = [];
+
+   /**
     * Les données validées
     */
    private array $validated = [];
@@ -34,104 +42,191 @@ class Validator
    /**
     * Crée une nouvelle instance du validateur
     */
-   public static function make(array $data, array $rules, array $messages = []): self
+   public static function make(array $data, array $rules, array $messages = [], array $attributes = []): self
    {
-      return new self($data, $rules, $messages);
+      return new self($data, $rules, $messages, $attributes);
    }
 
    /**
     * Constructeur
     */
-   public function __construct(array $data, array $rules, array $messages = [])
+   public function __construct(array $data, array $rules, array $messages = [], array $attributes = [])
    {
       $this->data = $data;
-      $this->rules = $rules;
+      $this->rules = $this->parseRules($rules);
       $this->customMessages = $messages;
+      $this->customAttributes = $attributes;
    }
 
    /**
     * Valide les données
     */
-   public function validate(): bool
+   public function validate(): array
    {
+      $this->errors = [];
+      $this->validated = [];
+
       foreach ($this->rules as $field => $rules) {
-         $value = $this->data[$field] ?? null;
+         $value = $this->getValue($field);
 
          foreach ($rules as $rule) {
             if (!$this->validateRule($field, $value, $rule)) {
                break;
             }
          }
+
+         if (!isset($this->errors[$field])) {
+            $this->validated[$field] = $value;
+         }
       }
 
-      return empty($this->errors);
+      if (!empty($this->errors)) {
+         throw new ValidationException('Les données fournies sont invalides.', $this->errors);
+      }
+
+      return $this->validated;
    }
 
    /**
     * Valide une règle
     */
-   protected function validateRule(string $field, mixed $value, string|Rule $rule): bool
+   private function validateRule(string $field, mixed $value, RuleInterface $rule): bool
    {
-      if (is_string($rule)) {
-         $rule = $this->parseRule($rule);
+      if (!$rule->passes($field, $value, $this->data)) {
+         $this->addError($field, $this->formatMessage($field, $rule));
+         return false;
       }
 
-      if (!$rule instanceof Rule) {
-         throw new \InvalidArgumentException('La règle doit être une instance de Rule ou une chaîne de caractères valide');
-      }
-
-      $result = $rule->validate($field, $value, $rule->getParameters(), $this->data);
-
-      if (!$result) {
-         $this->addError($field, $rule->getMessage());
-      }
-
-      if ($result) {
-         $this->validated[$field] = $value;
-      }
-
-      return $result;
+      return true;
    }
 
    /**
-    * Parse une règle sous forme de chaîne
+    * Récupère la valeur d'un champ
     */
-   protected function parseRule(string $rule): Rule
+   private function getValue(string $field): mixed
    {
-      $parts = explode(':', $rule);
-      $ruleName = $parts[0];
-      $parameters = [];
+      $value = $this->data[$field] ?? null;
 
-      if (isset($parts[1])) {
-         $parameters = explode(',', $parts[1]);
+      if (is_string($value)) {
+         $value = trim($value);
       }
 
-      $ruleClass = 'IronFlow\\Validation\\Rules\\' . ucfirst($ruleName);
+      return $value;
+   }
+
+   /**
+    * Parse les règles
+    */
+   private function parseRules(array $rules): array
+   {
+      $parsed = [];
+
+      foreach ($rules as $field => $fieldRules) {
+         $parsed[$field] = [];
+
+         $fieldRules = is_string($fieldRules) ? explode('|', $fieldRules) : $fieldRules;
+
+         foreach ($fieldRules as $rule) {
+            if ($rule instanceof RuleInterface) {
+               $parsed[$field][] = $rule;
+               continue;
+            }
+
+            $parsed[$field][] = $this->createRule($rule);
+         }
+      }
+
+      return $parsed;
+   }
+
+   /**
+    * Crée une règle
+    */
+   private function createRule(string $rule): RuleInterface
+   {
+      if (str_contains($rule, ':')) {
+         [$rule, $parameters] = explode(':', $rule, 2);
+         $parameters = explode(',', $parameters);
+      } else {
+         $parameters = [];
+      }
+
+      $ruleClass = 'IronFlow\\Validation\\Rules\\' . ucfirst($rule) . 'Rule';
 
       if (!class_exists($ruleClass)) {
-         throw new \InvalidArgumentException("Règle de validation inconnue : {$ruleName}");
+         throw new ValidationException("Règle de validation inconnue: {$rule}");
       }
 
       return new $ruleClass($parameters);
    }
 
    /**
+    * Formate un message d'erreur
+    */
+   private function formatMessage(string $field, RuleInterface $rule): string
+   {
+      $message = $this->customMessages[$field . '.' . $rule->getName()] ??
+         $this->customMessages[$rule->getName()] ??
+         $rule->getMessage();
+
+      return str_replace(
+         [':attribute', ':field'],
+         [$this->customAttributes[$field] ?? $field, $field],
+         $message
+      );
+   }
+
+   /**
     * Ajoute une erreur
     */
-   protected function addError(string $field, string $message): void
+   private function addError(string $field, string $message): void
    {
       if (!isset($this->errors[$field])) {
          $this->errors[$field] = [];
       }
+
       $this->errors[$field][] = $message;
    }
 
    /**
     * Récupère les erreurs
     */
-   public function getErrors(): array
+   public function errors(): array
    {
       return $this->errors;
+   }
+
+   /**
+    * Vérifie si la validation a échoué
+    */
+   public function fails(): bool
+   {
+      try {
+         $this->validate();
+         return false;
+      } catch (ValidationException $e) {
+         return true;
+      }
+   }
+
+   /**
+    * Vérifie si la validation a réussi
+    */
+   public function passes(): bool
+   {
+      return !$this->fails();
+   }
+
+   /**
+    * Récupère les données validées
+    */
+   public function validated(): array
+   {
+      if (empty($this->validated)) {
+         $this->validate();
+      }
+
+      return $this->validated;
    }
 
    /**
@@ -156,34 +251,14 @@ class Validator
    }
 
    /**
-    * Vérifie si la validation a réussi
+    * Ajoute des règles conditionnelles
     */
-   public function passes(): bool
+   public function sometimes(string $field, array|string $rules, callable $callback): self
    {
-      return $this->validate();
-   }
+      if ($callback($this->data)) {
+         $this->rules[$field] = $this->parseRules([$field => $rules])[$field];
+      }
 
-   /**
-    * Vérifie si la validation a échoué
-    */
-   public function fails(): bool
-   {
-      return !$this->passes();
-   }
-
-   /**
-    * Récupère les données validées
-    */
-   public function validated(): array
-   {
-      return $this->validated;
-   }
-
-   /**
-    * Récupère les erreurs de validation
-    */
-   public function errors(): array
-   {
-      return $this->errors;
+      return $this;
    }
 }

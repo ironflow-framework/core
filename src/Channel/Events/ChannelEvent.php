@@ -4,21 +4,13 @@ declare(strict_types=1);
 
 namespace IronFlow\Channel\Events;
 
+use IronFlow\Core\Event\Event;
+
 /**
  * Classe de base pour tous les événements des channels
  */
-class ChannelEvent
+class ChannelEvent extends Event
 {
-   /**
-    * Nom de l'événement
-    */
-   protected string $name;
-
-   /**
-    * Données associées à l'événement
-    */
-   protected array $data;
-
    /**
     * Utilisateur ayant déclenché l'événement
     */
@@ -38,30 +30,9 @@ class ChannelEvent
     */
    public function __construct(string $name, array $data = [], ?string $userId = null)
    {
-      $this->name = $name;
-      $this->data = $data;
+      parent::__construct($name, $data);
       $this->userId = $userId;
       $this->timestamp = time();
-   }
-
-   /**
-    * Renvoie le nom de l'événement
-    *
-    * @return string
-    */
-   public function getName(): string
-   {
-      return $this->name;
-   }
-
-   /**
-    * Renvoie les données de l'événement
-    *
-    * @return array
-    */
-   public function getData(): array
-   {
-      return $this->data;
    }
 
    /**
@@ -92,8 +63,8 @@ class ChannelEvent
    public function toArray(): array
    {
       return [
-         'name' => $this->name,
-         'data' => $this->data,
+         'name' => $this->getName(),
+         'data' => $this->getData(),
          'user_id' => $this->userId,
          'timestamp' => $this->timestamp
       ];

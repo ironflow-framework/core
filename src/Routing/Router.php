@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace IronFlow\Routing;
 
-use Symfony\Component\Routing\Route;
-use Symfony\Component\Routing\RouteCollection;
+use Closure;
 use IronFlow\Http\Request;
 use IronFlow\Http\Response;
+use IronFlow\Routing\Exceptions\RouteNotFoundException;
 use IronFlow\Core\Container\ContainerInterface;
 use App\Controllers\AuthController;
 use IronFlow\Core\Exceptions\HttpException;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\Matcher\UrlMatcher;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 /**
  * Gestionnaire de routage
@@ -56,6 +61,20 @@ class Router implements RouterInterface
    private ContainerInterface $container;
 
    /**
+    * Les patterns de paramètres personnalisés
+    * 
+    * @var array<string, string>
+    */
+   private array $patterns = [];
+
+   /**
+    * La pile des groupes de routes
+    * 
+    * @var array<array>
+    */
+   private array $groupStack = [];
+
+   /**
     * Crée une nouvelle instance du routeur
     * 
     * @param ContainerInterface $container Le conteneur d'injection de dépendances
@@ -64,6 +83,20 @@ class Router implements RouterInterface
    {
       $this->container = $container;
       $this->routes = new RouteCollection();
+      $this->registerDefaultPatterns();
+   }
+
+   /**
+    * Enregistre les patterns par défaut pour les paramètres de route
+    */
+   private function registerDefaultPatterns(): void
+   {
+      $this->patterns = [
+         'id' => '[0-9]+',
+         'slug' => '[a-z0-9-]+',
+         'uuid' => '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+         'any' => '.*',
+      ];
    }
 
    /**
@@ -79,11 +112,11 @@ class Router implements RouterInterface
       // Normaliser le chemin
       $normalizedPath = $this->normalizePath($path);
 
-      // Créer la route
+      // Créer la route avec les patterns personnalisés
       $route = new Route(
          $normalizedPath,
          ['_controller' => $handler],
-         [],
+         $this->compileRoutePatterns($normalizedPath),
          [],
          '',
          [],
@@ -98,11 +131,43 @@ class Router implements RouterInterface
       // Générer un nom unique pour la route
       $routeName = $method . '_' . $route->getPath();
 
+      // Ajouter les middlewares globaux à la route
+      $route->setDefault('_middleware', $this->middleware);
+
       // Ajouter la route à la collection
       $this->routes->add($routeName, $route);
       $this->lastRoute = $route;
 
       return $route;
+   }
+
+   /**
+    * Compile les patterns personnalisés pour une route
+    * 
+    * @param string $path Le chemin de la route
+    * @return array<string, string> Les patterns compilés
+    */
+   private function compileRoutePatterns(string $path): array
+   {
+      $requirements = [];
+
+      // Extraire les paramètres de la route
+      preg_match_all('/\{([a-zA-Z0-9_]+)(?::([^}]+))?\}/', $path, $matches, PREG_SET_ORDER);
+
+      foreach ($matches as $match) {
+         $paramName = $match[1];
+
+         // Si un pattern spécifique est défini dans la route avec {param:pattern}
+         if (isset($match[2])) {
+            $requirements[$paramName] = $match[2];
+         }
+         // Sinon, vérifier si un pattern est défini globalement
+         elseif (isset($this->patterns[$paramName])) {
+            $requirements[$paramName] = $this->patterns[$paramName];
+         }
+      }
+
+      return $requirements;
    }
 
    /**
@@ -208,26 +273,35 @@ class Router implements RouterInterface
     */
    public function group(string $prefix, callable $callback, array $attributes = []): self
    {
-      // Sauvegarde de l'état actuel
-      $previousPrefix = $this->currentGroupPrefix;
+      // Sauvegarde de l'état actuel pour la pile de groupes
+      $this->groupStack[] = [
+         'prefix' => $this->currentGroupPrefix,
+         'middleware' => $this->middleware
+      ];
 
       // Définition du nouveau préfixe
-      if ($previousPrefix !== null) {
-         $this->currentGroupPrefix = $this->normalizePath($previousPrefix . '/' . ltrim($prefix, '/'));
+      if ($this->currentGroupPrefix !== null) {
+         $this->currentGroupPrefix = $this->normalizePath($this->currentGroupPrefix . '/' . ltrim($prefix, '/'));
       } else {
          $this->currentGroupPrefix = rtrim($prefix, '/');
       }
 
       // Gestion des middlewares du groupe
-      $previousMiddleware = $this->middleware;
-      $this->middleware = array_merge($this->middleware, $attributes['middleware'] ?? []);
+      if (isset($attributes['middleware'])) {
+         $middlewareToAdd = is_array($attributes['middleware'])
+            ? $attributes['middleware']
+            : [$attributes['middleware']];
+
+         $this->middleware = array_merge($this->middleware, $middlewareToAdd);
+      }
 
       // Exécution du callback avec le nouveau contexte
       $callback($this);
 
       // Restauration de l'état précédent
-      $this->currentGroupPrefix = $previousPrefix;
-      $this->middleware = $previousMiddleware;
+      $lastGroup = array_pop($this->groupStack);
+      $this->currentGroupPrefix = $lastGroup['prefix'];
+      $this->middleware = $lastGroup['middleware'];
 
       return $this;
    }
@@ -398,91 +472,127 @@ class Router implements RouterInterface
     */
    public function dispatch(Request $request): Response
    {
-      $path = $request->getPathInfo();
-      $method = $request->getMethod();
+      try {
+         // Créer le contexte de la requête
+         $context = new RequestContext();
+         $context->fromRequest($request);
 
-      // Normaliser le chemin de la requête
-      $path = $this->normalizePath($path);
+         // Créer le matcher d'URL
+         $matcher = new UrlMatcher($this->routes, $context);
 
-      // Debug: Afficher les routes disponibles
-      // foreach ($this->routes as $name => $route) {
-      //    echo "Route: " . $name . " - Path: " . $route->getPath() . " - Methods: " . implode(', ', $route->getMethods()) . "\n";
-      // }
-      // echo "Request Path: " . $path . " - Method: " . $method . "\n";
+         // Trouver la route correspondante
+         $parameters = $matcher->match($request->getPathInfo());
 
-      // Tableau pour stocker les routes correspondantes par leur score de correspondance
-      $matchingRoutes = [];
+         // Extraire le contrôleur et les paramètres
+         $route = $this->routes->get($parameters['_route']);
 
-      foreach ($this->routes as $name => $route) {
-         // Vérifier si la méthode HTTP correspond
-         if (!in_array($method, $route->getMethods(), true)) {
-            continue;
+         // Exécuter les middlewares
+         $response = $this->runMiddleware($route, $request);
+         if ($response instanceof Response) {
+            return $response;
          }
 
-         // Convertir le pattern de la route en expression régulière
-         $routePath = $route->getPath();
-         $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routePath);
-         $pattern = '#^' . $pattern . '$#';
-
-         if (preg_match($pattern, $path, $matches)) {
-            // Extraire les paramètres de l'URL
-            $params = array_filter($matches, function ($key) {
-               return !is_numeric($key);
-            }, ARRAY_FILTER_USE_KEY);
-
-            // Calculer un score de correspondance (plus le chemin est spécifique, plus le score est élevé)
-            $score = count(explode('/', trim($routePath, '/')));
-
-            // Stocker la route et ses paramètres
-            $matchingRoutes[] = [
-               'score' => $score,
-               'route' => $route,
-               'params' => $params
-            ];
-         }
+         // Exécuter l'action de la route
+         return $this->runRoute($route, $request, $parameters);
+      } catch (ResourceNotFoundException $e) {
+         throw new RouteNotFoundException("Route non trouvée: {$request->getMethod()} {$request->getPathInfo()}", [], $e);
+      } catch (RouteNotFoundException $e) {
+         return new Response('Page non trouvée', 404);
       }
+   }
 
-      // Si aucune route ne correspond, lancer une exception
-      if (empty($matchingRoutes)) {
-         throw new HttpException(404, "Route non trouvée : {$path}");
-      }
-
-      // Trier les routes par score (de la plus spécifique à la moins spécifique)
-      usort($matchingRoutes, function ($a, $b) {
-         return $b['score'] - $a['score'];
-      });
-
-      // Prendre la route la plus spécifique
-      $bestMatch = $matchingRoutes[0];
-      $route = $bestMatch['route'];
-      $params = $bestMatch['params'];
-
-      // Ajouter les paramètres à la requête
-      foreach ($params as $key => $value) {
-         $request->attributes->set((string) $key, $value);
-      }
-
-      // Exécuter les middlewares de la route
+   /**
+    * Exécute les middlewares d'une route
+    *
+    * @param Route $route La route
+    * @param Request $request La requête
+    * @return Response|null Une réponse si un middleware interrompt le flux, null sinon
+    */
+   private function runMiddleware(Route $route, Request $request): ?Response
+   {
       $middlewares = $route->getDefault('_middleware') ?? [];
-      // TODO: Implémenter l'exécution des middlewares
 
-      // Exécuter le contrôleur
-      $controller = $route->getDefault('_controller');
+      foreach ($middlewares as $middleware) {
+         $instance = $this->container->make($middleware);
+         $response = $instance->handle($request, function ($request) {
+            return null;
+         });
 
-      if (is_array($controller)) {
-         [$class, $method] = $controller;
-         $instance = $this->container->make($class);
-
-         // Récupérer les paramètres comme tableau
-         $routeParams = array_values($params);
-
-         // Appeler la méthode du contrôleur avec la requête et les paramètres
-         return call_user_func_array([$instance, $method], array_merge([$request], $routeParams));
-      } elseif (is_callable($controller)) {
-         return $controller($request, ...(array_values($params)));
+         // Si le middleware retourne une réponse, on arrête le traitement
+         if ($response instanceof Response) {
+            return $response;
+         }
       }
 
-      throw new HttpException(500, "Controller is not callable");
+      return null;
+   }
+
+   /**
+    * Exécute l'action d'une route
+    *
+    * @param Route $route La route
+    * @param Request $request La requête
+    * @param array $parameters Les paramètres de la route
+    * @return Response La réponse
+    * @throws RouteNotFoundException Si l'action est invalide
+    */
+   private function runRoute(Route $route, Request $request, array $parameters): Response
+   {
+      $action = $route->getDefault('_controller');
+
+      if ($action instanceof Closure) {
+         // Injecter les paramètres de la route dans la fonction anonyme
+         return $action($request, ...array_filter($parameters, function ($key) {
+            return !str_starts_with($key, '_');
+         }, ARRAY_FILTER_USE_KEY));
+      }
+
+      if (is_array($action)) {
+         $class = $action[0];
+         $method = $action[1] ?? '__invoke';
+
+         return $this->runControllerAction($class, $method, $request, $parameters);
+      }
+
+      if (is_string($action)) {
+         // Gérer les actions au format "Controller@method"
+         if (strpos($action, '@') !== false) {
+            list($class, $method) = explode('@', $action, 2);
+            return $this->runControllerAction($class, $method, $request, $parameters);
+         }
+
+         // Gérer les actions au format "Controller"
+         return $this->runControllerAction($action, '__invoke', $request, $parameters);
+      }
+
+      throw new RouteNotFoundException('Action de route invalide');
+   }
+
+   /**
+    * Exécute une action de contrôleur
+    *
+    * @param string $class La classe du contrôleur
+    * @param string $method La méthode à appeler
+    * @param Request $request La requête
+    * @param array $parameters Les paramètres de la route
+    * @return Response La réponse
+    * @throws HttpException Si la méthode n'existe pas
+    */
+   private function runControllerAction(string $class, string $method, Request $request, array $parameters): Response
+   {
+      $controller = $this->container->make($class);
+
+      if (!method_exists($controller, $method)) {
+         throw new HttpException(500, "La méthode [{$method}] n'existe pas dans le contrôleur [{$class}]");
+      }
+
+      // Filtrer les paramètres internes qui commencent par '_'
+      $routeParams = array_filter($parameters, function ($key) {
+         return !str_starts_with($key, '_');
+      }, ARRAY_FILTER_USE_KEY);
+
+      // Appeler la méthode du contrôleur avec la requête et les paramètres de route
+      return $controller->{$method}($request, ...$routeParams);
    }
 
    /**
@@ -499,19 +609,98 @@ class Router implements RouterInterface
       $path = $route->getPath();
 
       // Vérifier les paramètres requis
-      preg_match_all('/\{([a-zA-Z0-9_]+)\}/', $path, $requiredParams);
+      preg_match_all('/\{([a-zA-Z0-9_]+)(?::[^}]+)?\}/', $path, $requiredParams);
 
       foreach ($requiredParams[1] as $param) {
          if (!isset($parameters[$param])) {
             throw new HttpException(500, "Missing parameter [{$param}] for route [{$name}]");
          }
+
+         // Valider le paramètre par rapport au pattern requis
+         $requirements = $route->getRequirements();
+         if (isset($requirements[$param]) && !preg_match('/^' . $requirements[$param] . '$/', (string)$parameters[$param])) {
+            throw new HttpException(500, "Parameter [{$param}] with value [{$parameters[$param]}] does not match the required pattern for route [{$name}]");
+         }
       }
 
-      // Remplacer les paramètres dans l'URL
+      // Remplacer les paramètres dans l'URL (supprimer aussi les portions de pattern {:pattern})
       foreach ($parameters as $key => $value) {
-         $path = preg_replace('/\{' . preg_quote($key, '/') . '\}/', (string) $value, $path);
+         $path = preg_replace('/\{' . preg_quote($key, '/') . '(?::[^}]+)?\}/', (string) $value, $path);
       }
 
       return $path;
+   }
+
+   /**
+    * Définit un pattern personnalisé pour un paramètre
+    *
+    * @param string $key Le nom du paramètre
+    * @param string $pattern Le pattern regex
+    * @return self
+    */
+   public function pattern(string $key, string $pattern): self
+   {
+      $this->patterns[$key] = $pattern;
+      return $this;
+   }
+
+   /**
+    * Récupère tous les patterns définis
+    * 
+    * @return array<string, string>
+    */
+   public function getPatterns(): array
+   {
+      return $this->patterns;
+   }
+
+   /**
+    * Récupère la pile des groupes
+    * 
+    * @return array
+    */
+   public function getGroupStack(): array
+   {
+      return $this->groupStack;
+   }
+
+   /**
+    * Récupère le préfixe de groupe actuel
+    * 
+    * @return string|null
+    */
+   public function getCurrentGroupPrefix(): ?string
+   {
+      return $this->currentGroupPrefix;
+   }
+
+   /**
+    * Récupère la dernière route ajoutée
+    * 
+    * @return Route|null
+    */
+   public function getLastRoute(): ?Route
+   {
+      return $this->lastRoute;
+   }
+
+   /**
+    * Récupère les routes nommées
+    * 
+    * @return array<string, Route>
+    */
+   public function getNamedRoutes(): array
+   {
+      return $this->namedRoutes;
+   }
+
+   /**
+    * Récupère les middlewares globaux
+    * 
+    * @return array<string>
+    */
+   public function getMiddleware(): array
+   {
+      return $this->middleware;
    }
 }

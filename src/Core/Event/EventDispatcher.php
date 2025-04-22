@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Event;
 
+use IronFlow\Core\Container\ContainerInterface;
+use IronFlow\Core\Event\Contracts\EventInterface;
+use IronFlow\Core\Event\Contracts\ListenerInterface;
+use IronFlow\Core\Event\Contracts\SubscriberInterface;
+use IronFlow\Core\Event\Exceptions\EventException;
+use IronFlow\Support\Facades\Str;
+
 /**
  * Gestionnaire d'événements
  * 
@@ -12,93 +19,184 @@ namespace IronFlow\Core\Event;
  */
 class EventDispatcher
 {
-   /**
-    * Les écouteurs d'événements enregistrés
-    * 
-    * @var array<string, array<callable>>
-    */
+   private static ?EventDispatcher $instance = null;
    private array $listeners = [];
+   private array $wildcards = [];
+   private array $sorted = [];
+   private ContainerInterface $container;
 
-   /**
-    * Ajoute un écouteur d'événement
-    * 
-    * @param string $eventName Le nom de l'événement
-    * @param callable $listener L'écouteur à ajouter
-    * @param int $priority La priorité de l'écouteur (plus le nombre est élevé, plus la priorité est haute)
-    */
-   public function addListener(string $eventName, callable $listener, int $priority = 0): void
+   private function __construct(ContainerInterface $container)
    {
-      if (!isset($this->listeners[$eventName])) {
-         $this->listeners[$eventName] = [];
-      }
-
-      $this->listeners[$eventName][] = [
-         'listener' => $listener,
-         'priority' => $priority
-      ];
+      $this->container = $container;
    }
 
-   /**
-    * Déclenche un événement
-    * 
-    * @param string $eventName Le nom de l'événement
-    * @param Event $event L'événement à distribuer
-    */
-   public function dispatch(string $eventName, Event $event): void
+   public static function getInstance(ContainerInterface $container): self
    {
-      if (!isset($this->listeners[$eventName])) {
-         return;
+      if (self::$instance === null) {
+         self::$instance = new self($container);
       }
-
-      // Trie les écouteurs par priorité
-      usort($this->listeners[$eventName], function ($a, $b) {
-         return $b['priority'] - $a['priority'];
-      });
-
-      foreach ($this->listeners[$eventName] as $listener) {
-         $listener['listener']($event);
-      }
+      return self::$instance;
    }
 
-   /**
-    * Supprime un écouteur d'événement
-    * 
-    * @param string $eventName Le nom de l'événement
-    * @param callable $listener L'écouteur à supprimer
-    */
-   public function removeListener(string $eventName, callable $listener): void
+   public function dispatch(string|EventInterface $event, array $payload = []): array
    {
-      if (!isset($this->listeners[$eventName])) {
-         return;
-      }
+      [$event, $payload] = $this->parseEventAndPayload($event, $payload);
 
-      foreach ($this->listeners[$eventName] as $key => $registered) {
-         if ($registered['listener'] === $listener) {
-            unset($this->listeners[$eventName][$key]);
+      $responses = [];
+
+      foreach ($this->getListeners($event) as $listener) {
+         $response = $this->callListener($listener, $event, $payload);
+         if ($response !== null) {
+            $responses[] = $response;
+         }
+
+         if ($event->isPropagationStopped()) {
             break;
+         }
+      }
+
+      return $responses;
+   }
+
+   public function listen(string|array $events, mixed $listener): void
+   {
+      foreach ((array) $events as $event) {
+         if (str_contains($event, '*')) {
+            $this->setupWildcardListener($event, $listener);
+         } else {
+            $this->listeners[$event][] = $this->makeListener($listener);
+            unset($this->sorted[$event]);
          }
       }
    }
 
-   /**
-    * Vérifie si un événement a des écouteurs
-    * 
-    * @param string $eventName Le nom de l'événement
-    * @return bool True si l'événement a des écouteurs
-    */
-   public function hasListeners(string $eventName): bool
+   public function subscribe(string $subscriber): void
    {
-      return isset($this->listeners[$eventName]) && !empty($this->listeners[$eventName]);
+      $subscriber = $this->container->make($subscriber);
+
+      if (!$subscriber instanceof SubscriberInterface) {
+         throw new EventException("Le subscriber doit implémenter SubscriberInterface");
+      }
+
+      foreach ($subscriber->getSubscribedEvents() as $event => $params) {
+         if (is_string($params)) {
+            $this->listen($event, [$subscriber, $params]);
+         } elseif (is_array($params)) {
+            foreach ($params as $method) {
+               $this->listen($event, [$subscriber, $method]);
+            }
+         }
+      }
    }
 
-   /**
-    * Récupère tous les écouteurs d'un événement
-    * 
-    * @param string $eventName
-    * @return array<callable>
-    */
-   public function getListeners(string $eventName): array
+   public function forget(string $event): void
    {
-      return $this->listeners[$eventName] ?? [];
+      unset($this->listeners[$event], $this->sorted[$event]);
+   }
+
+   public function forgetAll(): void
+   {
+      $this->listeners = [];
+      $this->wildcards = [];
+      $this->sorted = [];
+   }
+
+   private function parseEventAndPayload(string|EventInterface $event, array $payload): array
+   {
+      if (is_string($event)) {
+         $event = new Event($event, $payload);
+      }
+
+      return [$event, $event->getData()];
+   }
+
+   private function getListeners(EventInterface $event): array
+   {
+      $name = $event->getName();
+
+      if (isset($this->sorted[$name])) {
+         return $this->sorted[$name];
+      }
+
+      $listeners = $this->listeners[$name] ?? [];
+      $listeners = array_merge($listeners, $this->getWildcardListeners($name));
+
+      return $this->sorted[$name] = $this->sortListeners($listeners);
+   }
+
+   private function setupWildcardListener(string $event, mixed $listener): void
+   {
+      $this->wildcards[$event][] = $this->makeListener($listener);
+   }
+
+   private function getWildcardListeners(string $eventName): array
+   {
+      $wildcards = [];
+
+      foreach ($this->wildcards as $key => $listeners) {
+         if (Str::is($key, $eventName)) {
+            $wildcards = array_merge($wildcards, $listeners);
+         }
+      }
+
+      return $wildcards;
+   }
+
+   private function makeListener(mixed $listener): callable
+   {
+      if (is_string($listener)) {
+         return $this->createClassListener($listener);
+      }
+
+      if (is_array($listener) && isset($listener[0]) && is_string($listener[0])) {
+         return $this->createClassListener($listener);
+      }
+
+      return $listener;
+   }
+
+   private function createClassListener(string|array $listener): callable
+   {
+      if (is_string($listener)) {
+         return function (...$arguments) use ($listener) {
+            return $this->container->make($listener)->handle(...$arguments);
+         };
+      }
+
+      return function (...$arguments) use ($listener) {
+         [$class, $method] = $listener;
+         return $this->container->make($class)->{$method}(...$arguments);
+      };
+   }
+
+   private function sortListeners(array $listeners): array
+   {
+      usort($listeners, function ($a, $b) {
+         return $this->getListenerPriority($b) - $this->getListenerPriority($a);
+      });
+
+      return $listeners;
+   }
+
+   private function getListenerPriority(callable $listener): int
+   {
+      if ($listener instanceof ListenerInterface) {
+         return $listener->getPriority();
+      }
+
+      return 0;
+   }
+
+   private function callListener(callable $listener, EventInterface $event, array $payload): mixed
+   {
+      try {
+         return $listener($event, ...$payload);
+      } catch (\Throwable $e) {
+         throw new EventException(
+            "Erreur lors de l'exécution du listener: " . $e->getMessage(),
+            0,
+            $e
+         );
+      }
    }
 }

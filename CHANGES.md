@@ -1,5 +1,36 @@
 # Historique des Changements
 
+## [04/04/25] - Planifié
+
+### Refactoring Majeur
+
+- Planification d'une refactorisation complète du framework
+- Mise en place d'une nouvelle architecture modulaire
+- Amélioration de la documentation PHPDoc
+- Implémentation d'un système de logging robuste
+- Optimisation des performances globales
+
+### Base de données
+
+- Refonte du système de factory et seeding
+- Amélioration de la gestion des migrations
+- Mise en place d'un système de backup automatique
+- Optimisation des requêtes et de l'indexation
+
+### Services
+
+- Intégration du système de paiement (Stripe, PayPal)
+- Mise en place du service de mail avec templates
+- Amélioration du système de channel
+- Préparation pour l'intégration d'IA
+
+### Composants et Formulaires
+
+- Refonte complète du système de composants
+- Amélioration du système de formulaires
+- Création d'une bibliothèque de composants réutilisables
+- Support amélioré des thèmes et du responsive
+
 ## [03/04/25]
 
 ### Refactoring et Améliorations

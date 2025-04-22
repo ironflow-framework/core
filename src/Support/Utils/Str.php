@@ -54,6 +54,25 @@ class Str
    }
 
    /**
+    * Vérifie si une chaîne correspond à un pattern
+    *
+    * @param string $pattern Le pattern à vérifier
+    * @param string $value La valeur à vérifier
+    * @return bool
+    */
+   public static function is(string $pattern, string $value): bool
+   {
+      if ($pattern === $value) {
+         return true;
+      }
+
+      $pattern = preg_quote($pattern, '#');
+      $pattern = str_replace('\*', '.*', $pattern);
+
+      return (bool) preg_match('#^' . $pattern . '$#', $value);
+   }
+
+   /**
     * Convertit une chaîne en camelCase
     */
    public static function camel(string $string): string

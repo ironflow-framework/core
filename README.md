@@ -28,7 +28,23 @@
 
 ## À propos
 
-IronFlow est un framework PHP moderne et performant, conçu pour simplifier le développement d'applications web tout en offrant une base solide et extensible. Inspiré des meilleures pratiques de l'industrie, il combine puissance et simplicité pour accélérer votre développement.
+IronFlow est un framework PHP moderne, performant et modulaire, conçu pour simplifier le développement d'applications web tout en offrant une base solide et extensible. Il combine puissance et simplicité pour accélérer votre développement.
+
+## Caractéristiques principales
+
+- Architecture MVC moderne et flexible
+- Système de routage intuitif et performant
+- ORM puissant avec relations fluides
+- Système de templates Twig
+- Gestion avancée des sessions et du cache
+- Système d'authentification robuste
+- Validation des données complète
+- Gestion des événements et des listeners
+- Support multi-langues
+- Système de migrations de base de données
+- Console CLI puissante
+- Support des WebSockets
+- Panneau d'administration intégré (CraftPanel)
 
 ## 🌟 Fonctionnalités Clés
 
@@ -134,7 +150,7 @@ mon-projet/
 │   ├── Controllers/       # Contrôleurs
 │   ├── Models/           # Modèles
 │   ├── Middleware/       # Middleware
-│   └── Services/         # Services métier
+│   └── Providers/        # Providers
 ├── config/                # Fichiers de configuration
 ├── database/              # Migrations et seeders
 ├── public/                # Point d'entrée public

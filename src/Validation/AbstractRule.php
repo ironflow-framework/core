@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace IronFlow\Validation;
 
+use IronFlow\Validation\Rules\RuleInterface;
+
 /**
  * Classe abstraite pour les règles de validation
  */
-abstract class AbstractRule implements Rule
+abstract class AbstractRule implements RuleInterface
 {
    /**
     * Message d'erreur personnalisé

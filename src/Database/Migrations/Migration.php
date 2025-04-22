@@ -6,17 +6,22 @@ namespace IronFlow\Database\Migrations;
 
 use Exception;
 use IronFlow\Database\Connection;
+use IronFlow\Database\Schema\Schema;
 
 /**
  * Classe de base pour les migrations
  */
 abstract class Migration
 {
+   protected Connection $connection;
+   protected Schema $schema;
 
-   public function getConnection()
+   public function __construct()
    {
-      return Connection::getInstance()->getConnection();
+      $this->connection = Connection::getInstance();
+      $this->schema = new Schema();
    }
+
    /**
     * Exécute la migration
     *
@@ -74,7 +79,7 @@ abstract class Migration
     */
    protected function beginTransaction(): void
    {
-      $this->getConnection()->beginTransaction();
+      $this->connection->getConnection()->beginTransaction();
    }
 
    /**
@@ -84,9 +89,8 @@ abstract class Migration
     */
    protected function commitTransaction(): void
    {
-      $this->getConnection()->commit();
+      $this->connection->getConnection()->commit();
    }
-
 
    /**
     * Annule une transaction
@@ -95,8 +99,8 @@ abstract class Migration
     */
    protected function rollbackTransaction(): void
    {
-      if ($this->getConnection()->inTransaction()) {
-         $this->getConnection()->rollBack();
+      if ($this->connection->getConnection()->inTransaction()) {
+         $this->connection->getConnection()->rollBack();
       }
    }
 
@@ -109,7 +113,23 @@ abstract class Migration
     */
    protected function rawQuery(string $sql, array $params = []): bool
    {
-      $stmt = $this->getConnection()->prepare($sql);
+      $stmt = $this->connection->getConnection()->prepare($sql);
       return $stmt->execute($params);
+   }
+
+   /**
+    * Obtient une instance du constructeur de schéma
+    */
+   protected function schema(): Schema
+   {
+      return $this->schema;
+   }
+
+   /**
+    * Obtient une instance de la connexion à la base de données
+    */
+   protected function connection(): Connection
+   {
+      return $this->connection;
    }
 }

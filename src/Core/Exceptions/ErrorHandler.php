@@ -4,103 +4,121 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Exceptions;
 
-use IronFlow\Core\Application\Application;
-use Throwable;
+use IronFlow\Core\Logger\Logger;
 use IronFlow\Http\Response;
-use IronFlow\Http\Exceptions\HttpException;
-use IronFlow\Support\Facades\Config;
-
+use Throwable;
 
 class ErrorHandler
 {
-   private static bool $isRegistered = false;
+   private Logger $logger;
+   private bool $debug;
 
-   private Application $app;
-
-   /**
-    * Constructeur
-    * 
-    * @param Application $app
-    */
-   public function __construct(Application $app)
+   public function __construct()
    {
-      $this->app = $app;
+      $this->logger = Logger::getInstance();
+      $this->debug = config('app.debug', false);
+
+      // Définir les gestionnaires d'erreurs
+      set_error_handler([$this, 'handleError']);
+      set_exception_handler([$this, 'handleException']);
+      register_shutdown_function([$this, 'handleShutdown']);
    }
 
-   public static function register(): void
+   public function handleError(int $level, string $message, string $file = '', int $line = 0): bool
    {
-      if (self::$isRegistered) {
-         return;
+      if (error_reporting() & $level) {
+         throw new \ErrorException($message, 0, $level, $file, $line);
       }
 
-      error_reporting(E_ALL);
-      set_error_handler([self::class, 'handleError']);
-      set_exception_handler([self::class, 'handleException']);
-      register_shutdown_function([self::class, 'handleFatalError']);
-
-      self::$isRegistered = true;
+      return false;
    }
 
-   public static function handleError(int $severity, string $message, string $file, int $line): bool
+   public function handleException(Throwable $exception): void
    {
-      if (!(error_reporting() & $severity)) {
-         return false;
+      $this->logException($exception);
+
+      if (php_sapi_name() === 'cli') {
+         $this->renderCliException($exception);
+      } else {
+         $this->renderHttpException($exception);
+      }
+   }
+
+   public function handleShutdown(): void
+   {
+      $error = error_get_last();
+
+      if ($error !== null && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
+         $this->handleError(
+            $error['type'],
+            $error['message'],
+            $error['file'],
+            $error['line']
+         );
+      }
+   }
+
+   private function logException(Throwable $exception): void
+   {
+      $this->logger->error(
+         $exception->getMessage(),
+         [
+            'exception' => get_class($exception),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+         ]
+      );
+   }
+
+   private function renderCliException(Throwable $exception): void
+   {
+      $output = PHP_EOL . "Exception: " . get_class($exception) . PHP_EOL;
+      $output .= "Message: " . $exception->getMessage() . PHP_EOL;
+
+      if ($this->debug) {
+         $output .= "File: " . $exception->getFile() . ":" . $exception->getLine() . PHP_EOL;
+         $output .= "Stack trace:" . PHP_EOL . $exception->getTraceAsString() . PHP_EOL;
       }
 
-      throw new \ErrorException($message, 0, $severity, $file, $line);
+      fwrite(STDERR, $output);
+      exit(1);
    }
 
-   public static function handleException(Throwable $e): void
+   private function renderHttpException(Throwable $exception): void
    {
-      $statusCode = match (get_class($e)) {
-         'IronFlow\Http\Exceptions\NotFoundException' => 404,
-         'IronFlow\Http\Exceptions\ForbiddenException' => 403,
-         'IronFlow\Http\Exceptions\UnauthorizedException' => 401,
-         'IronFlow\Http\Exceptions\CsrfTokenException' => 419,
-         'IronFlow\Http\Exceptions\TooManyRequestsException' => 429,
-         default => 500
-      };
+      $statusCode = $this->getStatusCode($exception);
 
-      if (Config::get('app.debug', false)) {
-         $response = Response::view('errors/debug', [
-            'exception' => $e,
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
+      if ($this->debug) {
+         $response = Response::view('errors.debug', [
+            'exception' => $exception,
+            'trace' => $exception->getTraceAsString(),
+            'message' => $exception->getMessage(),
          ], $statusCode);
       } else {
-         $response = Response::view("errors/{$statusCode}", [], $statusCode);
+         $response = Response::view('errors.' . $statusCode, [
+            'message' => $this->getPublicMessage($exception),
+         ], $statusCode);
       }
 
       $response->send();
-      exit;
    }
 
-   public static function handleFatalError(): void
-   {
-      $error = error_get_last();
-      if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-         self::handleError($error['type'], $error['message'], $error['file'], $error['line']);
-      }
-   }
-
-   private static function getStatusCodeFromException(Throwable $exception): int
+   private function getStatusCode(Throwable $exception): int
    {
       if ($exception instanceof HttpException) {
          return $exception->getStatusCode();
       }
 
-      return match (get_class($exception)) {
-         'IronFlow\Http\Exceptions\NotFoundException' => 404,
-         'IronFlow\Http\Exceptions\ForbiddenException' => 403,
-         'IronFlow\Http\Exceptions\UnauthorizedException' => 401,
-         default => 500
-      };
+      return 500;
    }
 
-   public function getApp(): Application
+   private function getPublicMessage(Throwable $exception): string
    {
-      return $this->app;
+      if ($exception instanceof HttpException) {
+         return $exception->getMessage();
+      }
+
+      return 'Une erreur est survenue. Veuillez réessayer plus tard.';
    }
 }

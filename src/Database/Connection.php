@@ -6,6 +6,8 @@ namespace IronFlow\Database;
 
 use PDO;
 use PDOException;
+use IronFlow\Database\Query\Builder;
+use IronFlow\Database\Schema\SchemaBuilder;
 
 /**
  * Classe de gestion de la connexion à la base de données
@@ -40,7 +42,7 @@ class Connection
     * 
     * @var array<string, mixed>
     */
-   private array $config;
+   private readonly array $config;
 
    /**
     * Constructeur privé pour empêcher l'instanciation directe
@@ -49,7 +51,14 @@ class Connection
     */
    public function __construct()
    {
-      $this->config = config('database', []);
+      $config = config('database', []);
+      $defaultConnection = $config['default'] ?? 'mysql';
+      $this->config = $config['connections'][$defaultConnection] ?? [];
+
+      if (empty($this->config)) {
+         throw new \RuntimeException("Configuration de base de données invalide pour la connexion [{$defaultConnection}]");
+      }
+
       $this->connect();
    }
 
@@ -66,7 +75,7 @@ class Connection
    public static function getInstance(): Connection
    {
       if (self::$instance === null) {
-         self::$instance = new self();
+         self::$instance = new self([]);
       }
 
       return self::$instance;
@@ -79,56 +88,43 @@ class Connection
     */
    private function connect(): void
    {
-      $driver = $this->config['driver'] ?? 'mysql';
-      $host = $this->config['host'] ?? 'localhost';
-      $port = $this->config['port'] ?? '3306';
-      $database = $this->config['database'] ?? 'ironflow';
-      $username = $this->config['username'] ?? 'root';
-      $password = $this->config['password'] ?? '';
-      $charset = $this->config['charset'] ?? 'utf8mb4';
-      $options = $this->config['options'] ?? [];
-
-      $defaultOptions = [
-         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-         PDO::ATTR_EMULATE_PREPARES => false,
-      ];
-
-      $options = array_merge($defaultOptions, $options);
-
-      try {
-         $dsn = $this->buildDsn($driver, $host, $port, $database, $charset);
-         $this->connection = new PDO($dsn, $username, $password, $options);
-      } catch (PDOException $e) {
-         throw new PDOException("Impossible de se connecter à la base de données: " . $e->getMessage());
-      }
+      $dsn = $this->buildDsn();
+      $this->connection = new PDO(
+         $dsn,
+         $this->config['username'] ?? null,
+         $this->config['password'] ?? null,
+         [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+         ]
+      );
    }
 
    /**
     * Construit la chaîne DSN pour la connexion PDO
     * 
-    * @param string $driver Driver de base de données
-    * @param string $host Hôte de la base de données
-    * @param string $port Port de la base de données
-    * @param string $database Nom de la base de données
-    * @param string $charset Jeu de caractères
     * @return string
-    * @throws \InvalidArgumentException Si le driver n'est pas supporté
+    * @throws \RuntimeException Si le driver n'est pas supporté
     */
-   private function buildDsn(string $driver, string $host, string $port, string $database, string $charset): string
+   private function buildDsn(): string
    {
-      switch ($driver) {
-         case 'mysql':
-            return "mysql:host={$host};port={$port};dbname={$database};charset={$charset}";
-         case 'pgsql':
-            return "pgsql:host={$host};port={$port};dbname={$database}";
-         case 'sqlite':
-            return "sqlite:{$database}";
-         case 'sqlsrv':
-            return "sqlsrv:Server={$host},{$port};Database={$database}";
-         default:
-            throw new \InvalidArgumentException("Driver de base de données non supporté: {$driver}");
-      }
+      return match ($this->config['driver']) {
+         'mysql' => sprintf(
+            'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+            $this->config['host'],
+            $this->config['port'] ?? 3306,
+            $this->config['database']
+         ),
+         'pgsql' => sprintf(
+            'pgsql:host=%s;port=%s;dbname=%s',
+            $this->config['host'],
+            $this->config['port'] ?? 5432,
+            $this->config['database']
+         ),
+         'sqlite' => sprintf('sqlite:%s', $this->config['database']),
+         default => throw new \RuntimeException("Driver non supporté : {$this->config['driver']}")
+      };
    }
 
    /**
@@ -143,6 +139,16 @@ class Connection
       }
 
       return $this->connection;
+   }
+
+   /**
+    * Alias de getConnection() pour la compatibilité
+    * 
+    * @return PDO
+    */
+   public function getPdo(): PDO
+   {
+      return $this->getConnection();
    }
 
    /**
@@ -339,5 +345,33 @@ class Connection
          $this->rollBack();
          throw $e;
       }
+   }
+
+   public function table(string $table): Builder
+   {
+      return new Builder($this, $table);
+   }
+
+   /**
+    * Retourne une instance de SchemaBuilder pour la table spécifiée
+    * 
+    * @param string $table Nom de la table
+    * @return SchemaBuilder
+    */
+   public function schema(string $table): SchemaBuilder
+   {
+      return new SchemaBuilder($this, $table);
+   }
+
+   public function hasTable(string $table): bool
+   {
+      $sql = match ($this->config['driver']) {
+         'mysql' => "SHOW TABLES LIKE ?",
+         'pgsql' => "SELECT to_regclass(?)",
+         'sqlite' => "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+      };
+
+      $result = $this->query($sql, [$table]);
+      return !empty($result);
    }
 }

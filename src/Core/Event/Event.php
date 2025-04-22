@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Event;
 
+use IronFlow\Core\Event\Contracts\EventInterface;
+
 /**
  * Classe de base pour les événements
  * 
@@ -11,7 +13,7 @@ namespace IronFlow\Core\Event;
  * dans l'application. Elle permet de créer des événements personnalisés avec
  * des données associées.
  */
-abstract class Event
+abstract class Event implements EventInterface
 {
    /**
     * Les données associées à l'événement
@@ -21,13 +23,30 @@ abstract class Event
    protected array $data = [];
 
    /**
+    * Nom de l'événement
+    */
+   protected string $name;
+
+   /**
     * Crée une nouvelle instance de l'événement
     * 
+    * @param string $name Nom de l'événement
     * @param array<string, mixed> $data Les données associées à l'événement
     */
-   public function __construct(array $data = [])
+   public function __construct(string $name, array $data = [])
    {
+      $this->name = $name;
       $this->data = $data;
+   }
+
+   /**
+    * Récupère le nom de l'événement
+    *
+    * @return string
+    */
+   public function getName(): string
+   {
+      return $this->name;
    }
 
    /**

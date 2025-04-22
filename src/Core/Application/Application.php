@@ -222,8 +222,7 @@ class Application implements ApplicationInterface
     */
    private function registerErrorHandling(): void
    {
-      $handler = new ErrorHandler($this);
-      $handler->register();
+      new ErrorHandler($this);
    }
 
    /**
