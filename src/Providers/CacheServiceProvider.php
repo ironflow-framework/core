@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace IronFlow\Providers;
 
+use IronFlow\Cache\CacheManager;
 use IronFlow\Core\Service\ServiceProvider;
-use IronFlow\Cache\Hammer\Hammer;
-use IronFlow\Cache\Hammer\HammerManager;
+use IronFlow\Support\Facades\Cache;
 
 /**
  * Fournisseur de services pour le système de cache
@@ -22,8 +22,8 @@ class CacheServiceProvider extends ServiceProvider
     */
    public function register(): void
    {
-      $this->container->singleton('cache.manager', function ($app): HammerManager {
-         return new HammerManager(config('cache'));
+      $this->container->singleton('cache.manager', function ($app): CacheManager {
+         return new CacheManager(config('cache'));
       });
    }
 
@@ -36,6 +36,6 @@ class CacheServiceProvider extends ServiceProvider
       $manager->setDefaultDriver(config('cache.default'));
 
       // Configuration de l'instance Hammer avec le driver par défaut
-      Hammer::getInstance()->setDriver($manager->driver());
+      Cache::getInstance()->setDriver($manager->driver());
    }
 }

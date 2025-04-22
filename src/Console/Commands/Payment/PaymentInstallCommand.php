@@ -211,7 +211,7 @@ class PaymentInstallCommand extends Command
         'stripe' => [
             'enabled' => env('STRIPE_ENABLED', true),
             'key' => env('STRIPE_KEY'),
-            'secret' => env('STRIPE_SECRET'),
+            'secret' => env('STRIPE_SECRET'), 
             'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
             'currency' => env('STRIPE_CURRENCY', 'eur'),
             'sandbox' => env('STRIPE_SANDBOX', true),

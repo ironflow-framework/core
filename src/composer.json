@@ -1,7 +1,7 @@
 {
   "name": "ironflow/framework",
   "description": "Un framework PHP moderne, performant et modulaire",
-  "type": "project",
+  "type": "library",
   "require": {
     "php": "^8.2",
     "doctrine/inflector": "^2.0",
@@ -31,8 +31,7 @@
   },
   "autoload": {
     "psr-4": {
-      "IronFlow\\": "src/",
-      "App\\": "app/"
+      "IronFlow\\": "src/"
     },
     "files": [
       "src/Support/helpers.php",
@@ -43,15 +42,6 @@
     "psr-4": {
       "IronFlow\\Tests\\": "tests/"
     }
-  },
-  "scripts": {
-    "post-root-package-install": [
-      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-    ],
-    "post-create-project-cmd": [
-      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-    ],
-    "test": "phpunit"
   },
   "config": {
     "optimize-autoloader": true,
