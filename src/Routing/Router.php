@@ -76,8 +76,12 @@ class Router implements RouterInterface
     */
    public function addRoute(string $method, string $path, mixed $handler): Route
    {
+      // Normaliser le chemin
+      $normalizedPath = $this->normalizePath($path);
+
+      // Créer la route
       $route = new Route(
-         $path,
+         $normalizedPath,
          ['_controller' => $handler],
          [],
          [],
@@ -86,11 +90,16 @@ class Router implements RouterInterface
          [$method]
       );
 
+      // Appliquer le préfixe du groupe si nécessaire
       if ($this->currentGroupPrefix !== null) {
-         $route->setPath($this->normalizePath($this->currentGroupPrefix . '/' . ltrim($path, '/')));
+         $route->setPath($this->normalizePath($this->currentGroupPrefix . '/' . ltrim($normalizedPath, '/')));
       }
 
-      $this->routes->add($method . '_' . $path, $route);
+      // Générer un nom unique pour la route
+      $routeName = $method . '_' . $route->getPath();
+
+      // Ajouter la route à la collection
+      $this->routes->add($routeName, $route);
       $this->lastRoute = $route;
 
       return $route;
@@ -106,7 +115,7 @@ class Router implements RouterInterface
    {
       // Remplace les séquences multiples de "/" par un seul "/"
       $path = preg_replace('#/+#', '/', $path);
-      
+
       // Supprime le "/" trailing s'il existe, sauf si c'est le seul caractère
       return $path !== '/' ? rtrim($path, '/') : $path;
    }
@@ -255,7 +264,7 @@ class Router implements RouterInterface
       $this->post('/password/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
       $this->get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
       $this->post('/password/reset', [AuthController::class, 'reset'])->name('password.update');
-      
+
       return $this;
    }
 
@@ -270,7 +279,7 @@ class Router implements RouterInterface
    {
       // Normaliser le nom de ressource
       $basePath = $this->normalizePath($name);
-      
+
       // Route index (liste)
       $this->get($basePath, [$controller, 'index'])->name($name . '.index');
 
@@ -384,26 +393,32 @@ class Router implements RouterInterface
     * Traite une requête et retourne une réponse
     * 
     * @param Request $request La requête à traiter
-    * @return Response $response La réponse générée
+    * @return Response La réponse générée
     * @throws HttpException Si la route n'est pas trouvée
     */
    public function dispatch(Request $request): Response
    {
       $path = $request->getPathInfo();
       $method = $request->getMethod();
-      
+
       // Normaliser le chemin de la requête
       $path = $this->normalizePath($path);
 
+      // Debug: Afficher les routes disponibles
+      // foreach ($this->routes as $name => $route) {
+      //    echo "Route: " . $name . " - Path: " . $route->getPath() . " - Methods: " . implode(', ', $route->getMethods()) . "\n";
+      // }
+      // echo "Request Path: " . $path . " - Method: " . $method . "\n";
+
       // Tableau pour stocker les routes correspondantes par leur score de correspondance
       $matchingRoutes = [];
-      
+
       foreach ($this->routes as $name => $route) {
          // Vérifier si la méthode HTTP correspond
          if (!in_array($method, $route->getMethods(), true)) {
             continue;
          }
-         
+
          // Convertir le pattern de la route en expression régulière
          $routePath = $route->getPath();
          $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routePath);
@@ -414,59 +429,59 @@ class Router implements RouterInterface
             $params = array_filter($matches, function ($key) {
                return !is_numeric($key);
             }, ARRAY_FILTER_USE_KEY);
-            
+
             // Calculer un score de correspondance (plus le chemin est spécifique, plus le score est élevé)
             $score = count(explode('/', trim($routePath, '/')));
-            
+
             // Stocker la route et ses paramètres
             $matchingRoutes[] = [
-                'score' => $score,
-                'route' => $route,
-                'params' => $params
+               'score' => $score,
+               'route' => $route,
+               'params' => $params
             ];
          }
       }
-      
+
       // Si aucune route ne correspond, lancer une exception
       if (empty($matchingRoutes)) {
          throw new HttpException(404, "Route non trouvée : {$path}");
       }
-      
+
       // Trier les routes par score (de la plus spécifique à la moins spécifique)
-      usort($matchingRoutes, function($a, $b) {
+      usort($matchingRoutes, function ($a, $b) {
          return $b['score'] - $a['score'];
       });
-      
+
       // Prendre la route la plus spécifique
       $bestMatch = $matchingRoutes[0];
       $route = $bestMatch['route'];
       $params = $bestMatch['params'];
-      
+
       // Ajouter les paramètres à la requête
       foreach ($params as $key => $value) {
          $request->attributes->set((string) $key, $value);
       }
-      
+
       // Exécuter les middlewares de la route
       $middlewares = $route->getDefault('_middleware') ?? [];
       // TODO: Implémenter l'exécution des middlewares
-      
+
       // Exécuter le contrôleur
       $controller = $route->getDefault('_controller');
-      
+
       if (is_array($controller)) {
          [$class, $method] = $controller;
          $instance = $this->container->make($class);
-         
+
          // Récupérer les paramètres comme tableau
          $routeParams = array_values($params);
-         
+
          // Appeler la méthode du contrôleur avec la requête et les paramètres
          return call_user_func_array([$instance, $method], array_merge([$request], $routeParams));
       } elseif (is_callable($controller)) {
          return $controller($request, ...(array_values($params)));
       }
-      
+
       throw new HttpException(500, "Controller is not callable");
    }
 
@@ -482,10 +497,10 @@ class Router implements RouterInterface
    {
       $route = $this->getRoute($name);
       $path = $route->getPath();
-      
+
       // Vérifier les paramètres requis
       preg_match_all('/\{([a-zA-Z0-9_]+)\}/', $path, $requiredParams);
-      
+
       foreach ($requiredParams[1] as $param) {
          if (!isset($parameters[$param])) {
             throw new HttpException(500, "Missing parameter [{$param}] for route [{$name}]");

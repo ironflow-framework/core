@@ -64,6 +64,7 @@ class RouteServiceProvider extends ServiceProvider
          require $appBasePath . '/routes/craftpanel.php';
       }
 
+      // Définir les chemins des routes pour l'application
       $app->withRouter(
          $appBasePath . '/routes/web.php',
          $appBasePath . '/routes/api.php'

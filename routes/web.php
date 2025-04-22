@@ -11,31 +11,36 @@ use App\Controllers\PostController;
 use App\Controllers\CommentController;
 use IronFlow\Support\Facades\Route;
 
-// Route d'exemple
+// Route racine (doit être définie en premier)
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
-// Routes pour l'authentification
+// Authentication routes
 Route::auth();
 
-// Routes pour les articles
-Route::resource('posts', PostController::class);
-Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
-Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+// Blog routes
+Route::group('blog', function () {
+   Route::resource('posts', PostController::class);
+   Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+   Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+}, ['name' => 'blog.']);
 
-Route::resource('products', ProductController::class);
-Route::resource('categories', CategoryController::class);
+// E-commerce routes
+Route::group('shop', function () {
+   Route::resource('products', ProductController::class);
+   Route::resource('categories', CategoryController::class);
 
-// Routes pour les commandes
-Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-Route::get('/orders/create', [OrderController::class, 'create'])->name('orders.create');
-Route::post('/orders/store', [OrderController::class, 'store'])->name('orders.store');
-Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
-Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->name('orders.update.status');
-Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->name('orders.destroy');
+   // Orders with middleware auth
+   Route::group('orders', function () {
+      Route::get('/', [OrderController::class, 'index'])->name('index');
+      Route::get('/create', [OrderController::class, 'create'])->name('create');
+      Route::post('/store', [OrderController::class, 'store'])->name('store');
+      Route::get('/{id}', [OrderController::class, 'show'])->name('show');
+      Route::put('/{id}/status', [OrderController::class, 'updateStatus'])->name('update.status');
+      Route::delete('/{id}', [OrderController::class, 'destroy'])->name('destroy');
+   }, ['middleware' => ['auth'], 'name' => 'orders.']);
+}, ['name' => 'shop.']);
 
-// Groupes de routes
-// Route::group('profile', function () {
-//    Route::get('/', [AuthController::class, 'profile'])->name('profile');
-//    Route::post('/update', [AuthController::class, 'updateProfile'])->name('profile.update');
-// // }, ['middleware' => ['auth']]);
-// });
+// Admin routes
+Route::group('admin', function () {
+   Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+}, ['middleware' => ['auth', 'admin'], 'name' => 'admin.']);

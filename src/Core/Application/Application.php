@@ -374,8 +374,7 @@ class Application implements ApplicationInterface
       $this->webRouterPath = $web;
       $this->apiRouterPath = $api;
 
-      if (file_exists($this->basePath . '/routes/craft.php'))
-      {
+      if (file_exists($this->basePath . '/routes/craft.php')) {
          $this->craftRouterPath = $this->basePath . '/routes/craft.php';
       }
 
@@ -403,18 +402,7 @@ class Application implements ApplicationInterface
     */
    private function loadRoutes(): void
    {
-      if ($this->webRouterPath && file_exists($this->webRouterPath)) {
-         require $this->webRouterPath;
-      }
-
-      if ($this->apiRouterPath && file_exists($this->apiRouterPath)) {
-         require $this->apiRouterPath;
-      }
-
-      if ($this->craftRouterPath && file_exists($this->craftRouterPath)) {
-         require $this->craftRouterPath;
-      }
-
+      // Les routes sont déjà chargées par le RouteServiceProvider
+      // Cette méthode est conservée pour compatibilité mais ne fait rien
    }
-
 }
