@@ -1,28 +1,28 @@
 <?php
 
-if (!function_exists("dump"))
-{
-   function dump($data) {
+if (!function_exists("dump")) {
+   function dump($data)
+   {
       return Symfony\Component\VarDumper\VarDumper::dump($data);
    }
 }
 
 if (!function_exists('app')) {
-    /**
-     * Récupère une instance du conteneur ou résout une dépendance
-     *
-     * @param string|null $abstract
-     * @param array $parameters
-     * @return mixed
-     */
-    function app($abstract = null, array $parameters = []): mixed
-    {
-        if (is_null($abstract)) {
-            return \IronFlow\Core\Application\Application::getInstance();
-        }
+   /**
+    * Récupère une instance du conteneur ou résout une dépendance
+    *
+    * @param string|null $abstract
+    * @param array $parameters
+    * @return mixed
+    */
+   function app($abstract = null, array $parameters = []): mixed
+   {
+      if (is_null($abstract)) {
+         return \IronFlow\Core\Application\Application::getInstance();
+      }
 
-        return \IronFlow\Core\Application\Application::getInstance()->getContainer()->make($abstract, $parameters);
-    }
+      return \IronFlow\Core\Application\Application::getInstance()->getContainer()->make($abstract, $parameters);
+   }
 }
 
 if (!function_exists('bcrypt')) {
@@ -31,7 +31,7 @@ if (!function_exists('bcrypt')) {
     */
    function bcrypt(string $value): string
    {
-       return password_hash($value, PASSWORD_BCRYPT);
+      return password_hash($value, PASSWORD_BCRYPT);
    }
 }
 
@@ -41,13 +41,13 @@ if (!function_exists('str_random')) {
     */
    function str_random(int $length = 16): string
    {
-       $string = '';
-       while (($len = strlen($string)) < $length) {
-           $size = $length - $len;
-           $bytes = random_bytes($size);
-           $string .= substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $size);
-       }
-       return $string;
+      $string = '';
+      while (($len = strlen($string)) < $length) {
+         $size = $length - $len;
+         $bytes = random_bytes($size);
+         $string .= substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $size);
+      }
+      return $string;
    }
 }
 
@@ -430,8 +430,101 @@ if (!function_exists('request')) {
    }
 }
 
+/**
+ * Log un message d'urgence
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_emergency(string $message, array $context = []): void
+{
+   app('log')->emergency($message, $context);
+}
 
+/**
+ * Log un message d'alerte
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_alert(string $message, array $context = []): void
+{
+   app('log')->alert($message, $context);
+}
 
+/**
+ * Log un message critique
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_critical(string $message, array $context = []): void
+{
+   app('log')->critical($message, $context);
+}
+
+/**
+ * Log un message d'erreur
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_error(string $message, array $context = []): void
+{
+   app('log')->error($message, $context);
+}
+
+/**
+ * Log un message d'avertissement
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_warning(string $message, array $context = []): void
+{
+   app('log')->warning($message, $context);
+}
+
+/**
+ * Log un message de notice
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_notice(string $message, array $context = []): void
+{
+   app('log')->notice($message, $context);
+}
+
+/**
+ * Log un message d'information
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_info(string $message, array $context = []): void
+{
+   app('log')->info($message, $context);
+}
+
+/**
+ * Log un message de debug
+ *
+ * @param string $message
+ * @param array $context
+ * @return void
+ */
+function log_debug(string $message, array $context = []): void
+{
+   app('log')->debug($message, $context);
+}
 
 // Initialisation des classes statiques
 IronFlow\Support\Facades\Storage::initialize();
