@@ -382,7 +382,7 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 - Documentation : [https://ironflow.dev/docs](https://ironflow.dev/docs)
 - Issues : [GitHub Issues](https://github.com/ironflow/framework/issues)
 - Discussions : [GitHub Discussions](https://github.com/ironflow/framework/discussions)
-- Email : support@ironflow.dev
+- Email : ironflow.framework@gamil.com
 
 ## 🙏 Remerciements
 
@@ -399,50 +399,3 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <div align="center">
 Forgé avec passion et ❤️ by the IronFlow Team
 </div>
-
-# Correction de l'erreur "Undefined type 'IronFlow\Support\Storage'"
-
-Nous avons créé les classes suivantes pour résoudre le problème :
-
-1. `src/Support/Storage.php` - Une classe utilitaire pour gérer le stockage de fichiers
-2. `src/Support/Facades/Storage.php` - Une façade qui redirige les appels statiques vers la classe Storage
-3. Mise à jour de `src/helpers.php` avec la fonction `url()` et l'initialisation de la classe Storage
-
-## Actions supplémentaires nécessaires
-
-Pour résoudre complètement les erreurs restantes dans `src/Vibe/MediaManager.php`, il faut :
-
-1. Installer la bibliothèque Intervention/Image :
-
-   ```
-   composer require intervention/image
-   ```
-
-2. Créer ou mettre à jour le fichier de configuration pour les systèmes de fichiers dans `config/filesystems.php` :
-
-   ```php
-   <?php
-
-   return [
-       'default' => 'local',
-       'disks' => [
-           'local' => [
-               'root' => storage_path('app'),
-               'url' => '/storage/app',
-           ],
-           'public' => [
-               'root' => storage_path('app/public'),
-               'url' => '/storage/app/public',
-           ],
-       ],
-   ];
-   ```
-
-3. Vérifier que la classe `Media` dans `src/Vibe/Models/Media.php` implémente correctement les propriétés et méthodes utilisées dans MediaManager :
-   - `$media->save()`
-   - `$media->disk`
-   - `$media->path`
-   - `$media->id`
-   - `$media->isImage()`
-
-Ces modifications résoudront l'erreur initiale "Undefined type 'IronFlow\Support\Storage'" ainsi que les autres erreurs liées dans le fichier MediaManager.php.
