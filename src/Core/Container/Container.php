@@ -11,6 +11,7 @@ use IronFlow\Routing\RouterInterface;
 use IronFlow\Routing\Router;
 use ReflectionClass;
 use ReflectionParameter;
+use stdClass;
 
 class Container implements ContainerInterface
 {
@@ -38,7 +39,7 @@ class Container implements ContainerInterface
    /**
     * Enregistre une liaison dans le conteneur
     */
-   public function bind(string $abstract, Closure|string|null $concrete = null, bool $shared = false): void
+   public function bind(string $abstract, Closure|string|stdClass|null $concrete = null, bool $shared = false): void
    {
       if (is_null($concrete)) {
          $concrete = $abstract;

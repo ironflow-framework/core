@@ -8,6 +8,7 @@ use IronFlow\Http\Exceptions\ValidationException;
 use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
 use IronFlow\Support\Collection;
 use IronFlow\Validation\Validator;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Classe de requête HTTP
@@ -130,11 +131,15 @@ class Request extends HttpFoundationRequest
     * Récupère un fichier uploadé
     * 
     * @param string $key La clé du fichier
-    * @return \Symfony\Component\HttpFoundation\File\UploadedFile|null
+    * @return UploadedFile|array
     */
-   public function file(string $key): ?\Symfony\Component\HttpFoundation\File\UploadedFile
+   public function files(?string $key = null): UploadedFile | array
    {
-      return $this->files->get($key);
+      if ($key) {
+         return $this->files->get($key);
+      }
+
+      return $this->files->all();
    }
 
    /**
@@ -146,6 +151,21 @@ class Request extends HttpFoundationRequest
    public function hasFile(string $key): bool
    {
       return $this->files->has($key) && $this->files->get($key)->getError() !== UPLOAD_ERR_NO_FILE;
+   }
+
+   /**
+    * Récupère les cookies
+    * 
+    * @param string|null $key La clé du cookie
+    * @return mixed
+    */
+   public function cookies(?string $key = null): mixed
+   {
+      if ($key) {
+         return $this->cookies->get($key);
+      }
+
+      return $this->cookies->all();
    }
 
    /**
@@ -206,6 +226,11 @@ class Request extends HttpFoundationRequest
       return $this->getUri();
    }
 
+   public function setUri(string $uri): void
+   {
+      $this->server->set('REQUEST_URI', $uri);
+   }
+
    /**
     * Récupère le chemin de la requête
     * 
@@ -224,6 +249,27 @@ class Request extends HttpFoundationRequest
    public function method(): string
    {
       return $this->getMethod();
+   }
+
+   /**
+    * Récupère les en-têtes de la requête
+    * 
+    * @return array
+    */
+   public function getHeaders(): array
+   {
+      return $this->headers->all();
+   }
+
+   /**
+    * Récupère un en-tête de la requête
+    * 
+    * @param string $key La clé de l'en-tête
+    * @return string
+    */
+   public function header(string $key): string
+   {
+      return $this->headers->get($key);
    }
 
    /**

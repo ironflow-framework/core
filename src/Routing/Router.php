@@ -325,19 +325,20 @@ class Router implements RouterInterface
    /**
     * Ajoute les routes d'authentification par défaut
     * 
+    * @param string $controller Le contrôleur à utiliser
     * @return self
     */
-   public function auth(): self
+   public function auth(string $controller = AuthController::class): self
    {
-      $this->get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-      $this->post('/login', [AuthController::class, 'login']);
-      $this->post('/logout', [AuthController::class, 'logout'])->name('logout');
-      $this->get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-      $this->post('/register', [AuthController::class, 'register']);
-      $this->get('/password/reset', [AuthController::class, 'showResetForm'])->name('password.request');
-      $this->post('/password/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
-      $this->get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
-      $this->post('/password/reset', [AuthController::class, 'reset'])->name('password.update');
+      $this->get('/login', [$controller, 'showLoginForm'])->name('login');
+      $this->post('/login', [$controller, 'login']);
+      $this->post('/logout', [$controller, 'logout'])->name('logout');
+      $this->get('/register', [$controller, 'showRegistrationForm'])->name('register');
+      $this->post('/register', [$controller, 'register']);
+      $this->get('/password/reset', [$controller, 'showResetForm'])->name('password.request');
+      $this->post('/password/email', [$controller, 'sendResetLinkEmail'])->name('password.email');
+      $this->get('/password/reset/{token}', [$controller, 'showResetForm'])->name('password.reset');
+      $this->post('/password/reset', [$controller, 'reset'])->name('password.update');
 
       return $this;
    }
@@ -443,7 +444,7 @@ class Router implements RouterInterface
     * @return Route
     * @throws HttpException Si la route n'existe pas
     */
-   public function getRoute(string $name): Route
+   public function getRouteByName(string $name): Route
    {
       if (!isset($this->namedRoutes[$name])) {
          throw new HttpException(404, "Route [{$name}] not defined.");
@@ -605,7 +606,7 @@ class Router implements RouterInterface
     */
    public function generateUrl(string $name, array $parameters = []): string
    {
-      $route = $this->getRoute($name);
+      $route = $this->getRouteByName($name);
       $path = $route->getPath();
 
       // Vérifier les paramètres requis
@@ -693,7 +694,7 @@ class Router implements RouterInterface
    {
       return $this->namedRoutes;
    }
-
+   
    /**
     * Récupère les middlewares globaux
     * 

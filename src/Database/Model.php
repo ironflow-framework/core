@@ -38,6 +38,31 @@ abstract class Model
    protected array $attributes = [];
    protected array $original = [];
    protected bool $exists = false;
+   protected static ?Connection $connection = null;
+
+   /**
+    * Définit la connexion à la base de données pour le modèle
+    * 
+    * @param Connection $connection Instance de la connexion
+    * @return void
+    */
+   public static function setConnection(Connection $connection): void
+   {
+      static::$connection = $connection;
+   }
+
+   /**
+    * Récupère la connexion à la base de données
+    * 
+    * @return Connection
+    */
+   public static function getConnection(): Connection
+   {
+      if (static::$connection === null) {
+         throw new Exception('La connexion à la base de données n\'a pas été définie.');
+      }
+      return static::$connection;
+   }
 
    /**
     * Constructeur
@@ -191,14 +216,6 @@ abstract class Model
    }
 
    /**
-    * Obtient l'instance de connexion à la base de données
-    */
-   private function getConnection(): PDO
-   {
-      return Connection::getInstance()->getConnection();
-   }
-
-   /**
     * Convertit une valeur en objet DateTime
     */
    protected function asDateTime($value): bool|DateTime
@@ -259,7 +276,7 @@ abstract class Model
    /**
     * Crée un nouvel enregistrement dans la base de données
     * 
-    * @param array $data Données pour le nouvel enregistrement
+    * @param array $data Données à insérer
     * @return static Nouvelle instance du modèle
     */
    public static function create(array $data): static
@@ -270,12 +287,11 @@ abstract class Model
       $placeholders = implode(", ", array_map(fn($col) => ":$col", array_keys($data)));
 
       $sql = "INSERT INTO " . static::$table . " ($columns) VALUES ($placeholders)";
-      $stmt = (new static())->getConnection()->prepare($sql);
 
       try {
-         $stmt->execute($data);
+         static::getConnection()->execute($sql, $data);
          // Récupérer l'ID de l'enregistrement nouvellement créé
-         $data[static::$primaryKey] = (new static())->getConnection()->lastInsertId();
+         $data[static::$primaryKey] = static::getConnection()->lastInsertId();
 
          $instance = new static();
          $instance->fill($data);
@@ -283,16 +299,20 @@ abstract class Model
 
          return $instance;
       } catch (PDOException $e) {
-         // Log the error or handle it
-         throw new Exception("Database error: " . $e->getMessage());
+         throw new Exception("Erreur de base de données : " . $e->getMessage());
       }
    }
 
+   /**
+    * Crée plusieurs enregistrements dans la base de données
+    * 
+    * @param array $data Tableau de données à insérer
+    * @return Collection Collection d'instances du modèle
+    */
    public static function createMany(array $data): Collection
    {
       $records = array_map(
-         fn($item): Model =>
-         static::create($item),
+         fn($item): Model => static::create($item),
          $data
       );
 
@@ -302,17 +322,16 @@ abstract class Model
    /**
     * Met à jour un enregistrement existant dans la base de données
     * 
-    * @param array $data Donnée à mettre à jour
+    * @param array $data Données à mettre à jour
     * @return bool Succès de l'opération
     */
    public static function update(array $data): bool
    {
       if (!isset($data[static::$primaryKey])) {
-         throw new Exception("Primary key not set for update operation");
+         throw new Exception("Clé primaire non définie pour l'opération de mise à jour");
       }
 
       // Définir le timestamp mis à jour
-      $data['created_at'] = $data['created_at']->format('Y-m-d H:i:s');
       $data['updated_at'] = now()->toDateTimeLocalString();
 
       $sets = [];
@@ -322,17 +341,13 @@ abstract class Model
          }
       }
 
-      $query = "UPDATE " . static::$table . " SET " . implode(', ', $sets) .
+      $sql = "UPDATE " . static::$table . " SET " . implode(', ', $sets) .
          " WHERE " . static::$primaryKey . " = :" . static::$primaryKey;
 
-      $stmt = (new static())->getConnection()->prepare($query);
-
-
       try {
-         return $stmt->execute($data);
+         return static::getConnection()->execute($sql, $data) > 0;
       } catch (PDOException $e) {
-         error_log($e->getMessage());
-         throw new Exception("Database error: " . $e->getMessage());
+         throw new Exception("Erreur de base de données : " . $e->getMessage());
       }
    }
 
@@ -344,16 +359,20 @@ abstract class Model
     */
    public static function delete(string|int|array $id): bool
    {
-
       if (is_array($id)) {
-         $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " IN (" . implode(", ", $id) . ")";
+         $placeholders = implode(", ", array_map(fn($i) => ":$i", range(0, count($id) - 1)));
+         $sql = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " IN ($placeholders)";
+         $params = array_combine(range(0, count($id) - 1), $id);
       } else {
-         $query = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " = :id";
+         $sql = "DELETE FROM " . static::$table . " WHERE " . static::$primaryKey . " = :id";
+         $params = ['id' => $id];
       }
 
-      $stmt = (new static())->getConnection()->prepare($query);
-      $stmt->bindValue(':id', (int) $id);
-      return $stmt->execute();
+      try {
+         return static::getConnection()->execute($sql, $params) > 0;
+      } catch (PDOException $e) {
+         throw new Exception("Erreur de base de données : " . $e->getMessage());
+      }
    }
 
    /**
@@ -363,42 +382,51 @@ abstract class Model
     */
    public static function all(): Collection
    {
-      return static::query()->get();
+      $sql = "SELECT * FROM " . static::$table;
+      $results = static::getConnection()->query($sql);
+      return new Collection(array_map(fn($result) => new static($result), $results));
    }
 
    /**
-    * Récuperer les enregistrement d'une colonne de la table
-    *
-    * @param string|array $columns
-    * @return Collection
+    * Récupère les valeurs d'une ou plusieurs colonnes
+    * 
+    * @param string|array $columns Colonnes à récupérer
+    * @return Collection Collection de valeurs
     */
    public static function pluck(string|array $columns): Collection
    {
       if (is_array($columns)) {
-         $sql = "SELECT " . implode(', ', $columns) . " FROM ";
+         $sql = "SELECT " . implode(', ', $columns) . " FROM " . static::$table;
       } else {
-         $sql = "SELECT $columns FROM ";
+         $sql = "SELECT $columns FROM " . static::$table;
       }
 
-      $sql .= static::$table;
-      $stmt = (new static())->getConnection()->query($sql);
-      $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
-      return new Collection($result);
+      $results = static::getConnection()->query($sql);
+      return new Collection($results);
    }
 
+   /**
+    * Traite les enregistrements par lots
+    * 
+    * @param int $size Taille du lot
+    * @param callable $callback Fonction de rappel pour traiter chaque lot
+    */
    public static function chunk(int $size, callable $callback): void
    {
       $offset = 0;
       do {
-         $sql = "SELECT * FROM " . static::$table . " LIMIT $size OFFSET $offset";
-         $stmt = (new static())->getConnection()->query($sql);
-         $results = $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+         $sql = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
+         $results = static::getConnection()->query($sql, [
+            'limit' => $size,
+            'offset' => $offset
+         ]);
 
          if (empty($results)) {
             break;
          }
 
-         $callback($results);
+         $models = array_map(fn($result) => new static($result), $results);
+         $callback($models);
          $offset += $size;
       } while (count($results) === $size);
    }
@@ -411,7 +439,9 @@ abstract class Model
     */
    public static function find($id): ?static
    {
-      return static::query()->find($id);
+      $sql = "SELECT * FROM " . static::$table . " WHERE " . static::$primaryKey . " = :id LIMIT 1";
+      $results = static::getConnection()->query($sql, ['id' => $id]);
+      return $results ? new static($results[0]) : null;
    }
 
    /**
@@ -456,128 +486,117 @@ abstract class Model
       return static::query()->where($column, $value);
    }
 
+   /**
+    * Récupère tous les enregistrements supprimés
+    * 
+    * @return array
+    */
    public static function onlyTrashed(): array
    {
       $sql = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NOT NULL";
-      $stmt = (new static())->db->query($sql);
-      return $stmt->fetchAll(PDO::FETCH_CLASS, static::class);
+      return static::getConnection()->query($sql);
    }
 
+   /**
+    * Restaure un enregistrement supprimé
+    * 
+    * @param int|string $id ID de l'enregistrement
+    * @return bool
+    */
    public static function restore($id): bool
    {
       $sql = "UPDATE " . static::$table . " SET deleted_at = NULL WHERE id = :id";
-      $stmt = (new static())->db->prepare($sql);
-      return $stmt->execute(['id' => $id]);
+      return static::getConnection()->execute($sql, ['id' => $id]) > 0;
    }
 
    /**
     * Compte le nombre d'enregistrements
     * 
-    * @return int Nombre d'enregistrements
+    * @return int
     */
    public static function count(): int
    {
-      $query = "SELECT COUNT(*) as count FROM " . static::$table;
-      $stmt = (new static())->getConnection()->prepare($query);
-      $stmt->execute();
-      $result = $stmt->fetch(PDO::FETCH_ASSOC);
-      return (int) $result['count'];
+      $sql = "SELECT COUNT(*) as count FROM " . static::$table;
+      $result = static::getConnection()->query($sql);
+      return (int) $result[0]['count'];
    }
 
    /**
-    * Pagine les résultats de la requête
+    * Pagine les résultats
     * 
     * @param int $page Numéro de page
     * @param int $perPage Nombre d'éléments par page
-    * @return array
+    * @return array{data: Collection, total: int, current_page: int, per_page: int, last_page: int}
     */
    public static function paginate(int $page = 1, int $perPage = 10): array
    {
       $offset = ($page - 1) * $perPage;
-      $query = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
-      $stmt = (new static())->getConnection()->prepare($query);
-      $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-      $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-      $stmt->execute();
+      $sql = "SELECT * FROM " . static::$table . " LIMIT :limit OFFSET :offset";
+      $results = static::getConnection()->query($sql, [
+         'limit' => $perPage,
+         'offset' => $offset
+      ]);
+
+      $total = static::count();
+      $lastPage = (int) ceil($total / $perPage);
 
       return [
-         'data' => new Collection($stmt->fetchAll(PDO::FETCH_ASSOC)),
-         'total' => static::count(),
+         'data' => new Collection(array_map(fn($result) => new static($result), $results)),
+         'total' => $total,
          'current_page' => $page,
          'per_page' => $perPage,
-         'last_page' => ceil(static::count() / $perPage),
+         'last_page' => $lastPage,
       ];
    }
 
    /**
-    * Récupère le premier enregistrement de la table
+    * Récupère le premier enregistrement
     * 
-    * @return static|null Instance du modèle ou null si aucun enregistrement
+    * @return static|null
     */
    public static function first(): ?static
    {
-      return static::query()->first();
+      $sql = "SELECT * FROM " . static::$table . " LIMIT 1";
+      $results = static::getConnection()->query($sql);
+      return $results ? new static($results[0]) : null;
    }
 
    /**
-    * Vérifie si un enregistrement existe avec les conditions spécifiées
+    * Vérifie si des enregistrements existent
     * 
-    * @param array $conditions Conditions à vérifier
-    * @return bool True si l'enregistrement existe
+    * @param array $conditions Conditions de recherche
+    * @return bool
     */
    public static function exists(array $conditions): bool
    {
-      $query = "SELECT EXISTS (SELECT 1 FROM " . static::$table . " WHERE ";
-      $whereClauses = [];
-      foreach ($conditions as $column => $value) {
-         $whereClauses[] = "$column = :$column";
+      $where = [];
+      $params = [];
+      foreach ($conditions as $key => $value) {
+         $where[] = "$key = :$key";
+         $params[$key] = $value;
       }
-      $query .= implode(" AND ", $whereClauses) . ") as result";
-
-      $stmt = (new static())->getConnection()->prepare($query);
-      foreach ($conditions as $column => $value) {
-         $stmt->bindValue(":$column", $value);
-      }
-      $stmt->execute();
-      $result = $stmt->fetch(PDO::FETCH_ASSOC);
-      return (bool) $result['result'];
+      $sql = "SELECT COUNT(*) as count FROM " . static::$table . " WHERE " . implode(' AND ', $where);
+      $result = static::getConnection()->query($sql, $params);
+      return (int) $result[0]['count'] > 0;
    }
 
    /**
     * Filtre les enregistrements selon des conditions
     * 
     * @param array $conditions Conditions de filtrage
-    * @return Collection Collection d'instances du modèle
+    * @return Collection
     */
    public static function filter(array $conditions): Collection
    {
-      $query = "SELECT * FROM " . static::$table . " WHERE ";
-      $whereClauses = [];
-      foreach ($conditions as $column => $value) {
-         $whereClauses[] = "$column = :$column";
+      $where = [];
+      $params = [];
+      foreach ($conditions as $key => $value) {
+         $where[] = "$key = :$key";
+         $params[$key] = $value;
       }
-      $query .= implode(" AND ", $whereClauses);
-
-      $stmt = (new static())->getConnection()->prepare($query);
-      foreach ($conditions as $column => $value) {
-         $stmt->bindValue(":$column", $value);
-      }
-      $stmt->execute();
-      $results = $stmt->fetch(PDO::FETCH_ASSOC);
-
-      $models = [];
-      foreach ($results as $result) {
-
-         $model = new static();
-         $model->fill($result);
-         $model->exists = true;
-         $model->save();
-
-         $models[] = $model;
-      }
-
-
-      return new Collection($models);
+      $sql = "SELECT * FROM " . static::$table . " WHERE " . implode(' AND ', $where);
+      $results = static::getConnection()->query($sql, $params);
+      return new Collection(array_map(fn($result) => new static($result), $results));
    }
 
    /**

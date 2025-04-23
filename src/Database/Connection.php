@@ -162,6 +162,26 @@ class Connection
    }
 
    /**
+    * Récupère la configuration de la connexion
+    * 
+    * @return array<string, mixed>
+    */
+   public function getConfig(): array
+   {
+      return $this->config;
+   }
+
+   /**
+    * Vérifie si la connexion est active
+    * 
+    * @return bool
+    */
+   public function isConnected(): bool
+   {
+      return $this->connection !== null;
+   }
+
+   /**
     * Démarre une transaction
     * 
     * @return bool
