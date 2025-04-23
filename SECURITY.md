@@ -4,10 +4,11 @@
 
 | Version | Supportée          | Date de fin de support |
 | ------- | ------------------ | ---------------------- |
-| 4.0.x   | :white_check_mark: | En cours               |
+| 4.1.x   | :white_check_mark: | En cours               |
+| 4.0.x   | :white_check_mark: | 23/04/2025             |
 | 3.0.x   | :x:                | 22/04/2025             |
-| 2.0.x   | :x:                | 15/04/2025             |
-| 1.0.x   | :x:                | 30/03/2025             |
+| 2.0.x   | :x:                | 22/04/2025             |
+| 1.0.x   | :x:                | 02/04/2025             |
 | < 1.0   | :x:                | Non supporté           |
 
 ## Signaler une Vulnérabilité
