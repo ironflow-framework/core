@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![IronFlow Logo](storage/framework/img/Ironflow.png)
+![IronFlow Logo](./Ironflow.png)
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.2+-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
