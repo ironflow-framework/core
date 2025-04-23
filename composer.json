@@ -2,6 +2,13 @@
   "name": "ironflow/framework",
   "description": "Un framework PHP moderne, performant et modulaire",
   "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "IronFlow Framework",
+      "email": "ironflow.framework@gmail.com"
+    }
+  ],
   "require": {
     "php": "^8.2",
     "doctrine/inflector": "^2.0",
