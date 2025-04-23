@@ -4,7 +4,9 @@
 
 | Version | Supportée          | Date de fin de support |
 | ------- | ------------------ | ---------------------- |
-| 2.0.x   | :white_check_mark: | En cours               |
+| 4.0.x   | :white_check_mark: | En cours               |
+| 3.0.x   | :x:                | 22/04/2025             |
+| 2.0.x   | :x:                | 15/04/2025             |
 | 1.0.x   | :x:                | 30/03/2025             |
 | < 1.0   | :x:                | Non supporté           |
 
