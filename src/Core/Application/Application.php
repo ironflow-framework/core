@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Application;
 
-use IronFlow\Cache\Hammer\Hammer;
-use IronFlow\Cache\Hammer\HammerManager;
+use IronFlow\Cache\CacheManager;
 use IronFlow\Core\Container\ContainerInterface;
 use IronFlow\Core\Container\Container;
 use IronFlow\Core\Exceptions\ErrorHandler;
@@ -22,6 +21,7 @@ use IronFlow\Providers\TranslationServiceProvider;
 use IronFlow\Providers\ViewServiceProvider;
 use IronFlow\Routing\RouterInterface;
 use IronFlow\Routing\Router;
+use IronFlow\Support\Facades\Cache;
 use IronFlow\Support\Facades\Config;
 use IronFlow\Support\Facades\Trans;
 use IronFlow\View\TwigView;
@@ -157,8 +157,8 @@ class Application implements ApplicationInterface
       $this->container->singleton('db.manager', fn() => new IronManager());
 
       // Services de cache et de traduction
-      $this->container->singleton('cache', fn() => Hammer::getInstance());
-      $this->container->singleton('cache.manager', fn() => new HammerManager(config('cache')));
+      $this->container->singleton('cache', fn() => Cache::getInstance());
+      $this->container->singleton('cache.manager', fn() => new CacheManager());
       $this->container->singleton('translator', fn() => new Trans());
 
       // Enregistrement des fournisseurs de services par défaut
@@ -222,7 +222,7 @@ class Application implements ApplicationInterface
     */
    private function registerErrorHandling(): void
    {
-      new ErrorHandler($this);
+      new ErrorHandler();
    }
 
    /**
