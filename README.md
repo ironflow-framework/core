@@ -12,7 +12,7 @@
 
 </div>
 
-## 📋 Table des matières
+## Table des matières
 
 - [Présentation](#présentation)
 - [Fonctionnalités](#fonctionnalités)
@@ -46,7 +46,7 @@ IronFlow est un framework PHP moderne, performant et modulaire, conçu pour simp
 - Support des WebSockets
 - Panneau d'administration intégré (CraftPanel)
 
-## 🌟 Fonctionnalités Clés
+## Fonctionnalités Clés
 
 ### Performance
 
@@ -76,7 +76,7 @@ IronFlow est un framework PHP moderne, performant et modulaire, conçu pour simp
 - Hooks et événements personnalisables
 - Support multi-drivers
 
-## 📋 Prérequis Système
+## Prérequis Système
 
 - PHP 8.2 ou supérieur
 - Composer 2.0+
@@ -96,7 +96,7 @@ IronFlow est un framework PHP moderne, performant et modulaire, conçu pour simp
 
 ```bash
 # Création du projet
-composer create-project ironflow/framework mon-projet
+composer create-project ironflow/skeleton mon-projet
 
 # Configuration
 cd mon-projet
@@ -117,7 +117,7 @@ chmod -R 777 storage bootstrap/cache
 1. **Cloner le repository**:
 
    ```bash
-   git clone https://github.com/ironflow/framework.git
+   git clone https://github.com/ironflow-framework/skeleton.git
    cd framework
    ```
 
@@ -150,13 +150,13 @@ mon-projet/
 │   ├── Controllers/       # Contrôleurs
 │   ├── Models/           # Modèles
 │   ├── Middleware/       # Middleware
-│   └── Providers/        # Providers
+│   └── .../              # Autres dossiers
 ├── config/                # Fichiers de configuration
+├── boostrap/              # Fichiers de booststrap
 ├── database/              # Migrations et seeders
 ├── public/                # Point d'entrée public
 ├── resources/             # Ressources (vues, assets)
 ├── routes/                # Définition des routes
-├── src/                   # Code source du framework
 ├── storage/               # Fichiers générés
 ├── tests/                 # Tests unitaires et fonctionnels
 └── vendor/                # Dépendances
@@ -382,7 +382,7 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 - Documentation : [https://ironflow.dev/docs](https://ironflow.dev/docs)
 - Issues : [GitHub Issues](https://github.com/ironflow/framework/issues)
 - Discussions : [GitHub Discussions](https://github.com/ironflow/framework/discussions)
-- Email : ironflow.framework@gamil.com
+- Email : support@ironflow.dev
 
 ## 🙏 Remerciements
 
@@ -399,3 +399,50 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <div align="center">
 Forgé avec passion et ❤️ by the IronFlow Team
 </div>
+
+# Correction de l'erreur "Undefined type 'IronFlow\Support\Storage'"
+
+Nous avons créé les classes suivantes pour résoudre le problème :
+
+1. `src/Support/Storage.php` - Une classe utilitaire pour gérer le stockage de fichiers
+2. `src/Support/Facades/Storage.php` - Une façade qui redirige les appels statiques vers la classe Storage
+3. Mise à jour de `src/helpers.php` avec la fonction `url()` et l'initialisation de la classe Storage
+
+## Actions supplémentaires nécessaires
+
+Pour résoudre complètement les erreurs restantes dans `src/Vibe/MediaManager.php`, il faut :
+
+1. Installer la bibliothèque Intervention/Image :
+
+   ```
+   composer require intervention/image
+   ```
+
+2. Créer ou mettre à jour le fichier de configuration pour les systèmes de fichiers dans `config/filesystems.php` :
+
+   ```php
+   <?php
+
+   return [
+       'default' => 'local',
+       'disks' => [
+           'local' => [
+               'root' => storage_path('app'),
+               'url' => '/storage/app',
+           ],
+           'public' => [
+               'root' => storage_path('app/public'),
+               'url' => '/storage/app/public',
+           ],
+       ],
+   ];
+   ```
+
+3. Vérifier que la classe `Media` dans `src/Vibe/Models/Media.php` implémente correctement les propriétés et méthodes utilisées dans MediaManager :
+   - `$media->save()`
+   - `$media->disk`
+   - `$media->path`
+   - `$media->id`
+   - `$media->isImage()`
+
+Ces modifications résoudront l'erreur initiale "Undefined type 'IronFlow\Support\Storage'" ainsi que les autres erreurs liées dans le fichier MediaManager.php.
