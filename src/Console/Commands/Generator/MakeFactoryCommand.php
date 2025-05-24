@@ -59,6 +59,15 @@ class {$name} extends Factory
 {
     protected \$model = {$model}::class;
 
+    protected function configure(): void
+    {
+        \$this->states = [
+            // 'admin' => function () {
+            //     return ['role' => 'admin'];
+            // },
+        ];
+    }
+
     public function definition(): array
     {
         return [

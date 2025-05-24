@@ -33,9 +33,17 @@ abstract class Factory implements FactoryInterface
     abstract protected function configure(): void;
 
     /**
-     * Définit les attributs par défaut
+     * Définit les attributs par défaut en appelant la définition
      */
-    abstract public function defineDefaults(): void;
+    public function defineDefaults(): void
+    {
+        $this->defaultAttributes = $this->definition();
+    }
+
+    /**
+     * Définition des attributs par défaut à implémenter dans les factories enfants
+     */
+    abstract public function definition(): array;
 
     /**
      * Crée une nouvelle instance du modèle
@@ -45,6 +53,7 @@ abstract class Factory implements FactoryInterface
         $finalAttributes = array_merge(
             $this->defaultAttributes,
             $state ? $this->applyState($state) : [],
+            $this->attributes,
             $attributes
         );
 
@@ -65,8 +74,9 @@ abstract class Factory implements FactoryInterface
     /**
      * Crée plusieurs instances du modèle
      */
-    public function createMany(int $count, array $attributes = [], string $state = null): array
+    public function createMany(int $count = null, array $attributes = [], string $state = null): array
     {
+        $count = $count ?? ($this->attributes['count'] ?? 1);
         $instances = [];
         for ($i = 0; $i < $count; $i++) {
             $instances[] = $this->create($attributes, $state);
@@ -77,7 +87,7 @@ abstract class Factory implements FactoryInterface
     public function count(int $count): self
     {
         $this->attributes['count'] = $count;
-        return $this; 
+        return $this;
     }
 
     /**
@@ -121,7 +131,7 @@ abstract class Factory implements FactoryInterface
 
     public function withoutOverrides(array $attributes): self
     {
-        $this->attributes = array_diff($this->attributes, $attributes);
+        $this->attributes = array_diff_key($this->attributes, array_flip($attributes));
         return $this;
     }
 }
