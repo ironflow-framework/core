@@ -74,6 +74,9 @@ class Kernel extends ConsoleApplication
          \IronFlow\Console\Commands\Database\MigrateCommand::class,
          \IronFlow\Console\Commands\Database\DbSeedCommand::class,
 
+         // Commandes de gestion des clés
+         \IronFlow\Console\Commands\Generator\KeyGenerateCommand::class,
+
          // Commandes de génération
          \IronFlow\Console\Commands\Generator\MakeMigrationCommand::class,
          \IronFlow\Console\Commands\Generator\MakeSeederCommand::class,
