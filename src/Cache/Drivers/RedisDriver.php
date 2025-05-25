@@ -128,17 +128,17 @@ class RedisDriver implements CacheDriverInterface
 
       try {
          $this->redis->connect(
-            $this->config['host'],
-            $this->config['port'] ?? 6379,
-            $this->config['timeout'] ?? 0
+            $this->config['servers']['host'],
+            $this->config['servers']['port'] ?? 6379,
+            $this->config['servers']['timeout'] ?? 0
          );
 
-         if (isset($this->config['password']) && $this->config['password'] !== null) {
-            $this->redis->auth($this->config['password']);
+         if (isset($this->config['servers']['password']) && $this->config['servers']['password'] !== null) {
+            $this->redis->auth($this->config['servers']['password']);
          }
 
-         if (isset($this->config['database']) && $this->config['database'] !== null) {
-            $this->redis->select($this->config['database']);
+         if (isset($this->config['servers']['database']) && $this->config['servers']['database'] !== null) {
+            $this->redis->select($this->config['servers']['database']);
          }
       } catch (\RedisException $e) {
          throw new CacheException("Impossible de se connecter à Redis: {$e->getMessage()}");

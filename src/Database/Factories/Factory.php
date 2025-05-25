@@ -14,7 +14,7 @@ use IronFlow\Database\Contracts\FactoryInterface;
  */
 abstract class Factory implements FactoryInterface
 {
-    protected Generator $faker;
+    protected Generator $fake;
     protected string $model;
     protected array $states = [];
     protected array $defaultAttributes = [];
@@ -22,7 +22,7 @@ abstract class Factory implements FactoryInterface
 
     public function __construct()
     {
-        $this->faker = FakerFactory::create();
+        $this->fake = FakerFactory::create();
         $this->configure();
         $this->defineDefaults();
     }
@@ -74,7 +74,7 @@ abstract class Factory implements FactoryInterface
     /**
      * Crée plusieurs instances du modèle
      */
-    public function createMany(int $count = null, array $attributes = [], string $state = null): array
+    public function createMany(?int $count = null, array $attributes = [], ?string $state = null): array
     {
         $count = $count ?? ($this->attributes['count'] ?? 1);
         $instances = [];
@@ -120,7 +120,7 @@ abstract class Factory implements FactoryInterface
      */
     protected function getFaker(): Generator
     {
-        return $this->faker;
+        return $this->fake;
     }
 
     public function withOverrides(array $attributes): self

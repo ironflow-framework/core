@@ -33,9 +33,9 @@ class CacheServiceProvider extends ServiceProvider
       $manager = $this->container->get('cache.manager');
 
       // Configuration du driver par défaut
-      $manager->setDefaultDriver(config('cache.default'));
+      $manager->set('default', config('cache.default'));
 
-      // Configuration de l'instance Hammer avec le driver par défaut
+      // Configuration de l'instance Cache avec le driver par défaut
       Cache::getInstance()->setDriver($manager->driver());
    }
 }

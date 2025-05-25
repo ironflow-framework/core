@@ -7,6 +7,20 @@ if (!function_exists("dump")) {
    }
 }
 
+
+if (!function_exists('base_path')) {
+   /**
+    * Obtient le chemin vers le dossier racine du projet.
+    *
+    * @param string $path
+    * @return string
+    */
+   function base_path(string $path = ''): string
+   {
+      return BASE_PATH . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+   }
+}
+
 if (!function_exists('app')) {
    /**
     * Récupère une instance du conteneur ou résout une dépendance
@@ -103,18 +117,6 @@ if (!function_exists('app_path')) {
    }
 }
 
-if (!function_exists('base_path')) {
-   /**
-    * Obtient le chemin vers le dossier racine du projet.
-    *
-    * @param string $path
-    * @return string
-    */
-   function base_path(string $path = ''): string
-   {
-      return dirname(__DIR__) . ($path ? DIRECTORY_SEPARATOR . $path : $path);
-   }
-}
 
 if (!function_exists('public_path')) {
    /**

@@ -2,16 +2,16 @@
 
 namespace IronFlow\Support\Facades;
 
-use IronFlow\Cache\Hammer\HammerManager;
+use IronFlow\Cache\CacheManager;
 
 class Cache extends Facade
 {
-    protected static function getFacadeAccessor(): string
+   protected static function getFacadeAccessor(): string
    {
-    return HammerManager::class;
+      return CacheManager::class;
    }
    protected static function getFacadeInstance(): object
    {
-      return HammerManager::getInstance();
+      return CacheManager::getInstance();
    }
 }

@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Facades\Str;
 use IronFlow\Support\Facades\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -9,6 +10,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+
 class MakeModelCommand extends Command
 {
     protected static $defaultName = 'make:model';
@@ -23,7 +25,7 @@ class MakeModelCommand extends Command
             ->addOption('migration', 'm', InputOption::VALUE_NONE, 'Créer une migration associée')
             ->addOption('factory', 'f', InputOption::VALUE_NONE, 'Créer une factory associée')
             ->addOption('seeder', 's', InputOption::VALUE_NONE, 'Créer un seeder associé')
-            ->addOption('form', 'fm', InputOption::VALUE_NONE, 'Créer un formulaire associé');
+            ->addOption('form', 'i', InputOption::VALUE_NONE, 'Créer un formulaire associé');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -69,19 +71,20 @@ class MakeModelCommand extends Command
 
     protected function generateModelContent(string $name, string $table, array $fillable, bool $hasFactory, bool $hasForm): string
     {
-        $fillableContent = empty($fillable) ? '    protected $fillable = [];' : "    protected \$fillable = [\n        '" . implode("',\n        '", $fillable) . "'\n    ];";
-        $hasFactoryImport = $hasFactory ? 'use IronFlow\Database\Factories\HasFactory;' : "";
-        $hasFormImport = $hasForm ? 'use IronFlow\Forms\HasForm;' : "";
-        $hasFactoryContent = $hasFactory ? 'use HasFactory;' : "";
-        $hasFormContent = $hasFactory ? 'use HasForm;' : "";
+        $name = Str::studly($name);
+        $fillableContent = empty($fillable) ? "    protected \$fillable = [];" : "    protected \$fillable = [\n        '" . implode("',\n        '", $fillable) . "'\n    ];";
+        $hasFactoryImport = $hasFactory ? "use IronFlow\Database\Traits\HasFactory;" : "";
+        $hasFormImport = $hasForm ? "use IronFlow\Database\Traits\HasForm;" : "";
+        $hasFactoryContent = $hasFactory ? "use HasFactory;" : "";
+        $hasFormContent = $hasFactory ? "use HasForm;" : "";
 
         return <<<PHP
 <?php
 
 namespace App\Models;
 
-{$hasFactoryImport}
 {$hasFormImport}
+{$hasFactoryImport}
 use IronFlow\Database\Model;
 
 class {$name} extends Model
@@ -107,7 +110,7 @@ PHP;
 
         $migrationContent = $this->generateMigrationContent($table, $fillable);
         Filesystem::put($migrationPath, $migrationContent);
-        $io->success("La migration {$name} a été créée avec succès !");
+        $io->success("La migration {$timestamp}_{$name} a été créée avec succès !");
     }
 
     protected function generateMigrationContent(string $table, array $fillable): string
@@ -156,12 +159,13 @@ PHP;
 
     protected function generateFactoryContent(string $name, array $fillable): string
     {
+        $name = Str::studly($name);
         $fakerContent = [];
         foreach ($fillable as $field) {
-            $fakerContent[] = "            '{$field}' => \$fake->word,";
+            $fakerContent[] = "            '{$field}' => \$this->fake->word,";
         }
 
-        $fakerContent = empty($fakerContent) ? "            'name' => \$fake->word," : implode("\n", $fakerContent);
+        $fakerContent = empty($fakerContent) ? "            'name' => \$this->fake->word," : implode("\n", $fakerContent);
 
         return <<<PHP
 <?php
@@ -170,11 +174,17 @@ namespace Database\Factories;
 
 use IronFlow\Database\Factories\Factory;
 use App\Models\\{$name};
-use Faker\Generator as FakerGenerator;
 
 class {$name}Factory extends Factory
 {
-    public function definition(FakerGenerator \$fake): array
+    protected string \$model = {$name}::class;
+
+    protected function configure(): void
+    {
+        \$this->states = [];
+    }
+
+    public function definition(): array
     {
         return [
 {$fakerContent}
@@ -186,11 +196,12 @@ PHP;
 
     protected function createSeeder(SymfonyStyle $io, string $name): void
     {
+        $name = Str::studly($name);
         $seederPath = database_path("Seeders/") . "{$name}Seeder.php";
 
         $seederContent = $this->generateSeederContent($name);
         Filesystem::put($seederPath, $seederContent);
-        $io->success("Le seeder {$name} a été créé avec succès !");
+        $io->success("Le seeder {$name}Seeder a été créé avec succès !");
     }
 
     protected function generateSeederContent(string $name): string
@@ -207,7 +218,9 @@ class {$name}Seeder
 {
     public function run(): void
     {
-        {$name}::factory(10)->create();
+        // Seed 10 {$name}s
+        {$name}::factory(5)->create();
+        {$name}Factory()->createMany(5);
     }
 }
 PHP;
@@ -215,24 +228,25 @@ PHP;
 
     protected function createForm(SymfonyStyle $io, string $name, array $fillable): void
     {
-        $formPath = app_path("Components/Forms") . "{$name}Form.php";
+        $name = ucfirst($name);
+        $formPath = app_path("Forms/") . "{$name}Form.php";
 
         $formContent = $this->generateFormContent($name, $fillable);
         Filesystem::put($formPath, $formContent);
-        $io->success("Le formulaire {$name} a été créé avec succès !");
+        $io->success("La classe {$name}Form a été créé avec succès !");
     }
 
     protected function generateFormContent(string $name, array $fillable): string
     {
         $fieldsContent = $this->generateFieldsContent($fillable);
-        $rulesContent = $this->generateValidationRules($fillable);
+        $rulesContent = $this->generateValidationRules($name, $fillable);
 
         return <<<PHP
 <?php
 
 namespace App\Components\Forms;
 
-use IronFlow\Furnace\Form;
+use IronFlow\Forms\Form;
 use IronFlow\Validation\Validator;
 
 class {$name}Form extends Form
@@ -240,7 +254,10 @@ class {$name}Form extends Form
 
     public function rules(): array
     {
-        return {$rulesContent};
+        return [
+                {$rulesContent}
+        ];
+
     }
 
     public function messages(): array
@@ -252,6 +269,9 @@ class {$name}Form extends Form
 
     public function build(): Form
     {
+        \$this->title("{$name} Formulaire");
+        \$this->action("");
+        
         {$fieldsContent}
 
         return \$this;
@@ -264,30 +284,75 @@ PHP;
     protected function generateFieldsContent(array $fillable): string
     {
         $fieldsContent = [];
+
         foreach ($fillable as $field) {
             $type = $this->inferFieldType($field);
             $label = ucfirst(str_replace('_', ' ', $field));
 
-            $fieldsContent[] = <<<PHP
-        \$this->addField('{$field}', [
-            'type' => '{$type}',
-            'label' => '{$label}',
-            'required' => true
-        ]);
-PHP;
+            switch ($type) {
+                case 'email':
+                    $fieldsContent[] = <<<PHP
+                    \$this->input("{$field}", "{$label}", [
+                                'type' => "email",
+                                'placeholder' => "john-doe@example.com"
+                            ]);
+                    PHP;
+                    break;
+
+                case 'password':
+                    $fieldsContent[] = <<<PHP
+                    \$this->input("{$field}", "{$label}", [
+                                'type' => "password",
+                                'placeholder' => "********",
+                            ]);
+                    PHP;
+                    break;
+
+                case 'number':
+                    $fieldsContent[] = <<<PHP
+                    \$this->input("{$field}", "{$label}")->type("number");
+                    PHP;
+                    break;
+
+                case 'tel':
+                    $fieldsContent[] = <<<PHP
+                    \$this->input("{$field}", "{$label}")->type("tel");
+                    PHP;
+                    break;
+
+                case 'date':
+                    $fieldsContent[] = <<<PHP
+                    \$this->date("{$field}", "{$label}");
+                    PHP;
+                    break;
+
+                case 'textarea':
+                    $fieldsContent[] = <<<PHP
+                    \$this->textarea("{$field}", "{$label}");
+                    PHP;
+                    break;
+
+                default:
+                    $fieldsContent[] = <<<PHP
+                    \$this->input("{$field}", "{$label}");
+                    PHP;
+                    break;
+            }
         }
+
+
 
         return implode("\n        ", $fieldsContent);
     }
 
-    protected function generateValidationRules(array $fillable): string
+    protected function generateValidationRules(string $model, array $fillable): string
     {
         $rules = [];
         foreach ($fillable as $field) {
-            $rules[$field] = $this->generateFieldRules($field);
+            $rules[] = "'{$field}' => '{$this->generateFieldRules($model, $field)}',";
         }
 
-        return var_export($rules, true);
+        return implode("\n", $rules);
     }
 
     protected function inferFieldType(string $field): string
@@ -298,6 +363,8 @@ PHP;
         $typeMap = [
             'email' => 'email',
             'password' => 'password',
+            'price' => 'number',
+            'slug' => 'text',
             'phone' => 'tel',
             'date' => 'date',
             'time' => 'time',
@@ -315,25 +382,22 @@ PHP;
         return 'text';
     }
 
-    protected function generateFieldRules(string $field): array
+    protected function generateFieldRules(string $model, string $field): string
     {
-        $rules = ['required'];
+        $rules = "";
         $fieldLower = strtolower($field);
 
         // Règles spécifiques basées sur le nom du champ
         if (strpos($fieldLower, 'email') !== false) {
-            $rules[] = 'email';
-            $rules[] = 'max:255';
-            $rules[] = 'unique:users,email';
+            $rules = "required|string|email|max:255|unique:{$model}";
         } elseif (strpos($fieldLower, 'password') !== false) {
-            $rules[] = 'min:8';
-            $rules[] = 'confirmed';
+            $rules = "required|string|min:". config('security.password.min_length', 8);
         } elseif (strpos($fieldLower, 'phone') !== false) {
-            $rules[] = 'regex:/^[0-9\-\+]{10,15}$/';
+            $rules = 'regex:/^[0-9\-\+]{10,15}$/';
         } elseif (strpos($fieldLower, 'url') !== false) {
-            $rules[] = 'url';
+            $rules = 'url';
         } elseif (strpos($fieldLower, 'date') !== false) {
-            $rules[] = 'date';
+            $rules = 'date';
         }
 
         return $rules;

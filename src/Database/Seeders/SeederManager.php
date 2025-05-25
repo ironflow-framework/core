@@ -16,7 +16,7 @@ use IronFlow\Database\Connection;
  * et assure que chaque seeder n'est exécuté qu'une seule fois.
  * 
  * @package IronFlow\Database\Seeder
- * @author IronFlow Team
+ * @author Aure Dulvresse
  * @version 1.0.0
  */
 class SeederManager

@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use IronFlow\Support\Facades\Str;
 
 class MakeComponentCommand extends Command
 {
@@ -17,49 +18,42 @@ class MakeComponentCommand extends Command
    {
       $this
          ->addArgument('name', InputArgument::REQUIRED, 'Le nom du composant')
-         ->addArgument('type', InputArgument::OPTIONAL, 'Le type de composant (UI|Layout|Form)', 'UI')
          ->addArgument('props', InputArgument::OPTIONAL, 'Les propriétés (format: nom:type,options)');
    }
 
    protected function execute(InputInterface $input, OutputInterface $output): int
    {
       $io = new SymfonyStyle($input, $output);
-      $name = $input->getArgument('name');
-      $type = strtoupper($input->getArgument('type'));
+      $name = Str::studly($input->getArgument('name'));
       $props = $input->getArgument('props') ? explode(',', $input->getArgument('props')) : [];
 
-      $componentContent = $this->generateComponentContent($name, $type, $props);
-      $componentPath = "src/View/Components/{$type}/{$name}.php";
+      $componentContent = $this->generateComponentContent($name, $props);
+      $componentPath = app_path("Components/{$name}Component.php");
 
       if (!is_dir(dirname($componentPath))) {
          mkdir(dirname($componentPath), 0755, true);
       }
 
       file_put_contents($componentPath, $componentContent);
-      $io->success("Le composant {$name} a été créé avec succès !");
+      $io->success("Le composant {$name}Component a été créé avec succès !");
 
       return Command::SUCCESS;
    }
 
-   protected function generateComponentContent(string $name, string $type, array $props): string
+   protected function generateComponentContent(string $name, array $props): string
    {
       $propsContent = $this->generatePropsContent($props);
-      $baseClass = $this->getBaseClass($type);
 
       return <<<PHP
 <?php
 
-namespace IronFlow\View\Components\\{$type};
+namespace App\Components;
 
-use IronFlow\View\Components\\{$baseClass};
+use IronFlow\Components\BaseComponent;
 
-class {$name} extends {$baseClass}
+class {$name}Component extends BaseComponent
 {
-    public function __construct(
-        {$propsContent}
-    ) {
-        parent::__construct();
-    }
+{$propsContent}
 
     public function render(): string
     {
@@ -82,7 +76,7 @@ PHP;
          $parts = explode(':', $prop);
          $name = $parts[0];
          $type = $parts[1] ?? 'mixed';
-         $default = isset($parts[2]) ? " = {$parts[2]}" : '';
+         $default = isset($parts[2]) ? " = {$parts[2]};" : ';';
 
          $content .= "        public {$type} \${$name}{$default},\n";
       }
@@ -90,13 +84,5 @@ PHP;
       return rtrim($content, ",\n");
    }
 
-   protected function getBaseClass(string $type): string
-   {
-      return match ($type) {
-         'UI' => 'UIComponent',
-         'LAYOUT' => 'LayoutComponent',
-         'FORM' => 'FormComponent',
-         default => 'Component'
-      };
-   }
+  
 }

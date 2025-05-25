@@ -16,27 +16,51 @@ class CacheManager
    private ?CacheDriverInterface $driver = null;
    private array $config;
 
-   private function __construct()
+   public function __construct()
    {
       $this->config = config('cache', [
          'default' => 'file',
          'ttl' => 3600,
-         'prefix' => 'ironflow_cache_',
-         'drivers' => [
+         'stores' => [
             'file' => [
+               'driver' => 'file',
                'path' => storage_path('cache'),
             ],
             'redis' => [
-               'host' => '127.0.0.1',
-               'port' => 6379,
-               'password' => null,
-               'database' => 0,
+               'driver' => 'redis',
+               'connection' => 'cache',
+               'servers' => [
+                  [
+                     'host' => '127.0.0.1',
+                     'port' => 6379,
+                     'password' => null,
+                     'database' => 0,
+                     'timeout' => 10,
+                  ],
+               ],
+               'lock_connection' => 'default',
             ],
             'memcached' => [
-               'host' => '127.0.0.1',
-               'port' => 11211,
+               'driver' => 'memcached',
+               'persistent_id' => env('MEMCACHED_PERSISTENT_ID'),
+               'sasl' => [
+                  env('MEMCACHED_USERNAME'),
+                  env('MEMCACHED_PASSWORD'),
+               ],
+               'options' => [
+                  // Memcached::OPT_CONNECT_TIMEOUT => 2000,
+               ],
+               'servers' => [
+                  [
+                     'host' => '127.0.0.1',
+                     'port' => 11211,
+                     'weight' => 100,
+                  ]
+               ]
             ],
          ],
+
+         'prefix' => 'ironflow_cache_',
       ]);
 
       $this->initializeDriver();
@@ -53,10 +77,26 @@ class CacheManager
    private function initializeDriver(): void
    {
       $driver = $this->config['default'];
+ 
       $this->driver = match ($driver) {
-         'file' => new FileDriver($this->config['drivers']['file']),
-         'redis' => new RedisDriver($this->config['drivers']['redis']),
-         'memcached' => new MemcachedDriver($this->config['drivers']['memcached']),
+         'file' => new FileDriver($this->config['stores']['file']),
+         'redis' => new RedisDriver($this->config['stores']['redis']),
+         'memcached' => new MemcachedDriver($this->config['stores']['memcached']),
+         default => throw new CacheException("Driver de cache non supporté: {$driver}")
+      };
+   }
+
+   public function driver(): string
+   {
+      return $this->config['default'];
+   }
+
+   public function setDriver(string $driver): void
+   {
+      $this->driver = match ($driver) {
+         'file' => new FileDriver($this->config['stores']['file']),
+         'redis' => new RedisDriver($this->config['stores']['redis']),
+         'memcached' => new MemcachedDriver($this->config['stores']['memcached']),
          default => throw new CacheException("Driver de cache non supporté: {$driver}")
       };
    }
