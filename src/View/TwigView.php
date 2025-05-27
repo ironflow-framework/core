@@ -60,8 +60,8 @@ class TwigView implements ViewInterface
       $this->twig->addGlobal('APP_VERSION', config('app.version'));
       $this->twig->addGlobal('APP_LOCALE', config('app.locale'));
 
-      $this->twig->addFunction(new \Twig\TwigFunction('component', function (string $name, array $props = []) {
-         return ComponentManager::render($name, $props);
+      $this->twig->addFunction(new \Twig\TwigFunction('component', function (string $name, $props = []) {
+         return ComponentManager::render($name, is_array($props) ? $props : [$props]);
       }, ['is_safe' => ['html']]));
 
       $this->twig->addExtension(new ViteExtension());
