@@ -3,6 +3,7 @@
 namespace IronFlow\Console\Commands\Generator;
 
 use IronFlow\Support\Filesystem;
+use IronFlow\Support\Facades\Str;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
@@ -12,16 +13,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class MakeFormCommand extends Command
 {
+    protected static $defaultName = 'make:form';
+    protected static $defaultDescription = 'Crée une nouvelle classe de formulaire';
+
     protected function configure()
     {
         $this
-            ->setName('make:form')
-            ->setDescription('Create a new form class')
-            ->addArgument('name', InputArgument::REQUIRED, 'Name of the form')
-            ->addArgument('fields', InputArgument::OPTIONAL, 'Form fields (format: name:type:options)')
-            ->addArgument('namespace', InputArgument::OPTIONAL, 'Custom namespace', 'App\\Forms')
-            ->addOption('model', 'm', InputOption::VALUE_OPTIONAL, 'Associate with a model', null)
-            ->addOption('crud', 'c', InputOption::VALUE_NONE, 'Generate CRUD form with model fields');
+            ->addArgument('name', InputArgument::REQUIRED, 'Nom du formulaire')
+            ->addArgument('fillable', InputArgument::OPTIONAL, 'Champs du formulaire (séparés par des virgules)')
+            ->addArgument('namespace', InputArgument::OPTIONAL, 'Namespace personnalisé', 'App\\Forms')
+            ->addOption('model', 'm', InputOption::VALUE_OPTIONAL, 'Associer avec un modèle', null)
+            ->addOption('crud', 'c', InputOption::VALUE_NONE, 'Générer un formulaire CRUD avec les champs du modèle')
+            ->addOption('theme', 't', InputOption::VALUE_OPTIONAL, 'Thème du formulaire (default, floating, material, tailwind)', 'default');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -29,31 +32,32 @@ class MakeFormCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $name = $input->getArgument('name');
-        $fieldsInput = $input->getArgument('fields');
+        $fillableInput = $input->getArgument('fillable');
         $namespace = $input->getArgument('namespace');
         $modelName = $input->getOption('model');
         $isCrud = $input->getOption('crud');
+        $theme = $input->getOption('theme');
 
-        $formClassName = str_replace(['Form', 'form'], '', $name) . 'Form';
+        $formClassName = Str::studly(str_replace(['Form', 'form'], '', $name)) . 'Form';
 
-        $fields = $fieldsInput ? $this->parseFields($fieldsInput) : [];
+        $fillable = $fillableInput ? explode(',', $fillableInput) : [];
 
         if ($modelName) {
             $io->text("Association avec le modèle: {$modelName}");
             $modelFields = $this->getModelFields($modelName);
 
             if (!empty($modelFields)) {
-                if (empty($fields) || $isCrud) {
-                    $fields = $modelFields;
-                    $io->text("Utilisation des champs du modèle: " . implode(', ', array_column($modelFields, 'name')));
+                if (empty($fillable) || $isCrud) {
+                    $fillable = $modelFields;
+                    $io->text("Utilisation des champs du modèle: " . implode(', ', $modelFields));
                 }
             } else {
                 $io->warning("Aucun champ trouvé pour le modèle {$modelName}. Utilisation des champs fournis.");
             }
 
-            $formContent = $this->generateModelFormContent($namespace, $formClassName, $fields, $modelName, $isCrud);
+            $formContent = $this->generateModelFormContent($namespace, $formClassName, $fillable, $modelName, $isCrud, $theme);
         } else {
-            $formContent = $this->generateFormContent($namespace, $formClassName, $fields);
+            $formContent = $this->generateFormContent($namespace, $formClassName, $fillable, $theme);
         }
 
         $basePath = str_replace('\\', '/', $namespace);
@@ -65,206 +69,118 @@ class MakeFormCommand extends Command
 
         Filesystem::put($formPath, $formContent);
 
-        $io->success("Form {$formClassName} created successfully at {$formPath}");
+        $io->success("Formulaire {$formClassName} créé avec succès à {$formPath}");
 
         return Command::SUCCESS;
     }
 
-    protected function parseFields(?string $fieldsInput): array
-    {
-        if (empty($fieldsInput)) {
-            return [];
-        }
-
-        $parsedFields = [];
-        $fieldEntries = explode(',', $fieldsInput);
-
-        foreach ($fieldEntries as $entry) {
-            $parts = explode(':', $entry);
-
-            $field = [
-                'name' => $parts[0] ?? '',
-                'type' => $parts[1] ?? 'text',
-                'options' => []
-            ];
-
-            // Parse additional options if exists
-            if (isset($parts[2])) {
-                $optionParts = explode(';', $parts[2]);
-                foreach ($optionParts as $option) {
-                    $optionDetail = explode('=', $option);
-                    if (count($optionDetail) === 2) {
-                        $key = trim($optionDetail[0]);
-                        $value = trim($optionDetail[1]);
-
-                        // Convert string values to appropriate types
-                        if (strtolower($value) === 'true') {
-                            $value = true;
-                        } elseif (strtolower($value) === 'false') {
-                            $value = false;
-                        } elseif (is_numeric($value)) {
-                            $value = strpos($value, '.') !== false ? floatval($value) : intval($value);
-                        }
-
-                        $field['options'][$key] = $value;
-                    }
-                }
-            }
-
-            $parsedFields[] = $field;
-        }
-
-        return $parsedFields;
-    }
-
     protected function getModelFields(string $modelName): array
     {
-        // Chemin complet du modèle
-        $modelNamespace = "App\\Models\\{$modelName}";
         $modelPath = app_path("Models/{$modelName}.php");
 
         if (!Filesystem::exists($modelPath)) {
             return [];
         }
 
-        // On lit le contenu du fichier
         $content = Filesystem::get($modelPath);
 
-        // On extrait les champs fillable du modèle
         if (preg_match('/protected\s+\$fillable\s*=\s*\[(.*?)\]/s', $content, $matches)) {
             $fillableString = $matches[1];
             preg_match_all('/[\'"]([^\'"]+)[\'"]/', $fillableString, $fieldMatches);
-
-            $fields = [];
-            foreach ($fieldMatches[1] as $fieldName) {
-                $fields[] = [
-                    'name' => $fieldName,
-                    'type' => $this->inferFieldType($fieldName),
-                    'options' => []
-                ];
-            }
-
-            return $fields;
+            return $fieldMatches[1];
         }
 
         return [];
     }
 
-    protected function inferFieldType(string $fieldName): string
+    protected function generateFormContent(string $namespace, string $formClassName, array $fillable, string $theme): string
     {
-        // Logique pour déduire le type de champ à partir du nom
-        $lowerName = strtolower($fieldName);
-
-        if (str_contains($lowerName, 'email')) {
-            return 'email';
-        } elseif (str_contains($lowerName, 'password')) {
-            return 'password';
-        } elseif (str_contains($lowerName, 'date') || str_contains($lowerName, 'time')) {
-            return 'date';
-        } elseif (str_contains($lowerName, 'image') || str_contains($lowerName, 'photo') || str_contains($lowerName, 'avatar')) {
-            return 'file';
-        } elseif (str_contains($lowerName, 'description') || str_contains($lowerName, 'content')) {
-            return 'textarea';
-        } elseif (str_contains($lowerName, 'active') || str_contains($lowerName, 'enabled') || str_contains($lowerName, 'status')) {
-            return 'checkbox';
-        } elseif (str_contains($lowerName, 'price') || str_contains($lowerName, 'amount')) {
-            return 'number';
-        } elseif (str_contains($lowerName, 'color')) {
-            return 'color';
-        } elseif (str_contains($lowerName, 'url') || str_contains($lowerName, 'link') || str_contains($lowerName, 'website')) {
-            return 'url';
-        }
-
-        return 'text';
-    }
-
-    protected function generateFormContent(string $namespace, string $formClassName, array $fields): string
-    {
-        $fieldsContent = $this->generateFieldsContent($fields);
+        $fieldsContent = $this->generateFieldsContent($fillable);
+        $modelNameLower = strtolower(str_replace('Form', '', $formClassName));
 
         return <<<PHP
 <?php
 
 namespace {$namespace};
 
-use IronFlow\Furnace\Form;
+use IronFlow\Forms\Form;
 
 class {$formClassName} extends Form
 {
-    protected function build(): void
+    public function __construct(?string \$model = null)
     {
+        parent::__construct(\$model);
+
+        \$this->title("{$formClassName}")
+            ->theme('{$theme}')
+            ->action(route('{$modelNameLower}.store'))
+            ->method('POST');
+
 {$fieldsContent}
+
+        \$this->button('Enregistrer', ['type' => 'submit', 'class' => 'btn btn-primary']);
     }
 }
 PHP;
     }
 
-    protected function generateModelFormContent(string $namespace, string $formClassName, array $fields, string $modelName, bool $isCrud): string
+    protected function generateModelFormContent(string $namespace, string $formClassName, array $fillable, string $modelName, bool $isCrud, string $theme): string
     {
-        $fieldsContent = $this->generateFieldsContent($fields);
-        $validationContent = $this->generateValidationContent($fields);
-
+        $fieldsContent = $this->generateFieldsContent($fillable);
         $modelNs = "App\\Models\\{$modelName}";
+        $modelNameLower = strtolower($modelName);
 
-        // Génére un formulaire de base associé à un modèle
         if (!$isCrud) {
             return <<<PHP
 <?php
 
 namespace {$namespace};
 
-use IronFlow\Furnace\Form;
+use IronFlow\Forms\Form;
 use {$modelNs};
 
 class {$formClassName} extends Form
 {
-    /**
-     * Modèle associé au formulaire
-     */
-    protected ?string \$model = {$modelName}::class;
+    public function __construct(?string \$model = null)
+    {
+        parent::__construct(\$model ?? {$modelName}::class);
 
-    protected function build(): void
-    {
+        \$this->title("{$modelName} Formulaire")
+            ->theme('{$theme}')
+            ->action(route('{$modelNameLower}.store'))
+            ->method('POST');
+
 {$fieldsContent}
-    }
-    
-    /**
-     * Règles de validation
-     */
-    public function rules(): array
-    {
-        return {$validationContent};
+
+        \$this->button('Enregistrer', ['type' => 'submit', 'class' => 'btn btn-primary']);
     }
 }
 PHP;
         }
 
-        // Génére un formulaire CRUD complet
         return <<<PHP
 <?php
 
 namespace {$namespace};
 
-use IronFlow\Furnace\Form;
+use IronFlow\Forms\Form;
 use {$modelNs};
 
 class {$formClassName} extends Form
 {
-    /**
-     * Modèle associé au formulaire
-     */
-    protected ?string \$model = {$modelName}::class;
-    
-    /**
-     * Indique si c'est un formulaire de création ou d'édition
-     */
     protected bool \$isUpdate = false;
-    
-    /**
-     * ID de l'enregistrement en cours d'édition
-     */
     protected ?int \$recordId = null;
-    
+
+    public function __construct(?string \$model = null)
+    {
+        parent::__construct(\$model ?? {$modelName}::class);
+
+        \$this->title("{$modelName} Formulaire")
+            ->theme('{$theme}');
+
+        \$this->buildForm();
+    }
+
     /**
      * Définir le mode édition
      */
@@ -272,73 +188,54 @@ class {$formClassName} extends Form
     {
         \$this->isUpdate = true;
         \$this->recordId = \$id;
+        
+        \$this->action(route('{$modelNameLower}.update', \$id))
+            ->method('PUT')
+            ->whenEditing(\$id);
+
         return \$this;
     }
 
-    protected function build(): void
+    /**
+     * Construire le formulaire
+     */
+    protected function buildForm(): void
     {
 {$fieldsContent}
 
-        // Ajouter les boutons de soumission
-        \$this->addField('submit', 'submit', [
-            'label' => \$this->isUpdate ? 'Mettre à jour' : 'Créer',
-            'class' => 'btn btn-primary'
-        ]);
-        
+        // Boutons de soumission
+        \$submitLabel = \$this->isUpdate ? 'Mettre à jour' : 'Créer';
+        \$this->button(\$submitLabel, ['type' => 'submit', 'class' => 'btn btn-primary']);
+
         if (\$this->isUpdate) {
-            \$this->addField('delete', 'button', [
-                'label' => 'Supprimer',
-                'class' => 'btn btn-danger',
+            \$this->button('Supprimer', [
                 'type' => 'button',
-                'attributes' => [
-                    'onclick' => 'confirmDelete()'
-                ]
+                'class' => 'btn btn-danger',
+                'onclick' => 'confirmDelete()'
             ]);
         }
     }
-    
-    /**
-     * Règles de validation
-     */
-    public function rules(): array
-    {
-        \$rules = {$validationContent};
-        
-        // Adapter les règles pour l'édition
-        if (\$this->isUpdate && \$this->recordId) {
-            // Exemple: unicité avec exception pour l'enregistrement actuel
-            // \$rules['email'] = ['required', 'email', 'unique:users,email,' . \$this->recordId];
-        }
-        
-        return \$rules;
-    }
-    
+
     /**
      * Charger les données depuis le modèle
      */
     public function loadModel(int \$id): self
     {
         \$model = {$modelName}::find(\$id);
-        
+
         if (\$model) {
-            \$this->setValues(\$model->toArray());
+            \$this->fill(\$model->toArray());
             \$this->setUpdateMode(\$id);
         }
-        
+
         return \$this;
     }
-    
+
     /**
      * Enregistrer le formulaire dans le modèle
      */
-    public function save(): ?{$modelName}
+    public function save(array \$data): ?{$modelName}
     {
-        if (!empty(\$this->errors)) {
-            return null;
-        }
-        
-        \$data = \$this->getValues();
-        
         if (\$this->isUpdate && \$this->recordId) {
             \$model = {$modelName}::find(\$this->recordId);
             if (\$model) {
@@ -348,114 +245,83 @@ class {$formClassName} extends Form
             }
             return null;
         }
-        
+
         return {$modelName}::create(\$data);
     }
 }
 PHP;
     }
 
-    protected function generateFieldsContent(array $fields): string
+    protected function generateFieldsContent(array $fillable): string
     {
-        $content = '';
-        foreach ($fields as $field) {
-            $name = $field['name'];
-            $type = $field['type'];
-            $options = $field['options'];
-
-            // Ajout d'un label par défaut s'il n'existe pas
-            if (!isset($options['label'])) {
-                $options['label'] = ucfirst(str_replace('_', ' ', $name));
-            }
-
-            // Convert options to a string representation
-            $optionsStr = $this->formatOptions($options);
-
-            $content .= "        \$this->addField('{$name}', '{$type}', {$optionsStr});\n";
+        if (empty($fillable)) {
+            return "        // Aucun champ défini pour ce formulaire.";
         }
-        return $content;
+
+        $fieldsContent = array_map(function ($field) {
+            $field = trim($field);
+            $type = $this->inferFieldType($field);
+            $label = ucfirst(str_replace('_', ' ', $field));
+
+            return match ($type) {
+                'email' => "        \$this->input('{$field}', '{$label}', ['type' => 'email', 'placeholder' => 'exemple@mail.com']);",
+                'password' => "        \$this->input('{$field}', '{$label}', ['type' => 'password']);",
+                'number' => "        \$this->input('{$field}', '{$label}', ['type' => 'number']);",
+                'tel' => "        \$this->input('{$field}', '{$label}', ['type' => 'tel']);",
+                'url' => "        \$this->input('{$field}', '{$label}', ['type' => 'url']);",
+                'color' => "        \$this->color('{$field}', '{$label}');",
+                'date' => "        \$this->date('{$field}', '{$label}');",
+                'file' => "        \$this->file('{$field}', '{$label}');",
+                'textarea' => "        \$this->textarea('{$field}', '{$label}');",
+                'checkbox' => "        \$this->checkbox('{$field}', '{$label}');",
+                default => "        \$this->input('{$field}', '{$label}');"
+            };
+        }, $fillable);
+
+        return implode("\n", $fieldsContent);
     }
 
-    protected function formatOptions(array $options): string
+    protected function inferFieldType(string $field): string
     {
-        if (empty($options)) {
-            return '[]';
-        }
+        $lowerField = strtolower($field);
 
-        $formattedOptions = [];
-        foreach ($options as $key => $value) {
-            if (is_bool($value)) {
-                $formattedOptions[] = "'{$key}' => " . ($value ? 'true' : 'false');
-            } elseif (is_string($value)) {
-                $formattedOptions[] = "'{$key}' => '{$value}'";
-            } else {
-                $formattedOptions[] = "'{$key}' => {$value}";
+        $typeMap = [
+            'email' => 'email',
+            'password' => 'password',
+            'price' => 'number',
+            'amount' => 'number',
+            'quantity' => 'number',
+            'age' => 'number',
+            'phone' => 'tel',
+            'tel' => 'tel',
+            'mobile' => 'tel',
+            'date' => 'date',
+            'time' => 'date',
+            'url' => 'url',
+            'link' => 'url',
+            'website' => 'url',
+            'color' => 'color',
+            'image' => 'file',
+            'photo' => 'file',
+            'avatar' => 'file',
+            'file' => 'file',
+            'document' => 'file',
+            'description' => 'textarea',
+            'content' => 'textarea',
+            'message' => 'textarea',
+            'comment' => 'textarea',
+            'active' => 'checkbox',
+            'enabled' => 'checkbox',
+            'status' => 'checkbox',
+            'published' => 'checkbox'
+        ];
+
+        foreach ($typeMap as $key => $type) {
+            if (str_contains($lowerField, $key)) {
+                return $type;
             }
         }
 
-        return "[\n            " . implode(",\n            ", $formattedOptions) . "\n        ]";
-    }
-
-    protected function generateValidationContent(array $fields): string
-    {
-        $rules = [];
-
-        foreach ($fields as $field) {
-            $name = $field['name'];
-            $type = $field['type'];
-
-            $fieldRules = $this->getFieldValidationRules($name, $type);
-
-            if (!empty($fieldRules)) {
-                $rules[] = "            '{$name}' => ['" . implode("', '", $fieldRules) . "']";
-            }
-        }
-
-        if (empty($rules)) {
-            return '[]';
-        }
-
-        return "[\n" . implode(",\n", $rules) . "\n        ]";
-    }
-
-    protected function getFieldValidationRules(string $name, string $type): array
-    {
-        $rules = ['required'];
-
-        switch ($type) {
-            case 'email':
-                $rules[] = 'email';
-                break;
-            case 'number':
-                $rules[] = 'numeric';
-                break;
-            case 'date':
-                $rules[] = 'date';
-                break;
-            case 'url':
-                $rules[] = 'url';
-                break;
-            case 'file':
-                $rules = ['file'];
-                break;
-            case 'checkbox':
-                $rules = ['boolean'];
-                break;
-            case 'password':
-                $rules[] = 'min:8';
-                break;
-        }
-
-        // Ajouter des règles spécifiques selon le nom du champ
-        if (str_contains($name, 'email')) {
-            if (!in_array('email', $rules)) {
-                $rules[] = 'email';
-            }
-            $rules[] = 'unique:users,email';
-        } elseif ($name === 'name' || $name === 'title') {
-            $rules[] = 'max:255';
-        }
-
-        return $rules;
+        return 'text';
     }
 }

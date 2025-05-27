@@ -123,7 +123,7 @@ abstract class Component
     *
     * @return string|null
     */
-   public function getError(): ?string
+   public function   getError(): ?string
    {
       return $this->error;
    }

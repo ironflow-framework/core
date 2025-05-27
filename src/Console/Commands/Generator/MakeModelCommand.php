@@ -13,7 +13,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class MakeModelCommand extends Command
 {
-    protected static $defaultName = 'make:model';
+    protected static $defaultName        = 'make:model';
     protected static $defaultDescription = 'Crée un nouveau modèle';
 
     protected function configure(): void
@@ -30,40 +30,41 @@ class MakeModelCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-        $name = $input->getArgument('name');
-        $table = $input->getArgument('table') ?? strtolower($name) . 's';
-        $fillable = $input->getArgument('fillable') ? explode(',', $input->getArgument('fillable')) : [];
+        $io          = new SymfonyStyle($input, $output);
+        $name        = $input->getArgument('name');
+        $table       = $input->getArgument('table') ?? strtolower($name) . 's';
+        $fillable    = $input->getArgument('fillable') ? explode(',', $input->getArgument('fillable')) : [];
         $withMigration = $input->getOption('migration');
-        $withFactory = $input->getOption('factory');
-        $withSeeder = $input->getOption('seeder');
-        $withForm = $input->getOption('form');
+        $withFactory   = $input->getOption('factory');
+        $withSeeder    = $input->getOption('seeder');
+        $withForm      = $input->getOption('form');
 
-        $modelContent = $this->generateModelContent($name, $table, $fillable, $withFactory, $withForm);
-        $modelPath = app_path("Models/") . "{$name}.php";
+        $modelName = Str::studly($name);
+        $modelPath = app_path("Models/{$modelName}.php");
+
+        $modelContent = $this->generateModelContent($modelName, $table, $fillable, $withFactory, $withForm);
 
         if (!Filesystem::exists(dirname($modelPath))) {
             Filesystem::makeDirectory(dirname($modelPath), 0755, true);
         }
 
         Filesystem::put($modelPath, $modelContent);
-        $io->success("Le modèle {$name} a été créé avec succès !");
+        $io->success("Le modèle {$modelName} a été créé avec succès !");
 
         if ($withMigration) {
-            $migrationName = 'create_' . $table . '_table';
-            $this->createMigration($io, $migrationName, $table, $fillable);
+            $this->createMigration($io, 'create_' . $table . '_table', $table, $fillable);
         }
 
         if ($withFactory) {
-            $this->createFactory($io, $name, $fillable);
+            $this->createFactory($io, $modelName, $fillable);
         }
 
         if ($withSeeder) {
-            $this->createSeeder($io, $name);
+            $this->createSeeder($io, $modelName);
         }
 
         if ($withForm) {
-            $this->createForm($io, $name, $fillable);
+            $this->createForm($io, $modelName, $fillable);
         }
 
         return Command::SUCCESS;
@@ -71,31 +72,43 @@ class MakeModelCommand extends Command
 
     protected function generateModelContent(string $name, string $table, array $fillable, bool $hasFactory, bool $hasForm): string
     {
-        $name = Str::studly($name);
-        $fillableContent = empty($fillable) ? "    protected \$fillable = [];" : "    protected \$fillable = [\n        '" . implode("',\n        '", $fillable) . "'\n    ];";
-        $hasFactoryImport = $hasFactory ? "use IronFlow\Database\Traits\HasFactory;" : "";
-        $hasFormImport = $hasForm ? "use IronFlow\Database\Traits\HasForm;" : "";
-        $hasFactoryContent = $hasFactory ? "use HasFactory;" : "";
-        $hasFormContent = $hasFactory ? "use HasForm;" : "";
+        $fillableContent   = empty($fillable)
+            ? "    protected array \$fillable = [];"
+            : "    protected array \$fillable = [\n        '" . implode("',\n        '", $fillable) . "'\n    ];";
+
+        $traits = [];
+        $imports = [];
+
+        if ($hasFactory) {
+            $imports[] = "use IronFlow\Database\Traits\HasFactory;";
+            $traits[]  = "use HasFactory;";
+        }
+
+        if ($hasForm) {
+            $imports[] = "use IronFlow\Database\Traits\HasForm;";
+            $traits[]  = "use HasForm;";
+        }
+
+        $importLines = implode("\n", $imports);
+        $traitLines  = implode("\n    ", $traits);
 
         return <<<PHP
 <?php
 
 namespace App\Models;
 
-{$hasFormImport}
-{$hasFactoryImport}
+{$importLines}
 use IronFlow\Database\Model;
 
 class {$name} extends Model
 {
-    {$hasFactoryContent}
-    {$hasFormContent}
-    protected \$table = '{$table}';
+    {$traitLines}
+
+    protected static string \$table = '{$table}';
 
 {$fillableContent}
 
-    protected \$casts = [
+    protected array \$casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -105,22 +118,24 @@ PHP;
 
     protected function createMigration(SymfonyStyle $io, string $name, string $table, array $fillable): void
     {
-        $timestamp = date('Y_m_d_His');
-        $migrationPath = database_path("Migrations/") . "{$timestamp}_{$name}.php";
-
+        $timestamp       = date('Y_m_d_His');
+        $migrationPath   = database_path("Migrations/{$timestamp}_{$name}.php");
         $migrationContent = $this->generateMigrationContent($table, $fillable);
+
         Filesystem::put($migrationPath, $migrationContent);
         $io->success("La migration {$timestamp}_{$name} a été créée avec succès !");
     }
 
     protected function generateMigrationContent(string $table, array $fillable): string
     {
-        $columns = [];
-        foreach ($fillable as $field) {
-            $columns[] = "            \$table->string('{$field}');";
-        }
+        $columns = array_map(fn($field) => "            \$table->string('{$field}');", $fillable);
 
-        $columnsContent = empty($columns) ? "            \$table->id();\n            \$table->timestamps();" : implode("\n", $columns);
+        if (empty($columns)) {
+            $columns[] = "            \$table->id();";
+        }
+        $columns[] = "            \$table->timestamps();";
+
+        $columnsContent = implode("\n", $columns);
 
         return <<<PHP
 <?php
@@ -150,22 +165,20 @@ PHP;
 
     protected function createFactory(SymfonyStyle $io, string $name, array $fillable): void
     {
-        $factoryPath = database_path("Factories/") . "{$name}Factory.php";
+        $factoryPath     = database_path("Factories/{$name}Factory.php");
+        $factoryContent  = $this->generateFactoryContent($name, $fillable);
 
-        $factoryContent = $this->generateFactoryContent($name, $fillable);
         Filesystem::put($factoryPath, $factoryContent);
         $io->success("La factory {$name} a été créée avec succès !");
     }
 
     protected function generateFactoryContent(string $name, array $fillable): string
     {
-        $name = Str::studly($name);
-        $fakerContent = [];
-        foreach ($fillable as $field) {
-            $fakerContent[] = "            '{$field}' => \$this->fake->word,";
+        $fakerFields = array_map(fn($field) => "            '{$field}' => \$this->fake->word,", $fillable);
+        if (empty($fakerFields)) {
+            $fakerFields[] = "            'name' => \$this->fake->word,";
         }
-
-        $fakerContent = empty($fakerContent) ? "            'name' => \$this->fake->word," : implode("\n", $fakerContent);
+        $fakerContent = implode("\n", $fakerFields);
 
         return <<<PHP
 <?php
@@ -196,10 +209,9 @@ PHP;
 
     protected function createSeeder(SymfonyStyle $io, string $name): void
     {
-        $name = Str::studly($name);
-        $seederPath = database_path("Seeders/") . "{$name}Seeder.php";
+        $seederPath     = database_path("Seeders/{$name}Seeder.php");
+        $seederContent  = $this->generateSeederContent($name);
 
-        $seederContent = $this->generateSeederContent($name);
         Filesystem::put($seederPath, $seederContent);
         $io->success("Le seeder {$name}Seeder a été créé avec succès !");
     }
@@ -218,9 +230,11 @@ class {$name}Seeder
 {
     public function run(): void
     {
-        // Seed 10 {$name}s
+        // Seed 5 records
         {$name}::factory(5)->create();
-        {$name}Factory()->createMany(5);
+
+        \$factory = new {$name}Factory();
+        \$factory->createMany(5);
     }
 }
 PHP;
@@ -228,18 +242,16 @@ PHP;
 
     protected function createForm(SymfonyStyle $io, string $name, array $fillable): void
     {
-        $name = ucfirst($name);
-        $formPath = app_path("Forms/") . "{$name}Form.php";
+        $formPath     = app_path("Forms/{$name}Form.php");
+        $formContent  = $this->generateFormContent($name, $fillable);
 
-        $formContent = $this->generateFormContent($name, $fillable);
         Filesystem::put($formPath, $formContent);
-        $io->success("La classe {$name}Form a été créé avec succès !");
+        $io->success("La classe {$name}Form a été créée avec succès !");
     }
 
     protected function generateFormContent(string $name, array $fillable): string
     {
         $fieldsContent = $this->generateFieldsContent($fillable);
-        $rulesContent = $this->generateValidationRules($name, $fillable);
 
         return <<<PHP
 <?php
@@ -247,159 +259,72 @@ PHP;
 namespace App\Components\Forms;
 
 use IronFlow\Forms\Form;
-use IronFlow\Validation\Validator;
 
 class {$name}Form extends Form
 {
-
-    public function rules(): array
+    public function __construct(?string \$name = null)
     {
-        return [
-                {$rulesContent}
-        ];
+        parent::__construct({$name});
 
-    }
+        \$this->title("{$name} Formulaire")
+            ->action(route('{$name}.store'))
+            ->button('Enregistrer');
 
-    public function messages(): array
-    {
-        return [
-            // Messages de validation personnalisés
-        ];
-    }
-
-    public function build(): Form
-    {
-        \$this->title("{$name} Formulaire");
-        \$this->action("");
-        
-        {$fieldsContent}
+{$fieldsContent}
 
         return \$this;
     }
-
 }
 PHP;
     }
 
+
     protected function generateFieldsContent(array $fillable): string
     {
-        $fieldsContent = [];
+        if (empty($fillable)) {
+            return "        // Aucun champ défini pour ce formulaire.";
+        }
 
-        foreach ($fillable as $field) {
-            $type = $this->inferFieldType($field);
+        $fieldsContent = array_map(function ($field) {
+            $type  = $this->inferFieldType($field);
             $label = ucfirst(str_replace('_', ' ', $field));
 
-            switch ($type) {
-                case 'email':
-                    $fieldsContent[] = <<<PHP
-                    \$this->input("{$field}", "{$label}", [
-                                'type' => "email",
-                                'placeholder' => "john-doe@example.com"
-                            ]);
-                    PHP;
-                    break;
+            return match ($type) {
+                'email'     => "        \$this->input('{$field}', '{$label}', ['type' => 'email', 'placeholder' => 'exemple@mail.com']);",
+                'password'  => "        \$this->input('{$field}', '{$label}', ['type' => 'password']);",
+                'number'    => "        \$this->input('{$field}', '{$label}')->type('number');",
+                'tel'       => "        \$this->input('{$field}', '{$label}')->type('tel');",
+                'date'      => "        \$this->date('{$field}', '{$label}');",
+                'textarea'  => "        \$this->textarea('{$field}', '{$label}');",
+                default     => "        \$this->input('{$field}', '{$label}');"
+            };
+        }, $fillable);
 
-                case 'password':
-                    $fieldsContent[] = <<<PHP
-                    \$this->input("{$field}", "{$label}", [
-                                'type' => "password",
-                                'placeholder' => "********",
-                            ]);
-                    PHP;
-                    break;
-
-                case 'number':
-                    $fieldsContent[] = <<<PHP
-                    \$this->input("{$field}", "{$label}")->type("number");
-                    PHP;
-                    break;
-
-                case 'tel':
-                    $fieldsContent[] = <<<PHP
-                    \$this->input("{$field}", "{$label}")->type("tel");
-                    PHP;
-                    break;
-
-                case 'date':
-                    $fieldsContent[] = <<<PHP
-                    \$this->date("{$field}", "{$label}");
-                    PHP;
-                    break;
-
-                case 'textarea':
-                    $fieldsContent[] = <<<PHP
-                    \$this->textarea("{$field}", "{$label}");
-                    PHP;
-                    break;
-
-                default:
-                    $fieldsContent[] = <<<PHP
-                    \$this->input("{$field}", "{$label}");
-                    PHP;
-                    break;
-            }
-        }
-
-
-
-        return implode("\n        ", $fieldsContent);
+        return implode("\n", $fieldsContent);
     }
 
-    protected function generateValidationRules(string $model, array $fillable): string
-    {
-        $rules = [];
-        foreach ($fillable as $field) {
-            $rules[] = "'{$field}' => '{$this->generateFieldRules($model, $field)}',";
-        }
-
-        return implode("\n", $rules);
-    }
 
     protected function inferFieldType(string $field): string
     {
-        // Inférer le type de champ basé sur le nom
-        $fieldLower = strtolower($field);
-
         $typeMap = [
-            'email' => 'email',
-            'password' => 'password',
-            'price' => 'number',
-            'slug' => 'text',
-            'phone' => 'tel',
-            'date' => 'date',
-            'time' => 'time',
-            'url' => 'url',
+            'email'       => 'email',
+            'password'    => 'password',
+            'price'       => 'number',
+            'slug'        => 'text',
+            'phone'       => 'tel',
+            'date'        => 'date',
+            'time'        => 'time',
+            'url'         => 'url',
             'description' => 'textarea',
-            'content' => 'textarea'
+            'content'     => 'textarea'
         ];
 
         foreach ($typeMap as $key => $type) {
-            if (strpos($fieldLower, $key) !== false) {
+            if (str_contains(strtolower($field), $key)) {
                 return $type;
             }
         }
 
         return 'text';
-    }
-
-    protected function generateFieldRules(string $model, string $field): string
-    {
-        $rules = "";
-        $fieldLower = strtolower($field);
-
-        // Règles spécifiques basées sur le nom du champ
-        if (strpos($fieldLower, 'email') !== false) {
-            $rules = "required|string|email|max:255|unique:{$model}";
-        } elseif (strpos($fieldLower, 'password') !== false) {
-            $rules = "required|string|min:". config('security.password.min_length', 8);
-        } elseif (strpos($fieldLower, 'phone') !== false) {
-            $rules = 'regex:/^[0-9\-\+]{10,15}$/';
-        } elseif (strpos($fieldLower, 'url') !== false) {
-            $rules = 'url';
-        } elseif (strpos($fieldLower, 'date') !== false) {
-            $rules = 'date';
-        }
-
-        return $rules;
     }
 }

@@ -11,51 +11,56 @@ class Anvil
 {
    /**
     * Nom de la table
-    *
-    * @var string
     */
    protected string $table;
 
    /**
     * Indique si c'est une modification de table existante
-    *
-    * @var bool
     */
    protected bool $isUpdate;
 
    /**
     * Liste des colonnes
-    *
-    * @var array
     */
    protected array $columns = [];
 
    /**
     * Liste des index
-    *
-    * @var array
     */
    protected array $indexes = [];
 
    /**
     * Liste des clés étrangères
-    *
-    * @var array
     */
    protected array $foreignKeys = [];
 
    /**
     * Liste des colonnes à supprimer
-    *
-    * @var array
     */
    protected array $droppedColumns = [];
 
    /**
+    * Liste des index à supprimer
+    */
+   protected array $droppedIndexes = [];
+
+   /**
+    * Liste des contraintes à supprimer
+    */
+   protected array $droppedConstraints = [];
+
+   /**
+    * Colonnes à modifier
+    */
+   protected array $modifiedColumns = [];
+
+   /**
+    * Options de la table
+    */
+   protected array $tableOptions = [];
+
+   /**
     * Constructeur
-    *
-    * @param string $table Nom de la table
-    * @param bool $isUpdate Est-ce une mise à jour d'une table existante
     */
    public function __construct(string $table, bool $isUpdate = false)
    {
@@ -65,10 +70,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type entier
-    *
-    * @param string $name Nom de la colonne
-    * @param bool $autoIncrement Auto-incrémentation
-    * @return Column
     */
    public function integer(string $name, bool $autoIncrement = false): Column
    {
@@ -79,10 +80,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type big integer
-    *
-    * @param string $name Nom de la colonne
-    * @param bool $autoIncrement Auto-incrémentation
-    * @return Column
     */
    public function bigInteger(string $name, bool $autoIncrement = false): Column
    {
@@ -92,11 +89,37 @@ class Anvil
    }
 
    /**
+    * Ajoute une colonne de type small integer
+    */
+   public function smallInteger(string $name, bool $autoIncrement = false): Column
+   {
+      return $this->addColumn('smallint', $name, [
+         'auto_increment' => $autoIncrement
+      ]);
+   }
+
+   /**
+    * Ajoute une colonne de type tiny integer
+    */
+   public function tinyInteger(string $name, bool $autoIncrement = false): Column
+   {
+      return $this->addColumn('tinyint', $name, [
+         'auto_increment' => $autoIncrement
+      ]);
+   }
+
+   /**
+    * Ajoute une colonne de type medium integer
+    */
+   public function mediumInteger(string $name, bool $autoIncrement = false): Column
+   {
+      return $this->addColumn('mediumint', $name, [
+         'auto_increment' => $autoIncrement
+      ]);
+   }
+
+   /**
     * Ajoute une colonne de type varchar
-    *
-    * @param string $name Nom de la colonne
-    * @param int $length Longueur maximale
-    * @return Column
     */
    public function string(string $name, int $length = 255): Column
    {
@@ -106,10 +129,17 @@ class Anvil
    }
 
    /**
+    * Ajoute une colonne de type char
+    */
+   public function char(string $name, int $length = 1): Column
+   {
+      return $this->addColumn('char', $name, [
+         'length' => $length
+      ]);
+   }
+
+   /**
     * Ajoute une colonne de type texte
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function text(string $name): Column
    {
@@ -117,10 +147,23 @@ class Anvil
    }
 
    /**
+    * Ajoute une colonne de type medium text
+    */
+   public function mediumText(string $name): Column
+   {
+      return $this->addColumn('mediumtext', $name);
+   }
+
+   /**
+    * Ajoute une colonne de type long text
+    */
+   public function longText(string $name): Column
+   {
+      return $this->addColumn('longtext', $name);
+   }
+
+   /**
     * Ajoute une colonne de type booléen
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function boolean(string $name): Column
    {
@@ -129,9 +172,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type date
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function date(string $name): Column
    {
@@ -140,9 +180,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type datetime
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function dateTime(string $name): Column
    {
@@ -150,10 +187,15 @@ class Anvil
    }
 
    /**
+    * Ajoute une colonne de type time
+    */
+   public function time(string $name): Column
+   {
+      return $this->addColumn('time', $name);
+   }
+
+   /**
     * Ajoute une colonne de type timestamp
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function timestamp(string $name): Column
    {
@@ -162,18 +204,15 @@ class Anvil
 
    /**
     * Ajoute les colonnes created_at et updated_at
-    *
-    * @return void
     */
    public function timestamps(): void
    {
-      $this->timestamp('created_at')->nullable();
-      $this->timestamp('updated_at')->nullable();
+      $this->dateTime('created_at')->default('CURRENT_TIMESTAMP');
+      $this->dateTime('updated_at')->default('CURRENT_TIMESTAMP')->onUpdate("CURRENT_TIMESTAMP");
    }
 
    /**
-    * Ajoute une colonne deleted_at
-    * @return void
+    * Ajoute une colonne deleted_at pour le soft delete
     */
    public function softDeletes(): void
    {
@@ -182,11 +221,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type decimal
-    *
-    * @param string $name Nom de la colonne
-    * @param int $precision Précision
-    * @param int $scale Échelle
-    * @return Column
     */
    public function decimal(string $name, int $precision = 8, int $scale = 2): Column
    {
@@ -198,8 +232,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type double
-    * @param string $name
-    * @return Column
     */
    public function double(string $name): Column
    {
@@ -208,9 +240,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type float
-    *
-    * @param string $name Nom de la colonne
-    * @return Column
     */
    public function float(string $name): Column
    {
@@ -219,8 +248,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type real
-    * @param string $name
-    * @return Column
     */
    public function real(string $name): Column
    {
@@ -229,20 +256,26 @@ class Anvil
 
    /**
     * Ajoute une colonne de type enum
-    * @param string $name
-    * @param array $values possibles
-    * @return Column
     */
    public function enum(string $name, array $values): Column
    {
-      return $this->addColumn("enum('" . implode("','", $values) . "')", $name);
+      return $this->addColumn('enum', $name, [
+         'values' => $values
+      ]);
    }
 
+   /**
+    * Ajoute une colonne de type set
+    */
+   public function set(string $name, array $values): Column
+   {
+      return $this->addColumn('set', $name, [
+         'values' => $values
+      ]);
+   }
 
    /**
     * Ajoute une colonne de type blob
-    * @param string $name
-    * @return Column
     */
    public function binary(string $name): Column
    {
@@ -251,8 +284,6 @@ class Anvil
 
    /**
     * Ajoute une colonne de type json
-    * @param string $name
-    * @return Column
     */
    public function json(string $name): Column
    {
@@ -260,12 +291,33 @@ class Anvil
    }
 
    /**
-    * Ajoute une clé primaire
-    *
-    * @param string|array $columns Colonne(s) pour la clé primaire
-    * @return void
+    * Ajoute une colonne de type UUID
     */
-   public function primary($columns): void
+   public function uuid(string $name): Column
+   {
+      return $this->addColumn('uuid', $name);
+   }
+
+   /**
+    * Ajoute une colonne de type IP
+    */
+   public function ipAddress(string $name): Column
+   {
+      return $this->addColumn('ipaddress', $name);
+   }
+
+   /**
+    * Ajoute une colonne de type MAC address
+    */
+   public function macAddress(string $name): Column
+   {
+      return $this->addColumn('macaddress', $name);
+   }
+
+   /**
+    * Ajoute une clé primaire
+    */
+   public function primary(string|array $columns): void
    {
       $columns = is_array($columns) ? $columns : [$columns];
       $this->indexes[] = [
@@ -276,53 +328,70 @@ class Anvil
 
    /**
     * Ajoute un index unique
-    *
-    * @param string|array $columns Colonne(s) pour l'index
-    * @param string|null $name Nom de l'index
-    * @return void
     */
-   public function unique($columns, ?string $name = null): void
+   public function unique(string|array $columns, ?string $name = null): void
    {
       $columns = is_array($columns) ? $columns : [$columns];
       $this->indexes[] = [
          'type' => 'unique',
          'columns' => $columns,
-         'name' => $name ?? $this->table . '_' . implode('_', $columns) . '_unique'
+         'name' => $name ?? $this->generateIndexName('unique', $columns)
       ];
    }
 
    /**
     * Ajoute un index
-    *
-    * @param string|array $columns Colonne(s) pour l'index
-    * @param string|null $name Nom de l'index
-    * @return void
     */
-   public function index($columns, ?string $name = null): void
+   public function index(string|array $columns, ?string $name = null): void
    {
       $columns = is_array($columns) ? $columns : [$columns];
       $this->indexes[] = [
          'type' => 'index',
          'columns' => $columns,
-         'name' => $name ?? $this->table . '_' . implode('_', $columns) . '_index'
+         'name' => $name ?? $this->generateIndexName('index', $columns)
+      ];
+   }
+
+   /**
+    * Ajoute un index spatial
+    */
+   public function spatialIndex(string|array $columns, ?string $name = null): void
+   {
+      $columns = is_array($columns) ? $columns : [$columns];
+      $this->indexes[] = [
+         'type' => 'spatial',
+         'columns' => $columns,
+         'name' => $name ?? $this->generateIndexName('spatial', $columns)
+      ];
+   }
+
+   /**
+    * Ajoute un index fulltext
+    */
+   public function fullText(string|array $columns, ?string $name = null): void
+   {
+      $columns = is_array($columns) ? $columns : [$columns];
+      $this->indexes[] = [
+         'type' => 'fulltext',
+         'columns' => $columns,
+         'name' => $name ?? $this->generateIndexName('fulltext', $columns)
       ];
    }
 
    /**
     * Ajoute une clé étrangère
-    *
-    * @param string|array $columns Colonne(s) pour la clé étrangère
-    * @param string $refTable Table référencée
-    * @param string|array $refColumns Colonne(s) référencée(s)
-    * @param string|null $name Nom de la contrainte
-    * @return ForeignKey
     */
-   public function foreign($columns, string $refTable, $refColumns = ['id'], ?string $name = null): ForeignKey
+   public function foreign(string|array $columns, string $refTable, string|array $refColumns = ['id'], ?string $name = null): ForeignKey
    {
       $columns = is_array($columns) ? $columns : [$columns];
       $refColumns = is_array($refColumns) ? $refColumns : [$refColumns];
 
-      $foreignKey = new ForeignKey($columns, $refTable, $refColumns, $name ?? $this->table . '_' . implode('_', $columns) . '_foreign');
+      $foreignKey = new ForeignKey(
+         $columns,
+         $refTable,
+         $refColumns,
+         $name ?? $this->generateForeignKeyName($columns)
+      );
       $this->foreignKeys[] = $foreignKey;
 
       return $foreignKey;
@@ -330,20 +399,77 @@ class Anvil
 
    /**
     * Supprime une colonne
-    *
-    * @param string|array $columns Colonne(s) à supprimer
-    * @return void
     */
-   public function dropColumn($columns): void
+   public function dropColumn(string|array $columns): void
    {
       $columns = is_array($columns) ? $columns : [$columns];
       $this->droppedColumns = array_merge($this->droppedColumns, $columns);
    }
 
    /**
+    * Supprime un index
+    */
+   public function dropIndex(string|array $index): void
+   {
+      $this->droppedIndexes[] = is_array($index) ? $this->generateIndexName('index', $index) : $index;
+   }
+
+   /**
+    * Supprime un index unique
+    */
+   public function dropUnique(string|array $index): void
+   {
+      $this->droppedIndexes[] = is_array($index) ? $this->generateIndexName('unique', $index) : $index;
+   }
+
+   /**
+    * Supprime une clé primaire
+    */
+   public function dropPrimary(): void
+   {
+      $this->droppedIndexes[] = 'PRIMARY';
+   }
+
+   /**
+    * Supprime une clé étrangère
+    */
+   public function dropForeign(string|array $columns): void
+   {
+      $name = is_array($columns) ? $this->generateForeignKeyName($columns) : $columns;
+      $this->droppedConstraints[] = $name;
+   }
+
+   /**
+    * Modifie une colonne existante
+    */
+   public function modifyColumn(string $name): Column
+   {
+      if (!isset($this->columns[$name])) {
+         throw new \InvalidArgumentException("Column '{$name}' does not exist");
+      }
+
+      $column = clone $this->columns[$name];
+      $this->modifiedColumns[$name] = $column;
+      return $column;
+   }
+
+   /**
+    * Renomme une colonne
+    */
+   public function renameColumn(string $from, string $to): void
+   {
+      if (!isset($this->columns[$from])) {
+         throw new \InvalidArgumentException("Column '{$from}' does not exist");
+      }
+
+      $column = $this->columns[$from];
+      unset($this->columns[$from]);
+      $this->columns[$to] = $column;
+      $column->rename($to);
+   }
+
+   /**
     * Ajoute une colonne ID auto-incrémentée
-    *
-    * @return Column
     */
    public function id(): Column
    {
@@ -353,20 +479,15 @@ class Anvil
    }
 
    /**
-    * Ajoute une colonne remember_token de type varchar
-    * @return Column
+    * Ajoute une colonne remember_token
     */
    public function rememberToken(): Column
    {
       return $this->string('remember_token', 100)->nullable();
    }
 
-
    /**
-    * Ajoute une colonne pour stocker l'identifiant d'un modèle lié
-    *
-    * @param string $name Nom du modèle lié
-    * @return Column
+    * Ajoute une colonne pour un ID étranger
     */
    public function foreignId(string $name): Column
    {
@@ -374,12 +495,57 @@ class Anvil
    }
 
    /**
+    * Ajoute une colonne pour un ID étranger avec contrainte
+    */
+   public function foreignIdFor(string $model, ?string $column = null): Column
+   {
+      $columnName = $column ?? strtolower($model) . '_id';
+      $tableName = strtolower($model) . 's'; // Convention plurielle simple
+
+      $foreignColumn = $this->foreignId(rtrim($columnName, '_id'));
+      $this->foreign($columnName, $tableName, ['id']);
+
+      return $foreignColumn;
+   }
+
+   /**
+    * Définit les options de la table
+    */
+   public function engine(string $engine): self
+   {
+      $this->tableOptions['engine'] = $engine;
+      return $this;
+   }
+
+   /**
+    * Définit le charset de la table
+    */
+   public function charset(string $charset): self
+   {
+      $this->tableOptions['charset'] = $charset;
+      return $this;
+   }
+
+   /**
+    * Définit la collation de la table
+    */
+   public function collation(string $collation): self
+   {
+      $this->tableOptions['collation'] = $collation;
+      return $this;
+   }
+
+   /**
+    * Ajoute un commentaire à la table
+    */
+   public function comment(string $comment): self
+   {
+      $this->tableOptions['comment'] = $comment;
+      return $this;
+   }
+
+   /**
     * Ajoute une colonne à la table
-    *
-    * @param string $type Type de la colonne
-    * @param string $name Nom de la colonne
-    * @param array $parameters Paramètres additionnels
-    * @return Column
     */
    protected function addColumn(string $type, string $name, array $parameters = []): Column
    {
@@ -389,80 +555,191 @@ class Anvil
    }
 
    /**
+    * Génère un nom d'index
+    */
+   protected function generateIndexName(string $type, array $columns): string
+   {
+      $name = $this->table . '_' . implode('_', $columns) . '_' . $type;
+      return substr($name, 0, 64); // Limite MySQL
+   }
+
+   /**
+    * Génère un nom de clé étrangère
+    */
+   protected function generateForeignKeyName(array $columns): string
+   {
+      $name = $this->table . '_' . implode('_', $columns) . '_foreign';
+      return substr($name, 0, 64); // Limite MySQL
+   }
+
+   /**
+    * Vérifie si une colonne existe
+    */
+   public function hasColumn(string $name): bool
+   {
+      return isset($this->columns[$name]);
+   }
+
+   /**
+    * Récupère une colonne
+    */
+   public function getColumn(string $name): ?Column
+   {
+      return $this->columns[$name] ?? null;
+   }
+
+   /**
+    * Récupère toutes les colonnes
+    */
+   public function getColumns(): array
+   {
+      return $this->columns;
+   }
+
+   /**
     * Convertit le plan en requêtes SQL
-    *
-    * @param string $driver Type de base de données
-    * @return array
     */
    public function toSql(string $driver): array
    {
       $statements = [];
 
       if (!$this->isUpdate) {
-         // Création de table
-         $sql = "CREATE TABLE IF NOT EXISTS {$this->table} (";
-
-         // Colonnes
-         $columnDefinitions = [];
-         foreach ($this->columns as $column) {
-            $columnDefinitions[] = $column->toSql($driver);
-         }
-
-         // Clés primaires
-         foreach ($this->indexes as $index) {
-            if ($index['type'] === 'primary') {
-               $columnDefinitions[] = "PRIMARY KEY (" . implode(', ', $index['columns']) . ")";
-            }
-         }
-
-         $sql .= implode(", ", $columnDefinitions);
-         $sql .= ")";
-
-         $statements[] = $sql;
-
-         // Ajouter les index qui ne sont pas des clés primaires
-         foreach ($this->indexes as $index) {
-            if ($index['type'] !== 'primary') {
-               $indexType = $index['type'] === 'unique' ? 'UNIQUE ' : '';
-               $statements[] = "CREATE {$indexType}INDEX {$index['name']} ON {$this->table} (" . implode(', ', $index['columns']) . ")";
-            }
-         }
-
-         // Ajouter les clés étrangères
-         foreach ($this->foreignKeys as $foreignKey) {
-            $statements[] = $foreignKey->toSql($this->table, $driver);
-         }
+         $statements = array_merge($statements, $this->generateCreateTableSql($driver));
       } else {
-         // Modification de table
-
-         // Ajouter des colonnes
-         foreach ($this->columns as $column) {
-            $statements[] = "ALTER TABLE {$this->table} ADD COLUMN " . $column->toSql($driver);
-         }
-
-         // Supprimer des colonnes
-         foreach ($this->droppedColumns as $column) {
-            $statements[] = "ALTER TABLE {$this->table} DROP COLUMN {$column}";
-         }
-
-         // Ajouter des index
-         foreach ($this->indexes as $index) {
-            if ($index['type'] === 'primary') {
-               // La modification d'une clé primaire est complexe et varie selon la BD
-               // Cette logique devrait être étendue pour chaque type de BD
-               $statements[] = "ALTER TABLE {$this->table} ADD PRIMARY KEY (" . implode(', ', $index['columns']) . ")";
-            } else {
-               $indexType = $index['type'] === 'unique' ? 'UNIQUE ' : '';
-               $statements[] = "CREATE {$indexType}INDEX {$index['name']} ON {$this->table} (" . implode(', ', $index['columns']) . ")";
-            }
-         }
-
-         // Ajouter des clés étrangères
-         foreach ($this->foreignKeys as $foreignKey) {
-            $statements[] = $foreignKey->toSql($this->table, $driver);
-         }
+         $statements = array_merge($statements, $this->generateAlterTableSql($driver));
       }
 
       return $statements;
+   }
+
+   /**
+    * Génère le SQL de création de table
+    */
+   protected function generateCreateTableSql(string $driver): array
+   {
+      $statements = [];
+
+      $sql = "CREATE TABLE IF NOT EXISTS {$this->table} (";
+
+      // Colonnes
+      $columnDefinitions = [];
+      foreach ($this->columns as $column) {
+         $columnDefinitions[] = $column->toSql($driver);
+      }
+
+      // Clés primaires
+      foreach ($this->indexes as $index) {
+         if ($index['type'] === 'primary') {
+            $columnDefinitions[] = "PRIMARY KEY (" . implode(', ', $index['columns']) . ")";
+         }
+      }
+
+      $sql .= implode(", ", $columnDefinitions);
+      $sql .= ")";
+
+      // Options de table (MySQL)
+      if ($driver === 'mysql' && !empty($this->tableOptions)) {
+         $options = [];
+         if (isset($this->tableOptions['engine'])) {
+            $options[] = "ENGINE={$this->tableOptions['engine']}";
+         }
+         if (isset($this->tableOptions['charset'])) {
+            $options[] = "DEFAULT CHARSET={$this->tableOptions['charset']}";
+         }
+         if (isset($this->tableOptions['collation'])) {
+            $options[] = "COLLATE={$this->tableOptions['collation']}";
+         }
+         if (isset($this->tableOptions['comment'])) {
+            $options[] = "COMMENT='{$this->tableOptions['comment']}'";
+         }
+
+         if (!empty($options)) {
+            $sql .= " " . implode(" ", $options);
+         }
+      }
+
+      $statements[] = $sql;
+
+      // Ajouter les index non-primaires
+      foreach ($this->indexes as $index) {
+         if ($index['type'] !== 'primary') {
+            $statements[] = $this->generateIndexSql($index, $driver);
+         }
+      }
+
+      // Ajouter les clés étrangères
+      foreach ($this->foreignKeys as $foreignKey) {
+         $statements[] = $foreignKey->toSql($this->table, $driver);
+      }
+
+      return $statements;
+   }
+
+   /**
+    * Génère le SQL de modification de table
+    */
+   protected function generateAlterTableSql(string $driver): array
+   {
+      $statements = [];
+
+      // Supprimer les contraintes
+      foreach ($this->droppedConstraints as $constraint) {
+         $statements[] = "ALTER TABLE {$this->table} DROP FOREIGN KEY {$constraint}";
+      }
+
+      // Supprimer les index
+      foreach ($this->droppedIndexes as $index) {
+         if ($index === 'PRIMARY') {
+            $statements[] = "ALTER TABLE {$this->table} DROP PRIMARY KEY";
+         } else {
+            $statements[] = "ALTER TABLE {$this->table} DROP INDEX {$index}";
+         }
+      }
+
+      // Supprimer les colonnes
+      foreach ($this->droppedColumns as $column) {
+         $statements[] = "ALTER TABLE {$this->table} DROP COLUMN {$column}";
+      }
+
+      // Modifier les colonnes
+      foreach ($this->modifiedColumns as $name => $column) {
+         $statements[] = "ALTER TABLE {$this->table} MODIFY COLUMN " . $column->toSql($driver);
+      }
+
+      // Ajouter les nouvelles colonnes
+      foreach ($this->columns as $column) {
+         $statements[] = "ALTER TABLE {$this->table} ADD COLUMN " . $column->toSql($driver);
+      }
+
+      // Ajouter les index
+      foreach ($this->indexes as $index) {
+         if ($index['type'] === 'primary') {
+            $statements[] = "ALTER TABLE {$this->table} ADD PRIMARY KEY (" . implode(', ', $index['columns']) . ")";
+         } else {
+            $statements[] = $this->generateIndexSql($index, $driver);
+         }
+      }
+
+      // Ajouter les clés étrangères
+      foreach ($this->foreignKeys as $foreignKey) {
+         $statements[] = $foreignKey->toSql($this->table, $driver);
+      }
+
+      return $statements;
+   }
+
+   /**
+    * Génère le SQL pour un index
+    */
+   protected function generateIndexSql(array $index, string $driver): string
+   {
+      $indexType = match ($index['type']) {
+         'unique' => 'UNIQUE ',
+         'fulltext' => 'FULLTEXT ',
+         'spatial' => 'SPATIAL ',
+         default => ''
+      };
+
+      return "CREATE {$indexType}INDEX {$index['name']} ON {$this->table} (" . implode(', ', $index['columns']) . ")";
    }
 }

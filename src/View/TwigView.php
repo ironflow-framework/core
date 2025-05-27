@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\View;
 
+use IronFlow\Components\ComponentManager;
 use IronFlow\Support\Facades\Filesystem;
 use IronFlow\View\Twig\AuthExtension;
 use IronFlow\View\Twig\CustomFilterExtension;
@@ -58,6 +59,10 @@ class TwigView implements ViewInterface
 
       $this->twig->addGlobal('APP_VERSION', config('app.version'));
       $this->twig->addGlobal('APP_LOCALE', config('app.locale'));
+
+      $this->twig->addFunction(new \Twig\TwigFunction('component', function (string $name, array $props = []) {
+         return ComponentManager::render($name, $props);
+      }, ['is_safe' => ['html']]));
 
       $this->twig->addExtension(new ViteExtension());
       $this->twig->addExtension(new RouteExtension());

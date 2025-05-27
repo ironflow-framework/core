@@ -33,6 +33,6 @@ trait HasFactory
       $modelClass = static::class;
       $modelName = basename(str_replace('\\', '/', $modelClass));
 
-      return "App\\Database\\Factories\\{$modelName}Factory";
+      return "Database\\Factories\\{$modelName}Factory";
    }
 }

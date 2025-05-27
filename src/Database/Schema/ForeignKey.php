@@ -5,180 +5,134 @@ declare(strict_types=1);
 namespace IronFlow\Database\Schema;
 
 /**
- * Classe représentant une clé étrangère dans un schéma de base de données
+ * Classe représentant une clé étrangère
  */
 class ForeignKey
 {
-   /**
-    * Colonnes source pour la clé étrangère
-    *
-    * @var array
-    */
    protected array $columns;
-
-   /**
-    * Table référencée par la clé étrangère
-    *
-    * @var string
-    */
-   protected string $refTable;
-
-   /**
-    * Colonnes référencées par la clé étrangère
-    *
-    * @var array
-    */
-   protected array $refColumns;
-
-   /**
-    * Nom de la contrainte de clé étrangère
-    *
-    * @var string
-    */
+   protected string $referencedTable;
+   protected array $referencedColumns;
    protected string $name;
+   protected ?string $onDelete = null;
+   protected ?string $onUpdate = null;
 
-   /**
-    * Action à effectuer en cas de suppression de la ligne référencée
-    *
-    * @var string
-    */
-   protected string $onDelete = 'RESTRICT';
-
-   /**
-    * Action à effectuer en cas de mise à jour de la ligne référencée
-    *
-    * @var string
-    */
-   protected string $onUpdate = 'RESTRICT';
-
-   /**
-    * Constructeur
-    *
-    * @param array $columns Colonnes source
-    * @param string $refTable Table référencée
-    * @param array $refColumns Colonnes référencées
-    * @param string $name Nom de la contrainte
-    */
-   public function __construct(array $columns, string $refTable, array $refColumns, string $name)
-   {
+   public function __construct(
+      array $columns,
+      string $referencedTable,
+      array $referencedColumns,
+      string $name
+   ) {
       $this->columns = $columns;
-      $this->refTable = $refTable;
-      $this->refColumns = $refColumns;
+      $this->referencedTable = $referencedTable;
+      $this->referencedColumns = $referencedColumns;
       $this->name = $name;
    }
 
-   /**
-    * Définit l'action à effectuer en cas de suppression
-    *
-    * @param string $action Action ('CASCADE', 'RESTRICT', 'SET NULL', 'NO ACTION')
-    * @return $this
-    */
    public function onDelete(string $action): self
    {
       $this->onDelete = $this->validateAction($action);
       return $this;
    }
 
-   /**
-    * Définit l'action à effectuer en cas de mise à jour
-    *
-    * @param string $action Action ('CASCADE', 'RESTRICT', 'SET NULL', 'NO ACTION')
-    * @return $this
-    */
    public function onUpdate(string $action): self
    {
       $this->onUpdate = $this->validateAction($action);
       return $this;
    }
 
-   /**
-    * Définit l'action en cascade pour la suppression
-    *
-    * @return $this
-    */
    public function cascadeOnDelete(): self
    {
-      $this->onDelete = 'CASCADE';
-      return $this;
+      return $this->onDelete('CASCADE');
    }
 
-   /**
-    * Définit l'action en cascade pour la mise à jour
-    *
-    * @return $this
-    */
    public function cascadeOnUpdate(): self
    {
-      $this->onUpdate = 'CASCADE';
-      return $this;
+      return $this->onUpdate('CASCADE');
    }
 
-   /**
-    * Définit l'action de mise à NULL pour la suppression
-    *
-    * @return $this
-    */
+   public function restrictOnDelete(): self
+   {
+      return $this->onDelete('RESTRICT');
+   }
+
    public function nullOnDelete(): self
    {
-      $this->onDelete = 'SET NULL';
-      return $this;
+      return $this->onDelete('SET NULL');
    }
 
-   /**
-    * Définit l'action de mise à NULL pour la mise à jour
-    *
-    * @return $this
-    */
-   public function nullOnUpdate(): self
+   public function noActionOnDelete(): self
    {
-      $this->onUpdate = 'SET NULL';
-      return $this;
+      return $this->onDelete('NO ACTION');
    }
 
-   /**
-    * Convertit la clé étrangère en requête SQL
-    *
-    * @param string $table Table source
-    * @param string $driver Type de base de données
-    * @return string
-    */
    public function toSql(string $table, string $driver): string
    {
-      $columns = implode(', ', $this->columns);
-      $refColumns = implode(', ', $this->refColumns);
+      $columns = implode(', ', array_map(fn($col) => "`$col`", $this->columns));
+      $refColumns = implode(', ', array_map(fn($col) => "`$col`", $this->referencedColumns));
 
       switch ($driver) {
          case 'mysql':
          case 'pgsql':
-            return "ALTER TABLE {$table} ADD CONSTRAINT {$this->name} "
-               . "FOREIGN KEY ({$columns}) REFERENCES {$this->refTable} ({$refColumns}) "
-               . "ON DELETE {$this->onDelete} ON UPDATE {$this->onUpdate}";
+            $sql = "ALTER TABLE `{$table}` ADD CONSTRAINT `{$this->name}` "
+               . "FOREIGN KEY ({$columns}) REFERENCES `{$this->referencedTable}` ({$refColumns})";
+
+            if ($this->onDelete) {
+               $sql .= " ON DELETE {$this->onDelete}";
+            }
+            if ($this->onUpdate) {
+               $sql .= " ON UPDATE {$this->onUpdate}";
+            }
+
+            return $sql;
+
          case 'sqlite':
-            // SQLite ne supporte pas l'ajout de contraintes de clé étrangère après la création de la table
-            // Ceci nécessiterait une reconstruction complète de la table
-            // Une simplification serait la suivante
-            return "-- SQLite ne supporte pas l'ajout de contraintes de clé étrangère après la création de la table"
-               . "-- Pour SQLite, les clés étrangères doivent être définies lors de la création de la table";
+            return "-- SQLite ne supporte pas l'ajout de contraintes de clé étrangère après la création de la table.\n"
+               . "-- Les clés étrangères doivent être définies lors de la création de la table.";
+
          default:
-            return "ALTER TABLE {$table} ADD CONSTRAINT {$this->name} "
-               . "FOREIGN KEY ({$columns}) REFERENCES {$this->refTable} ({$refColumns}) "
-               . "ON DELETE {$this->onDelete} ON UPDATE {$this->onUpdate}";
+            throw new \InvalidArgumentException("Driver inconnu : {$driver}");
       }
    }
 
-   /**
-    * Valide et normalise l'action spécifiée
-    *
-    * @param string $action Action à valider
-    * @return string
-    */
+   public function getName(): string
+   {
+      return $this->name;
+   }
+
+   public function getColumns(): array
+   {
+      return $this->columns;
+   }
+
+   public function getReferencedTable(): string
+   {
+      return $this->referencedTable;
+   }
+
+   public function getReferencedColumns(): array
+   {
+      return $this->referencedColumns;
+   }
+
+   public function getOnDelete(): ?string
+   {
+      return $this->onDelete;
+   }
+
+   public function getOnUpdate(): ?string
+   {
+      return $this->onUpdate;
+   }
+
    protected function validateAction(string $action): string
    {
       $action = strtoupper($action);
       $validActions = ['CASCADE', 'RESTRICT', 'SET NULL', 'NO ACTION'];
 
-      if (!in_array($action, $validActions)) {
-         throw new \InvalidArgumentException("Action invalide: {$action}. Les valeurs valides sont: " . implode(', ', $validActions));
+      if (!in_array($action, $validActions, true)) {
+         throw new \InvalidArgumentException(
+            "Action invalide : {$action}. Les valeurs valides sont : " . implode(', ', $validActions)
+         );
       }
 
       return $action;

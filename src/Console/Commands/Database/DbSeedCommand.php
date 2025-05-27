@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Console\Commands\Database;
 
-use App\Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DatabaseSeeder;
 use IronFlow\Database\Connection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,6 +36,9 @@ class DbSeedCommand extends Command
          $io->success('Seeders exécutés avec succès !');
          return 0;
       } catch (\Exception $e) {
+         foreach ($e->getTrace() as $value) {
+            dump($value);
+         }
          $io->error('Erreur lors de l\'exécution des seeders : ' . $e->getMessage());
          return 1;
       }

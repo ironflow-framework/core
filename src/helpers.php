@@ -117,6 +117,13 @@ if (!function_exists('app_path')) {
    }
 }
 
+if (!function_exists('csrf_token')) {
+   function csrf_token(): string
+   {
+      return $_SESSION['_token'] ?? bin2hex(random_bytes(32));
+   }
+}
+
 
 if (!function_exists('public_path')) {
    /**
@@ -198,7 +205,11 @@ if (!function_exists('env')) {
     */
    function env(string $key, mixed $default = null): mixed
    {
-      $value = getenv($key) ?? $_ENV[$key] ?? null;
+
+      $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
+      $dotenv->safeLoad();
+
+      $value = $_ENV[$key] ?? getenv($key) ?? null;
 
       if ($value === null) {
          return $default;

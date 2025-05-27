@@ -2,6 +2,7 @@
 
 namespace IronFlow\Console\Commands\Generator;
 
+use IronFlow\Support\Facades\Filesystem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,11 +31,23 @@ class MakeComponentCommand extends Command
       $componentContent = $this->generateComponentContent($name, $props);
       $componentPath = app_path("Components/{$name}Component.php");
 
-      if (!is_dir(dirname($componentPath))) {
-         mkdir(dirname($componentPath), 0755, true);
+      $templateDefaultContent = <<<TWIG
+      {% comment %} Enter your component template code here {% endcomment %}
+
+      TWIG;
+      $componentTemplatePath = view_path("templates/{$name}.twig");
+
+
+      if (!Filesystem::isDirectory(dirname($componentPath))) {
+         Filesystem::makeDirectory(dirname($componentPath));
       }
 
-      file_put_contents($componentPath, $componentContent);
+      if (!Filesystem::isDirectory(dirname($componentTemplatePath))) {
+         Filesystem::makeDirectory(dirname($componentTemplatePath));
+      }
+
+      Filesystem::put($componentPath, $componentContent);
+      Filesystem::put($componentTemplatePath, $templateDefaultContent);
       $io->success("Le composant {$name}Component a été créé avec succès !");
 
       return Command::SUCCESS;
@@ -42,7 +55,7 @@ class MakeComponentCommand extends Command
 
    protected function generateComponentContent(string $name, array $props): string
    {
-      $propsContent = $this->generatePropsContent($props);
+      $propsArray = $this->generatePropsArray($props);
 
       return <<<PHP
 <?php
@@ -53,36 +66,31 @@ use IronFlow\Components\BaseComponent;
 
 class {$name}Component extends BaseComponent
 {
-{$propsContent}
-
     public function render(): string
     {
-        return <<<'HTML'
-            <!-- Ajoutez votre template HTML ici -->
-        HTML;
+        return \$this->view(strtolower('{$name}'), {$propsArray});
     }
 }
 PHP;
    }
 
-   protected function generatePropsContent(array $props): string
+   protected function generatePropsArray(array $props): string
    {
       if (empty($props)) {
-         return '';
+         return '[]';
       }
 
-      $content = '';
+      $index = 0;
+      $array = "[\n";
       foreach ($props as $prop) {
          $parts = explode(':', $prop);
-         $name = $parts[0];
-         $type = $parts[1] ?? 'mixed';
-         $default = isset($parts[2]) ? " = {$parts[2]};" : ';';
-
-         $content .= "        public {$type} \${$name}{$default},\n";
+         $key = $parts[0];
+         $array .= "            '{$key}' => \$this->props[{$index}] ?? null,\n";
+         $index++;
       }
+      $array .= "        ]";
 
-      return rtrim($content, ",\n");
+      return $array;
    }
-
-  
+   
 }

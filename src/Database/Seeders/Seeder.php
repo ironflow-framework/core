@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Database\Seeders;
 
+use IronFlow\Database\Connection;
 use PDO;
 
 /**
@@ -13,9 +14,9 @@ abstract class Seeder
 {
     protected PDO $db;
 
-    public function __construct(PDO $db)
+    public function __construct()
     {
-        $this->db = $db;
+        $this->db = Connection::getInstance()->getConnection();
     }
 
     /**

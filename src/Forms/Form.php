@@ -9,15 +9,20 @@ use IronFlow\Forms\Themes\DefaultTheme;
 use IronFlow\Forms\Themes\FloatingTheme;
 use IronFlow\Forms\Themes\MaterialTheme;
 use IronFlow\Forms\Themes\TailwindTheme;
+use IronFlow\Validation\Validator;
 
 class Form
 {
    protected array $fields = [];
    protected array $data = [];
+
+   protected ?Validator $validator = null;
+
    protected string $title = "Formulaire";
    protected string $icon = "";
    protected string $method = 'POST';
    protected string $action = '';
+
    protected string $theme = 'default';
    protected array $themes = [
       'default' => DefaultTheme::class,
@@ -26,7 +31,9 @@ class Form
       'tailwind' => TailwindTheme::class,
    ];
 
-   public function __construct(protected ?string $model = null) {}
+   public function __construct(protected ?string $model = null) {
+      $this->hidden('_token', csrf_token());
+   }
 
    public function method(string $method): self
    {
@@ -49,6 +56,14 @@ class Form
    public function action(string $action): self
    {
       $this->action = $action;
+      return $this;
+   }
+
+   public function whenEditing(?int $id = null): self
+   {
+      if ($id) {
+         $this->hidden('id', (string) $id);
+      }
       return $this;
    }
 
@@ -110,6 +125,16 @@ class Form
       return $this;
    }
 
+   public function hidden(string $name, string $value = '', array $attributes = []): self
+   {
+      $attributes['type']  = 'hidden';
+      $attributes['value'] = $value;
+
+      $this->fields[] = new Components\Input($name, '', $attributes);
+      return $this;
+   }
+
+
    public function button(string $text, array $attributes = []): self
    {
       $this->fields[] = new Components\Button($text, $attributes);
@@ -122,14 +147,36 @@ class Form
       return $this;
    }
 
+   public function validator(Validator $validator): self
+   {
+      $this->validator = $validator;
+      return $this;
+   }
+
    public function render(): string
    {
+      // Toujours s'assurer que le CSRF token est là
+      if (!$this->hasCsrfToken()) {
+         $this->hidden('_token', csrf_token());
+      }
+
       $themeClass = $this->themes[$this->theme];
       /** @var ThemeInterface $theme */
       $theme = new $themeClass();
 
       return $theme->render($this);
    }
+
+   protected function hasCsrfToken(): bool
+   {
+      foreach ($this->fields as $field) {
+         if (method_exists($field, 'getName') && $field->getName() === '_token') {
+            return true;
+         }
+      }
+      return false;
+   }
+
 
    public function getTitle(): string
    {

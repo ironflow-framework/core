@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace IronFlow\Database\Migrations;
 
 use IronFlow\Database\Connection;
-use IronFlow\Database\Query\Builder;
 
 class MigrationHistory
 {
@@ -71,7 +70,7 @@ class MigrationHistory
 
    private function ensureHistoryTableExists(): void
    {
-      if ($this->connection->hasTable(self::TABLE_NAME)) {
+      if ($this->connection->tableExists(self::TABLE_NAME)) {
          return;
       }
 

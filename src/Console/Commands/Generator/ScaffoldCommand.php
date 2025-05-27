@@ -11,157 +11,157 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class ScaffoldCommand extends Command
 {
-   protected static $defaultName = 'scaffold';
-   protected static $defaultDescription = 'Génère un scaffold complet pour un modèle';
+    protected static $defaultName = 'scaffold';
+    protected static $defaultDescription = 'Génère un scaffold complet pour un modèle';
 
-   protected function configure(): void
-   {
-      $this
-         ->addArgument('name', InputArgument::REQUIRED, 'Le nom du modèle')
-         ->addArgument('fields', InputArgument::OPTIONAL, 'Les champs (format: nom:type,options)');
-   }
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('name', InputArgument::REQUIRED, 'Le nom du modèle')
+            ->addArgument('fields', InputArgument::OPTIONAL, 'Les champs (format: nom:type,options)');
+    }
 
-   protected function execute(InputInterface $input, OutputInterface $output): int
-   {
-      $io = new SymfonyStyle($input, $output);
-      $name = $input->getArgument('name');
-      $fields = $input->getArgument('fields') ? explode(',', $input->getArgument('fields')) : [];
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $io = new SymfonyStyle($input, $output);
+        $name = $input->getArgument('name');
+        $fields = $input->getArgument('fields') ? explode(',', $input->getArgument('fields')) : [];
 
-      // Créer le modèle
-      $this->createModel($name, $fields);
-      $io->success("Le modèle {$name} a été créé");
+        // Créer le modèle
+        $this->createModel($name, $fields);
+        $io->success("Le modèle {$name} a été créé");
 
-      // Créer la migration
-      $this->createMigration($name, $fields);
-      $io->success("La migration pour {$name} a été créée");
+        // Créer la migration
+        $this->createMigration($name, $fields);
+        $io->success("La migration pour {$name} a été créée");
 
-      // Créer le contrôleur
-      $this->createController($name);
-      $io->success("Le contrôleur {$name}Controller a été créé");
+        // Créer le contrôleur
+        $this->createController($name);
+        $io->success("Le contrôleur {$name}Controller a été créé");
 
-      // Créer les formulaires
-      $this->createForms($name, $fields);
-      $io->success("Les formulaires pour {$name} ont été créés");
+        // Créer les formulaires
+        $this->createForms($name, $fields);
+        $io->success("Les formulaires pour {$name} ont été créés");
 
-      // Créer les vues
-      $this->createViews($name, $fields);
-      $io->success("Les vues pour {$name} ont été créées");
+        // Créer les vues
+        $this->createViews($name, $fields);
+        $io->success("Les vues pour {$name} ont été créées");
 
-      // Créer les routes
-      $this->createRoutes($name);
-      $io->success("Les routes pour {$name} ont été créées");
+        // Créer les routes
+        $this->createRoutes($name);
+        $io->success("Les routes pour {$name} ont été créées");
 
-      // Créer les tests
-      $this->createTests($name);
-      $io->success("Les tests pour {$name} ont été créés");
+        // Créer les tests
+        $this->createTests($name);
+        $io->success("Les tests pour {$name} ont été créés");
 
-      return Command::SUCCESS;
-   }
+        return Command::SUCCESS;
+    }
 
-   protected function createModel(string $name, array $fields): void
-   {
-      $fillable = array_map(function ($field) {
-         return explode(':', $field)[0];
-      }, $fields);
+    protected function createModel(string $name, array $fields): void
+    {
+        $fillable = array_map(function ($field) {
+            return explode(':', $field)[0];
+        }, $fields);
 
-      $modelContent = $this->generateModelContent($name, strtolower($name) . 's', $fillable);
-      $modelPath = "src/Models/{$name}.php";
+        $modelContent = $this->generateModelContent($name, strtolower($name) . 's', $fillable);
+        $modelPath = "src/Models/{$name}.php";
 
-      if (!Filesystem::exists(dirname($modelPath))) {
-         Filesystem::makeDirectory(dirname($modelPath), 0755, true);
-      }
+        if (!Filesystem::exists(dirname($modelPath))) {
+            Filesystem::makeDirectory(dirname($modelPath), 0755, true);
+        }
 
-      Filesystem::put($modelPath, $modelContent);
-   }
+        Filesystem::put($modelPath, $modelContent);
+    }
 
-   protected function createMigration(string $name, array $fields): void
-   {
-      $timestamp = date('Y_m_d_His');
-      $migrationContent = $this->generateMigrationContent("Create{$name}Table", strtolower($name) . 's', $fields);
-      $migrationPath = "database/migrations/{$timestamp}_create_{$name}_table.php";
+    protected function createMigration(string $name, array $fields): void
+    {
+        $timestamp = date('Y_m_d_His');
+        $migrationContent = $this->generateMigrationContent("Create{$name}Table", strtolower($name) . 's', $fields);
+        $migrationPath = "database/migrations/{$timestamp}_create_{$name}_table.php";
 
-      if (!Filesystem::exists(dirname($migrationPath))) {
-         Filesystem::makeDirectory(dirname($migrationPath), 0755, true);
-      }
+        if (!Filesystem::exists(dirname($migrationPath))) {
+            Filesystem::makeDirectory(dirname($migrationPath), 0755, true);
+        }
 
-      Filesystem::put($migrationPath, $migrationContent);
-   }
+        Filesystem::put($migrationPath, $migrationContent);
+    }
 
-   protected function createController(string $name): void
-   {
-      $controllerContent = $this->generateControllerContent($name);
-      $controllerPath = "src/Http/Controllers/{$name}Controller.php";
+    protected function createController(string $name): void
+    {
+        $controllerContent = $this->generateControllerContent($name);
+        $controllerPath = "src/Http/Controllers/{$name}Controller.php";
 
-      if (!Filesystem::exists(dirname($controllerPath))) {
-         Filesystem::makeDirectory(dirname($controllerPath), 0755, true);
-      }
+        if (!Filesystem::exists(dirname($controllerPath))) {
+            Filesystem::makeDirectory(dirname($controllerPath), 0755, true);
+        }
 
-      Filesystem::put($controllerPath, $controllerContent);
-   }
+        Filesystem::put($controllerPath, $controllerContent);
+    }
 
-   protected function createForms(string $name, array $fields): void
-   {
-      $formContent = $this->generateFormContent($name, $fields);
-      $formPath = app_path("Forms/{$name}Form.php");
+    protected function createForms(string $name, array $fields): void
+    {
+        $formContent = $this->generateFormContent($name, $fields);
+        $formPath = app_path("Forms/{$name}Form.php");
 
-      if (!Filesystem::exists(dirname($formPath))) {
-         Filesystem::makeDirectory(dirname($formPath), 0755, true);
-      }
+        if (!Filesystem::exists(dirname($formPath))) {
+            Filesystem::makeDirectory(dirname($formPath), 0755, true);
+        }
 
-      Filesystem::put($formPath, $formContent);
-   }
+        Filesystem::put($formPath, $formContent);
+    }
 
-   protected function createViews(string $name, array $fields): void
-   {
-      $views = [
-         'index' => $this->generateIndexView($name, $fields),
-         'create' => $this->generateCreateView($name, $fields),
-         'edit' => $this->generateEditView($name, $fields),
-         'show' => $this->generateShowView($name, $fields)
-      ];
+    protected function createViews(string $name, array $fields): void
+    {
+        $views = [
+            'index' => $this->generateIndexView($name, $fields),
+            'create' => $this->generateCreateView($name, $fields),
+            'edit' => $this->generateEditView($name, $fields),
+            'show' => $this->generateShowView($name, $fields)
+        ];
 
-      $viewPath = "resources/views/{$name}";
-      if (!Filesystem::exists(dirname($viewPath))) {
-         Filesystem::makeDirectory(dirname($viewPath), 0755, true);
-      }
+        $viewPath = "resources/views/{$name}";
+        if (!Filesystem::exists(dirname($viewPath))) {
+            Filesystem::makeDirectory(dirname($viewPath), 0755, true);
+        }
 
-      foreach ($views as $view => $content) {
-        Filesystem::put("{$viewPath}/{$view}.php", $content);
-      }
-   }
+        foreach ($views as $view => $content) {
+            Filesystem::put("{$viewPath}/{$view}.php", $content);
+        }
+    }
 
-   protected function createRoutes(string $name): void
-   {
-      $routesContent = $this->generateRoutesContent($name);
-      $routesPath = "routes/web.php";
+    protected function createRoutes(string $name): void
+    {
+        $routesContent = $this->generateRoutesContent($name);
+        $routesPath = "routes/web.php";
 
-      if (file_exists($routesPath)) {
-         $currentRoutes = file_get_contents($routesPath);
-         if (strpos($currentRoutes, "Router::resource('{$name}')") === false) {
-            Filesystem::put($routesPath, $currentRoutes . "\n" . $routesContent);
-         }
-      } else {
-         Filesystem::put($routesPath, $routesContent);
-      }
-   }
+        if (file_exists($routesPath)) {
+            $currentRoutes = file_get_contents($routesPath);
+            if (strpos($currentRoutes, "Router::resource('{$name}')") === false) {
+                Filesystem::put($routesPath, $currentRoutes . "\n" . $routesContent);
+            }
+        } else {
+            Filesystem::put($routesPath, $routesContent);
+        }
+    }
 
-   protected function createTests(string $name): void
-   {
-      $testContent = $this->generateTestContent("{$name}Test", 'Feature', "IronFlow\\Models\\{$name}");
-      $testPath = "tests/Feature/{$name}Test.php";
+    protected function createTests(string $name): void
+    {
+        $testContent = $this->generateTestContent("{$name}Test", 'Feature', "IronFlow\\Models\\{$name}");
+        $testPath = "tests/Feature/{$name}Test.php";
 
-      if (!Filesystem::exists(dirname($testPath))) {
-         Filesystem::makeDirectory(dirname($testPath), 0755, true);
-      }
+        if (!Filesystem::exists(dirname($testPath))) {
+            Filesystem::makeDirectory(dirname($testPath), 0755, true);
+        }
 
-      Filesystem::put($testPath, $testContent);
-   }
+        Filesystem::put($testPath, $testContent);
+    }
 
-   protected function generateModelContent(string $name, string $table, array $fillable): string
-   {
-      $fillableString = empty($fillable) ? '[]' : "['" . implode("', '", $fillable) . "']";
+    protected function generateModelContent(string $name, string $table, array $fillable): string
+    {
+        $fillableString = empty($fillable) ? '[]' : "['" . implode("', '", $fillable) . "']";
 
-      return <<<PHP
+        return <<<PHP
 <?php
 
 namespace IronFlow\Models;
@@ -214,14 +214,14 @@ class {$name} extends Model
     }
 }
 PHP;
-   }
+    }
 
-   protected function generateMigrationContent(string $name, string $table, array $fields): string
-   {
-      $upContent = $this->generateUpContent($table, $fields);
-      $downContent = $this->generateDownContent($table);
+    protected function generateMigrationContent(string $name, string $table, array $fields): string
+    {
+        $upContent = $this->generateUpContent($table, $fields);
+        $downContent = $this->generateDownContent($table);
 
-      return <<<PHP
+        return <<<PHP
 <?php
 
 use IronFlow\Database\Migration;
@@ -239,11 +239,11 @@ class {$name} extends Migration
     }
 }
 PHP;
-   }
+    }
 
-   protected function generateControllerContent(string $name): string
-   {
-      return <<<PHP
+    protected function generateControllerContent(string $name): string
+    {
+        return <<<PHP
 <?php
 
 namespace IronFlow\Http\Controllers;
@@ -305,7 +305,7 @@ class {$name}Controller extends Controller
     }
 }
 PHP;
-   }
+    }
 
     protected function generateFormContent(string $name, array $fillable): string
     {
@@ -424,23 +424,23 @@ PHP;
         return $rules;
     }
 
-   protected function generateIndexView(string $name, array $fields): string
-   {
-      $headers = array_map(function ($field) {
-         return explode(':', $field)[0];
-      }, $fields);
+    protected function generateIndexView(string $name, array $fields): string
+    {
+        $headers = array_map(function ($field) {
+            return explode(':', $field)[0];
+        }, $fields);
 
-      $headersHtml = '';
-      foreach ($headers as $header) {
-         $headersHtml .= "                <th>" . ucfirst($header) . "</th>\n";
-      }
+        $headersHtml = '';
+        foreach ($headers as $header) {
+            $headersHtml .= "                <th>" . ucfirst($header) . "</th>\n";
+        }
 
-      $rowsHtml = '';
-      foreach ($headers as $header) {
-         $rowsHtml .= "                    <td><?= \${$name}->{$header} ?></td>\n";
-      }
+        $rowsHtml = '';
+        foreach ($headers as $header) {
+            $rowsHtml .= "                    <td><?= \${$name}->{$header} ?></td>\n";
+        }
 
-      return <<<PHP
+        return <<<PHP
 @extends('layouts.app')
 
 @section('content')
@@ -475,19 +475,19 @@ PHP;
     </div>
 @endsection
 PHP;
-   }
+    }
 
-   protected function generateCreateView(string $name, array $fields): string
-   {
-      $formFields = '';
-      foreach ($fields as $field) {
-         $parts = explode(':', $field);
-         $fieldName = $parts[0];
-         $fieldType = $parts[1] ?? 'text';
-         $formFields .= $this->generateFormField($fieldName, $fieldType);
-      }
+    protected function generateCreateView(string $name, array $fields): string
+    {
+        $formFields = '';
+        foreach ($fields as $field) {
+            $parts = explode(':', $field);
+            $fieldName = $parts[0];
+            $fieldType = $parts[1] ?? 'text';
+            $formFields .= $this->generateFormField($fieldName, $fieldType);
+        }
 
-      return <<<PHP
+        return <<<PHP
 @extends('layouts.app')
 
 @section('content')
@@ -505,19 +505,19 @@ PHP;
     </div>
 @endsection
 PHP;
-   }
+    }
 
-   protected function generateEditView(string $name, array $fields): string
-   {
-      $formFields = '';
-      foreach ($fields as $field) {
-         $parts = explode(':', $field);
-         $fieldName = $parts[0];
-         $fieldType = $parts[1] ?? 'text';
-         $formFields .= $this->generateFormField($fieldName, $fieldType, true);
-      }
+    protected function generateEditView(string $name, array $fields): string
+    {
+        $formFields = '';
+        foreach ($fields as $field) {
+            $parts = explode(':', $field);
+            $fieldName = $parts[0];
+            $fieldType = $parts[1] ?? 'text';
+            $formFields .= $this->generateFormField($fieldName, $fieldType, true);
+        }
 
-      return <<<PHP
+        return <<<PHP
 @extends('layouts.app')
 
 @section('content')
@@ -536,18 +536,18 @@ PHP;
     </div>
 @endsection
 PHP;
-   }
+    }
 
-   protected function generateShowView(string $name, array $fields): string
-   {
-      $fieldsHtml = '';
-      foreach ($fields as $field) {
-         $fieldName = explode(':', $field)[0];
-         $fieldsHtml .= "            <dt>" . ucfirst($fieldName) . "</dt>\n";
-         $fieldsHtml .= "            <dd><?= \${$name}->{$fieldName} ?></dd>\n";
-      }
+    protected function generateShowView(string $name, array $fields): string
+    {
+        $fieldsHtml = '';
+        foreach ($fields as $field) {
+            $fieldName = explode(':', $field)[0];
+            $fieldsHtml .= "            <dt>" . ucfirst($fieldName) . "</dt>\n";
+            $fieldsHtml .= "            <dd><?= \${$name}->{$fieldName} ?></dd>\n";
+        }
 
-      return <<<PHP
+        return <<<PHP
 @extends('layouts.app')
 
 @section('content')
@@ -563,39 +563,39 @@ PHP;
     </div>
 @endsection
 PHP;
-   }
+    }
 
-   protected function generateFormField(string $name, string $type, bool $isEdit = false): string
-   {
-      $value = $isEdit ? " value=\"<?= \${$name}->{$name} ?>\"" : '';
-      $label = ucfirst($name);
+    protected function generateFormField(string $name, string $type, bool $isEdit = false): string
+    {
+        $value = $isEdit ? " value=\"<?= \${$name}->{$name} ?>\"" : '';
+        $label = ucfirst($name);
 
-      switch ($type) {
-         case 'textarea':
-            return <<<PHP
+        switch ($type) {
+            case 'textarea':
+                return <<<PHP
             <div class="form-group">
                 <label for="{$name}">{$label}</label>
                 <textarea name="{$name}" id="{$name}" class="form-control"{$value}></textarea>
             </div>
 PHP;
-         default:
-            return <<<PHP
+            default:
+                return <<<PHP
             <div class="form-group">
                 <label for="{$name}">{$label}</label>
                 <input type="{$type}" name="{$name}" id="{$name}" class="form-control"{$value}>
             </div>
 PHP;
-      }
-   }
+        }
+    }
 
-   protected function generateRoutesContent(string $name): string
-   {
-      return "Router::resource('{$name}', {$name}Controller::class);\n";
-   }
+    protected function generateRoutesContent(string $name): string
+    {
+        return "Router::resource('{$name}', {$name}Controller::class);\n";
+    }
 
-   protected function generateTestContent(string $name, string $type, string $class): string
-   {
-      return <<<PHP
+    protected function generateTestContent(string $name, string $type, string $class): string
+    {
+        return <<<PHP
 <?php
 
 namespace Tests\\{$type};
@@ -651,38 +651,38 @@ class {$name} extends {$type}Test
     }
 }
 PHP;
-   }
+    }
 
-   protected function generateUpContent(string $table, array $fields): string
-   {
-      $content = "Schema::create('{$table}', function (\$table) {\n";
-      $content .= "            \$table->id();\n";
+    protected function generateUpContent(string $table, array $fields): string
+    {
+        $content = "Schema::create('{$table}', function (\$table) {\n";
+        $content .= "            \$table->id();\n";
 
-      foreach ($fields as $field) {
-         $parts = explode(':', $field);
-         $name = $parts[0];
-         $type = $parts[1] ?? 'string';
-         $options = isset($parts[2]) ? explode('|', $parts[2]) : [];
+        foreach ($fields as $field) {
+            $parts = explode(':', $field);
+            $name = $parts[0];
+            $type = $parts[1] ?? 'string';
+            $options = isset($parts[2]) ? explode('|', $parts[2]) : [];
 
-         $content .= "            \$table->{$type}('{$name}'";
+            $content .= "            \$table->{$type}('{$name}'";
 
-         if (!empty($options)) {
-            $content .= ", " . implode(', ', array_map(function ($option) {
-               return is_numeric($option) ? $option : "'{$option}'";
-            }, $options));
-         }
+            if (!empty($options)) {
+                $content .= ", " . implode(', ', array_map(function ($option) {
+                    return is_numeric($option) ? $option : "'{$option}'";
+                }, $options));
+            }
 
-         $content .= ");\n";
-      }
+            $content .= ");\n";
+        }
 
-      $content .= "            \$table->timestamps();\n";
-      $content .= "        });";
+        $content .= "            \$table->timestamps();\n";
+        $content .= "        });";
 
-      return $content;
-   }
+        return $content;
+    }
 
-   protected function generateDownContent(string $table): string
-   {
-      return "Schema::dropIfExists('{$table}');";
-   }
+    protected function generateDownContent(string $table): string
+    {
+        return "Schema::dropIfExists('{$table}');";
+    }
 }

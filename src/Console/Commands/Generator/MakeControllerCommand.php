@@ -12,27 +12,29 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class MakeControllerCommand extends Command
 {
-   protected static $defaultName = 'make:controller';
-   protected static $defaultDescription = 'Crée un nouveau contrôleur';
-
    protected function configure(): void
    {
       $this
+         ->setName('make:controller')
+         ->setDescription('Crée un nouveau contrôleur')
          ->addArgument('name', InputArgument::REQUIRED, 'Le nom du contrôleur')
          ->addOption('resource', 'r', null, 'Créer un contrôleur avec les méthodes CRUD')
-         ->addOption('api', 'a', null, 'Créer un contrôleur API');
+         ->addOption('api', 'a', null, 'Créer un contrôleur API')
+         ->addOption('force', 'f', null, 'Écraser le contrôleur s\'il existe déjà');
    }
 
    protected function execute(InputInterface $input, OutputInterface $output): int
    {
       $io = new SymfonyStyle($input, $output);
-      $name = $input->getArgument('name');
+
+      $name = $this->sanitizeName($input->getArgument('name'));
       $isResource = $input->getOption('resource');
       $isApi = $input->getOption('api');
+      $force = $input->getOption('force');
 
       $controllerName = $this->formatControllerName($name);
-      $namespace = $isApi ? 'App\\Controllers\\Api' : 'App\\Controllers';
-      $className = $namespace . '\\' . $controllerName;
+      $namespace = $this->getNamespace($isApi);
+      $className = "{$namespace}\\{$controllerName}";
 
       $content = $this->generateControllerContent($className, $isResource, $isApi);
       $path = $this->getControllerPath($controllerName, $isApi);
@@ -41,8 +43,8 @@ class MakeControllerCommand extends Command
          mkdir(dirname($path), 0755, true);
       }
 
-      if (file_exists($path)) {
-         $io->error("Le contrôleur {$controllerName} existe déjà !");
+      if (file_exists($path) && !$force) {
+         $io->error("Le contrôleur {$controllerName} existe déjà ! Utilisez --force pour écraser.");
          return Command::FAILURE;
       }
 
@@ -52,10 +54,20 @@ class MakeControllerCommand extends Command
       return Command::SUCCESS;
    }
 
+   private function sanitizeName(string $name): string
+   {
+      return preg_replace('/[^A-Za-z0-9]/', '', $name);
+   }
+
    private function formatControllerName(string $name): string
    {
       $name = str_replace(['Controller', '.php'], '', $name);
       return ucfirst($name) . 'Controller';
+   }
+
+   private function getNamespace(bool $isApi): string
+   {
+      return $isApi ? 'App\\Controllers\\Api' : 'App\\Controllers';
    }
 
    private function getControllerPath(string $name, bool $isApi): string
@@ -64,23 +76,33 @@ class MakeControllerCommand extends Command
       if ($isApi) {
          $basePath .= '/Api';
       }
-      return $basePath . '/' . $name . '.php';
+      return "{$basePath}/{$name}.php";
    }
 
    private function generateControllerContent(string $className, bool $isResource, bool $isApi): string
    {
       $baseClass = $isApi ? 'ApiController' : 'Controller';
+
+      $namespace = str_replace('\\' . basename($className), '', $className);
+      $controllerName = basename($className);
+
       $content = "<?php\n\n";
-      $content .= "namespace " . str_replace('\\' . basename($className), '', $className) . ";\n\n";
+      $content .= "namespace {$namespace};\n\n";
       $content .= "use IronFlow\\Http\\{$baseClass};\n";
       $content .= "use IronFlow\\Http\\Request;\n";
       $content .= "use IronFlow\\Http\\Response;\n\n";
-      $content .= "class " . basename($className) . " extends {$baseClass}\n";
+      $content .= "class {$controllerName} extends {$baseClass}\n";
       $content .= "{\n";
 
       if ($isResource) {
          $content .= $this->generateResourceMethods();
       } else {
+         $content .= "    /**\n";
+         $content .= "     * Affiche la page d'accueil.\n";
+         $content .= "     *\n";
+         $content .= "     * @param Request \$request\n";
+         $content .= "     * @return Response\n";
+         $content .= "     */\n";
          $content .= "    public function index(Request \$request): Response\n";
          $content .= "    {\n";
          $content .= "        return \$this->view('index');\n";
@@ -95,19 +117,25 @@ class MakeControllerCommand extends Command
    private function generateResourceMethods(): string
    {
       $methods = [
-         'index' => 'Afficher la liste des ressources',
-         'create' => 'Afficher le formulaire de création',
-         'store' => 'Enregistrer une nouvelle ressource',
-         'show' => 'Afficher une ressource spécifique',
-         'edit' => 'Afficher le formulaire de modification',
-         'update' => 'Mettre à jour une ressource',
-         'destroy' => 'Supprimer une ressource'
+         'index'   => 'Afficher la liste des ressources',
+         'create'  => 'Afficher le formulaire de création',
+         'store'   => 'Enregistrer une nouvelle ressource',
+         'show'    => 'Afficher une ressource spécifique',
+         'edit'    => 'Afficher le formulaire de modification',
+         'update'  => 'Mettre à jour une ressource',
+         'destroy' => 'Supprimer une ressource',
       ];
 
       $content = '';
       foreach ($methods as $method => $description) {
          $content .= "    /**\n";
          $content .= "     * {$description}\n";
+         $content .= "     *\n";
+         $content .= "     * @param Request \$request\n";
+         if (in_array($method, ['show', 'edit', 'update', 'destroy'])) {
+            $content .= "     * @param mixed \$id\n";
+         }
+         $content .= "     * @return Response\n";
          $content .= "     */\n";
          $content .= "    public function {$method}(Request \$request";
          if (in_array($method, ['show', 'edit', 'update', 'destroy'])) {

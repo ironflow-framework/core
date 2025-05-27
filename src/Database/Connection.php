@@ -4,117 +4,191 @@ declare(strict_types=1);
 
 namespace IronFlow\Database;
 
+
 use PDO;
 use PDOException;
+use RuntimeException;
+use Throwable;
+use InvalidArgumentException;
 use IronFlow\Database\Query\Builder;
-use IronFlow\Database\Schema\SchemaBuilder;
+use IronFlow\Database\Schema\Schema;
+use IronFlow\Support\Facades\Config;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+
+require_once __DIR__ . '/../helpers.php';
 
 /**
- * Classe de gestion de la connexion à la base de données
+ * Gestionnaire Singleton de connexion à la base de données.
  * 
- * Cette classe implémente le pattern Singleton pour fournir une instance unique
- * de connexion à la base de données dans toute l'application. Elle gère la connexion
- * à différents types de bases de données (MySQL, PostgreSQL, SQLite, SQL Server)
- * et fournit des méthodes utilitaires pour les opérations courantes.
+ * Fournit une interface complète pour la gestion des connexions à la base de données
+ * avec support des transactions, du cache de requêtes, et de la reconnexion automatique.
  * 
  * @package IronFlow\Database
  * @author IronFlow Team
- * @version 1.0.0
+ * @version 2.0.0
  */
-class Connection
+final class Connection
 {
-   /**
-    * Instance unique de la connexion
-    * 
-    * @var Connection|null
-    */
    private static ?Connection $instance = null;
-
-   /**
-    * Instance PDO de connexion à la base de données
-    * 
-    * @var PDO|null
-    */
    private ?PDO $connection = null;
-
-   /**
-    * Configuration de la connexion à la base de données
-    * 
-    * @var array<string, mixed>
-    */
    private readonly array $config;
+   private LoggerInterface $logger;
+   private array $queryCache = [];
+   private bool $cacheEnabled = false;
+   private int $cacheSize = 100;
+   private int $reconnectAttempts = 3;
+   private float $reconnectDelay = 1.0;
+   private array $statistics = [
+      'queries_executed' => 0,
+      'transactions_started' => 0,
+      'transactions_committed' => 0,
+      'transactions_rolled_back' => 0,
+      'cache_hits' => 0,
+      'cache_misses' => 0,
+      'reconnections' => 0,
+   ];
 
    /**
-    * Constructeur privé pour empêcher l'instanciation directe
-    * 
-    * @throws PDOException Si la connexion échoue
+    * Constructeur privé — initialise la connexion.
+    *
+    * @throws PDOException
+    * @throws RuntimeException
     */
-   public function __construct()
+   private function __construct(?LoggerInterface $logger = null)
    {
+      $this->logger = $logger ?? new NullLogger();
+
+      Config::load();
       $config = config('database', []);
-      $defaultConnection = $config['default'] ?? 'mysql';
+      $defaultConnection = $config['default'] ?? 'default';
       $this->config = $config['connections'][$defaultConnection] ?? [];
 
       if (empty($this->config)) {
-         throw new \RuntimeException("Configuration de base de données invalide pour la connexion [{$defaultConnection}]");
+         $message = "Configuration de base de données invalide pour la connexion [{$defaultConnection}]";
+         $this->logger->critical($message);
+         throw new RuntimeException($message);
       }
+
+      $this->cacheEnabled = (bool)($this->config['cache']['enabled'] ?? false);
+      $this->cacheSize = (int)($this->config['cache']['size'] ?? 100);
+      $this->reconnectAttempts = (int)($this->config['reconnect']['attempts'] ?? 3);
+      $this->reconnectDelay = (float)($this->config['reconnect']['delay'] ?? 1.0);
 
       $this->connect();
    }
 
    /**
-    * Clone privé pour empêcher le clonage
+    * Empêche le clonage de l'instance.
     */
    private function __clone() {}
 
    /**
-    * Récupère l'instance unique de la connexion
-    * 
+    * Empêche la désérialisation de l'instance.
+    */
+   public function __wakeup(): void
+   {
+      throw new RuntimeException("La désérialisation du singleton Connection n'est pas autorisée");
+   }
+
+   /**
+    * Obtient l'instance unique de Connection.
+    *
+    * @param LoggerInterface|null $logger
     * @return Connection
     */
-   public static function getInstance(): Connection
+   public static function getInstance(?LoggerInterface $logger = null): Connection
    {
       if (self::$instance === null) {
-         self::$instance = new self([]);
+         self::$instance = new self($logger);
       }
 
       return self::$instance;
    }
 
    /**
-    * Établit la connexion à la base de données
-    * 
-    * @throws PDOException Si la connexion échoue
+    * Réinitialise l'instance (utile pour les tests).
+    */
+   public static function resetInstance(): void
+   {
+      if (self::$instance !== null) {
+         self::$instance->closeConnection();
+         self::$instance = null;
+      }
+   }
+
+   /**
+    * Établit la connexion à la base de données avec retry automatique.
+    *
+    * @throws PDOException
     */
    private function connect(): void
    {
-      $dsn = $this->buildDsn();
-      $this->connection = new PDO(
-         $dsn,
-         $this->config['username'] ?? null,
-         $this->config['password'] ?? null,
-         [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-         ]
+      $attempts = 0;
+      $lastException = null;
+
+      while ($attempts < $this->reconnectAttempts) {
+         try {
+            $dsn = $this->buildDsn();
+            $options = $this->buildConnectionOptions();
+
+            $this->connection = new PDO(
+               $dsn,
+               $this->config['username'] ?? null,
+               $this->config['password'] ?? null,
+               $options
+            );
+
+            $this->logger->info("Connexion à la base de données établie", [
+               'driver' => $this->config['driver'],
+               'host' => $this->config['host'] ?? 'N/A',
+               'database' => $this->config['database'] ?? 'N/A'
+            ]);
+
+            if ($attempts > 0) {
+               $this->statistics['reconnections']++;
+            }
+
+            return;
+         } catch (PDOException $e) {
+            $attempts++;
+            $lastException = $e;
+
+            $this->logger->warning("Échec de connexion à la base de données", [
+               'attempt' => $attempts,
+               'max_attempts' => $this->reconnectAttempts,
+               'error' => $e->getMessage()
+            ]);
+
+            if ($attempts < $this->reconnectAttempts) {
+               usleep((int)($this->reconnectDelay * 1000000));
+            }
+         }
+      }
+
+      throw new PDOException(
+         "Impossible de se connecter à la base de données après {$this->reconnectAttempts} tentatives: " .
+            $lastException->getMessage(),
+         (int)$lastException->getCode(),
+         $lastException
       );
    }
 
    /**
-    * Construit la chaîne DSN pour la connexion PDO
-    * 
+    * Construit le DSN selon le driver configuré.
+    *
     * @return string
-    * @throws \RuntimeException Si le driver n'est pas supporté
+    * @throws RuntimeException
     */
    private function buildDsn(): string
    {
       return match ($this->config['driver']) {
          'mysql' => sprintf(
-            'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+            'mysql:host=%s;port=%s;dbname=%s;charset=%s',
             $this->config['host'],
             $this->config['port'] ?? 3306,
-            $this->config['database']
+            $this->config['database'],
+            $this->config['charset'] ?? 'utf8mb4'
          ),
          'pgsql' => sprintf(
             'pgsql:host=%s;port=%s;dbname=%s',
@@ -123,18 +197,57 @@ class Connection
             $this->config['database']
          ),
          'sqlite' => sprintf('sqlite:%s', $this->config['database']),
-         default => throw new \RuntimeException("Driver non supporté : {$this->config['driver']}")
+         'sqlsrv' => sprintf(
+            'sqlsrv:Server=%s,%s;Database=%s',
+            $this->config['host'],
+            $this->config['port'] ?? 1433,
+            $this->config['database']
+         ),
+         default => throw new RuntimeException("Driver non supporté : {$this->config['driver']}"),
       };
    }
 
    /**
-    * Récupère l'instance PDO de connexion
-    * 
+    * Construit les options de connexion PDO.
+    *
+    * @return array
+    */
+   private function buildConnectionOptions(): array
+   {
+      $defaultOptions = [
+         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+         PDO::ATTR_EMULATE_PREPARES => false,
+         PDO::ATTR_STRINGIFY_FETCHES => false,
+      ];
+
+      // Options spécifiques par driver
+      $driverOptions = match ($this->config['driver']) {
+         'mysql' => [
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . ($this->config['charset'] ?? 'utf8mb4'),
+            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+         ],
+         'pgsql' => [
+            PDO::PGSQL_ATTR_DISABLE_PREPARES => false,
+         ],
+         default => [],
+      };
+
+      // Options personnalisées depuis la configuration
+      $customOptions = $this->config['options'] ?? [];
+
+      return array_merge($defaultOptions, $driverOptions, $customOptions);
+   }
+
+   /**
+    * Obtient la connexion PDO avec vérification de validité.
+    *
     * @return PDO
+    * @throws PDOException
     */
    public function getConnection(): PDO
    {
-      if ($this->connection === null) {
+      if ($this->connection === null || !$this->isConnectionAlive()) {
          $this->connect();
       }
 
@@ -142,29 +255,37 @@ class Connection
    }
 
    /**
-    * Alias de getConnection() pour la compatibilité
-    * 
-    * @return PDO
+    * Vérifie si la connexion est encore active.
+    *
+    * @return bool
     */
-   public function getPdo(): PDO
+   private function isConnectionAlive(): bool
    {
-      return $this->getConnection();
+      if ($this->connection === null) {
+         return false;
+      }
+
+      try {
+         $this->connection->query('SELECT 1');
+         return true;
+      } catch (PDOException) {
+         return false;
+      }
    }
 
    /**
-    * Ferme la connexion à la base de données
-    * 
-    * @return void
+    * Ferme la connexion à la base de données.
     */
    public function closeConnection(): void
    {
       $this->connection = null;
+      $this->logger->info("Connexion à la base de données fermée");
    }
 
    /**
-    * Récupère la configuration de la connexion
-    * 
-    * @return array<string, mixed>
+    * Obtient la configuration de la connexion.
+    *
+    * @return array
     */
    public function getConfig(): array
    {
@@ -172,51 +293,66 @@ class Connection
    }
 
    /**
-    * Vérifie si la connexion est active
-    * 
+    * Vérifie si une connexion est établie.
+    *
     * @return bool
     */
    public function isConnected(): bool
    {
-      return $this->connection !== null;
+      return $this->connection !== null && $this->isConnectionAlive();
    }
 
    /**
-    * Démarre une transaction
-    * 
+    * Démarre une transaction.
+    *
     * @return bool
-    * @throws PDOException Si la transaction ne peut pas être démarrée
+    * @throws PDOException
     */
    public function beginTransaction(): bool
    {
-      return $this->getConnection()->beginTransaction();
+      $result = $this->getConnection()->beginTransaction();
+      if ($result) {
+         $this->statistics['transactions_started']++;
+         $this->logger->debug("Transaction démarrée");
+      }
+      return $result;
    }
 
    /**
-    * Valide une transaction
-    * 
+    * Valide une transaction.
+    *
     * @return bool
-    * @throws PDOException Si la transaction ne peut pas être validée
+    * @throws PDOException
     */
    public function commit(): bool
    {
-      return $this->getConnection()->commit();
+      $result = $this->getConnection()->commit();
+      if ($result) {
+         $this->statistics['transactions_committed']++;
+         $this->logger->debug("Transaction validée");
+      }
+      return $result;
    }
 
    /**
-    * Annule une transaction
-    * 
+    * Annule une transaction.
+    *
     * @return bool
-    * @throws PDOException Si la transaction ne peut pas être annulée
+    * @throws PDOException
     */
    public function rollBack(): bool
    {
-      return $this->getConnection()->rollBack();
+      $result = $this->getConnection()->rollBack();
+      if ($result) {
+         $this->statistics['transactions_rolled_back']++;
+         $this->logger->debug("Transaction annulée");
+      }
+      return $result;
    }
 
    /**
-    * Vérifie si une transaction est active
-    * 
+    * Vérifie si une transaction est en cours.
+    *
     * @return bool
     */
    public function inTransaction(): bool
@@ -225,39 +361,109 @@ class Connection
    }
 
    /**
-    * Exécute une requête SQL et retourne un tableau de résultats
-    * 
-    * @param string $query Requête SQL
-    * @param array<string, mixed> $params Paramètres de la requête
-    * @return array<array<string, mixed>>
-    * @throws PDOException Si la requête échoue
+    * Exécute une requête SELECT avec cache optionnel.
+    *
+    * @param string $query
+    * @param array $params
+    * @param bool $useCache
+    * @return array
+    * @throws PDOException
     */
-   public function query(string $query, array $params = []): array
+   public function query(string $query, array $params = [], bool $useCache = true): array
    {
-      $stmt = $this->getConnection()->prepare($query);
-      $stmt->execute($params);
-      return $stmt->fetchAll();
+      $cacheKey = $this->cacheEnabled && $useCache ? $this->generateCacheKey($query, $params) : null;
+
+      // Vérification du cache
+      if ($cacheKey && isset($this->queryCache[$cacheKey])) {
+         $this->statistics['cache_hits']++;
+         $this->logger->debug("Résultat récupéré depuis le cache", ['query' => $query]);
+         return $this->queryCache[$cacheKey];
+      }
+
+      if ($cacheKey) {
+         $this->statistics['cache_misses']++;
+      }
+
+      $startTime = microtime(true);
+
+      try {
+         $stmt = $this->getConnection()->prepare($query);
+         $stmt->execute($params);
+         $result = $stmt->fetchAll();
+
+         $this->statistics['queries_executed']++;
+         $executionTime = microtime(true) - $startTime;
+
+         $this->logger->debug("Requête exécutée", [
+            'query' => $query,
+            'params' => $params,
+            'execution_time' => $executionTime,
+            'rows_returned' => count($result)
+         ]);
+
+         // Mise en cache si activée
+         if ($cacheKey) {
+            $this->addToCache($cacheKey, $result);
+         }
+
+         return $result;
+      } catch (PDOException $e) {
+         $this->logger->error("Erreur lors de l'exécution de la requête", [
+            'query' => $query,
+            'params' => $params,
+            'error' => $e->getMessage()
+         ]);
+         throw $e;
+      }
    }
 
    /**
-    * Exécute une requête SQL et retourne le nombre de lignes affectées
-    * 
-    * @param string $query Requête SQL
-    * @param array<string, mixed> $params Paramètres de la requête
-    * @return int
-    * @throws PDOException Si la requête échoue
+    * Exécute une requête de modification (INSERT, UPDATE, DELETE).
+    *
+    * @param string $query
+    * @param array $params
+    * @return int Nombre de lignes affectées
+    * @throws PDOException
     */
    public function execute(string $query, array $params = []): int
    {
-      $stmt = $this->getConnection()->prepare($query);
-      $stmt->execute($params);
-      return $stmt->rowCount();
+      $startTime = microtime(true);
+
+      try {
+         $stmt = $this->getConnection()->prepare($query);
+         $stmt->execute($params);
+         $rowCount = $stmt->rowCount();
+
+         $this->statistics['queries_executed']++;
+         $executionTime = microtime(true) - $startTime;
+
+         $this->logger->debug("Requête de modification exécutée", [
+            'query' => $query,
+            'params' => $params,
+            'execution_time' => $executionTime,
+            'rows_affected' => $rowCount
+         ]);
+
+         // Invalidation du cache après modification
+         if ($this->cacheEnabled) {
+            $this->clearCache();
+         }
+
+         return $rowCount;
+      } catch (PDOException $e) {
+         $this->logger->error("Erreur lors de l'exécution de la requête de modification", [
+            'query' => $query,
+            'params' => $params,
+            'error' => $e->getMessage()
+         ]);
+         throw $e;
+      }
    }
 
    /**
-    * Récupère le dernier ID inséré
-    * 
-    * @param string|null $name Nom de la séquence (pour PostgreSQL)
+    * Obtient l'ID de la dernière insertion.
+    *
+    * @param string|null $name
     * @return string
     */
    public function lastInsertId(?string $name = null): string
@@ -266,132 +472,330 @@ class Connection
    }
 
    /**
-    * Insère des données dans une table
-    * 
-    * @param string $table Nom de la table
-    * @param array<string, mixed> $data Données à insérer
+    * Insère des données dans une table.
+    *
+    * @param string $table
+    * @param array $data
     * @return bool
-    * @throws PDOException Si l'insertion échoue
+    * @throws InvalidArgumentException
+    * @throws PDOException
     */
    public function insert(string $table, array $data): bool
    {
+      if (empty($data)) {
+         throw new InvalidArgumentException("Les données d'insertion ne peuvent pas être vides");
+      }
+
+      $this->validateTableName($table);
+
       $columns = implode(", ", array_keys($data));
       $placeholders = implode(", ", array_map(fn($col) => ":$col", array_keys($data)));
 
-      $sql = "INSERT INTO " . $table . "($columns) VALUES ($placeholders)";
+      $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
 
       $stmt = $this->getConnection()->prepare($sql);
-      return $stmt->execute($data);
+      $result = $stmt->execute($data);
+
+      $this->logger->info("Insertion effectuée", [
+         'table' => $table,
+         'data' => $data,
+         'success' => $result
+      ]);
+
+      return $result;
    }
 
    /**
-    * Met à jour des données dans une table
-    * 
-    * @param string $table Nom de la table
-    * @param array<string, mixed> $data Données à mettre à jour
-    * @param string $where Condition WHERE
-    * @param array<string, mixed> $whereParams Paramètres de la condition WHERE
+    * Met à jour des données dans une table.
+    *
+    * @param string $table
+    * @param array $data
+    * @param string $where
+    * @param array $whereParams
     * @return bool
-    * @throws PDOException Si la mise à jour échoue
+    * @throws InvalidArgumentException
+    * @throws PDOException
     */
    public function update(string $table, array $data, string $where, array $whereParams = []): bool
    {
-      $set = implode(", ", array_map(fn($col) => "$col = :$col", array_keys($data)));
-      $sql = "UPDATE $table SET $set WHERE $where";
+      if (empty($data)) {
+         throw new InvalidArgumentException("Les données de mise à jour ne peuvent pas être vides");
+      }
+
+      if (empty($where)) {
+         throw new InvalidArgumentException("La clause WHERE est obligatoire pour éviter la mise à jour de toutes les lignes");
+      }
+
+      $this->validateTableName($table);
+
+      $set = implode(", ", array_map(fn($col) => "{$col} = :{$col}", array_keys($data)));
+      $sql = "UPDATE {$table} SET {$set} WHERE {$where}";
 
       $stmt = $this->getConnection()->prepare($sql);
-      return $stmt->execute(array_merge($data, $whereParams));
+      $result = $stmt->execute(array_merge($data, $whereParams));
+
+      $this->logger->info("Mise à jour effectuée", [
+         'table' => $table,
+         'data' => $data,
+         'where' => $where,
+         'where_params' => $whereParams,
+         'success' => $result
+      ]);
+
+      return $result;
    }
 
    /**
-    * Supprime des données d'une table
-    * 
-    * @param string $table Nom de la table
-    * @param string $where Condition WHERE
-    * @param array<string, mixed> $params Paramètres de la condition WHERE
+    * Supprime des données d'une table.
+    *
+    * @param string $table
+    * @param string $where
+    * @param array $params
     * @return bool
-    * @throws PDOException Si la suppression échoue
+    * @throws InvalidArgumentException
+    * @throws PDOException
     */
    public function delete(string $table, string $where, array $params = []): bool
    {
-      $sql = "DELETE FROM $table WHERE $where";
+      if (empty($where)) {
+         throw new InvalidArgumentException("La clause WHERE est obligatoire pour éviter la suppression de toutes les lignes");
+      }
+
+      $this->validateTableName($table);
+
+      $sql = "DELETE FROM {$table} WHERE {$where}";
       $stmt = $this->getConnection()->prepare($sql);
-      return $stmt->execute($params);
+      $result = $stmt->execute($params);
+
+      $this->logger->info("Suppression effectuée", [
+         'table' => $table,
+         'where' => $where,
+         'params' => $params,
+         'success' => $result
+      ]);
+
+      return $result;
    }
 
    /**
-    * Vérifie si une table existe
-    * 
-    * @param string $table Nom de la table
+    * Vérifie si une table existe.
+    *
+    * @param string $table
     * @return bool
+    * @throws PDOException
     */
    public function tableExists(string $table): bool
    {
+      $this->validateTableName($table);
+
       $driver = $this->getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-      switch ($driver) {
-         case 'mysql':
-            $result = $this->query("SHOW TABLES LIKE ?", [$table]);
-            return !empty($result);
+      $result = match ($driver) {
+         'mysql'  => $this->query("SHOW TABLES LIKE ?", [$table], false),
+         'sqlite' => $this->query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [$table], false),
+         'pgsql'  => $this->query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = ?)", [$table], false),
+         'sqlsrv' => $this->query("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", [$table], false),
+         default  => [],
+      };
 
-         case 'sqlite':
-            $result = $this->query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [$table]);
-            return !empty($result);
-
-         case 'pgsql':
-            $result = $this->query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = ?)", [$table]);
-            return (bool) $result[0]['exists'];
-
-         default:
-            return false;
-      }
+      return !empty($result) && (
+         $driver !== 'pgsql' || (bool)$result[0]['exists']
+      );
    }
 
    /**
-    * Exécute une requête dans une transaction
-    * 
-    * @param callable $callback Fonction à exécuter dans la transaction
+    * Exécute une transaction sécurisée avec rollback automatique en cas d'erreur.
+    *
+    * @param callable $callback
     * @return mixed
-    * @throws \Throwable Si une erreur survient
+    * @throws Throwable
     */
-   public function transaction(callable $callback)
+   public function transaction(callable $callback): mixed
    {
       try {
          $this->beginTransaction();
-         $result = $callback();
+         $result = $callback($this);
          $this->commit();
          return $result;
-      } catch (\Throwable $e) {
-         $this->rollBack();
+      } catch (Throwable $e) {
+         if ($this->inTransaction()) {
+            $this->rollBack();
+         }
          throw $e;
       }
    }
 
+   /**
+    * Crée un Query Builder pour une table.
+    *
+    * @param string $table
+    * @return Builder
+    */
    public function table(string $table): Builder
    {
       return new Builder($this, $table);
    }
 
    /**
-    * Retourne une instance de SchemaBuilder pour la table spécifiée
-    * 
-    * @param string $table Nom de la table
-    * @return SchemaBuilder
+    * Crée un Schema Builder.
+    *
+    * @return Schema
     */
-   public function schema(string $table): SchemaBuilder
+   public function schema(): Schema
    {
-      return new SchemaBuilder($this, $table);
+      return new Schema($this->getConnection());
    }
 
-   public function hasTable(string $table): bool
+   /**
+    * Génère une clé de cache pour une requête.
+    *
+    * @param string $query
+    * @param array $params
+    * @return string
+    */
+   private function generateCacheKey(string $query, array $params): string
    {
-      $sql = match ($this->config['driver']) {
-         'mysql' => "SHOW TABLES LIKE ?",
-         'pgsql' => "SELECT to_regclass(?)",
-         'sqlite' => "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+      return 'query_' . md5($query . serialize($params));
+   }
+
+   /**
+    * Ajoute un résultat au cache.
+    *
+    * @param string $key
+    * @param array $data
+    */
+   private function addToCache(string $key, array $data): void
+   {
+      if (count($this->queryCache) >= $this->cacheSize) {
+         // Supprime le premier élément (FIFO)
+         array_shift($this->queryCache);
+      }
+
+      $this->queryCache[$key] = $data;
+   }
+
+   /**
+    * Vide le cache des requêtes.
+    */
+   public function clearCache(): void
+   {
+      $this->queryCache = [];
+      $this->logger->debug("Cache des requêtes vidé");
+   }
+
+   /**
+    * Obtient les statistiques d'utilisation.
+    *
+    * @return array
+    */
+   public function getStatistics(): array
+   {
+      return $this->statistics;
+   }
+
+   /**
+    * Obtient le cache des requêtes.
+    *
+    * @return array
+    */
+   public function getCache(): array
+   {
+      return $this->queryCache;
+   }
+
+   /**
+    * Active ou désactive le cache des requêtes.
+    *
+    * @param bool $enabled
+    */
+   public function setCacheEnabled(bool $enabled): void
+   {
+      $this->cacheEnabled = $enabled;
+      if (!$enabled) {
+         $this->clearCache();
+      }
+   }
+
+   /**
+    * Définit la taille maximale du cache.
+    *
+    * @param int $size
+    * @throws InvalidArgumentException
+    */
+   public function setCacheSize(int $size): void
+   {
+      if ($size < 1) {
+         throw new InvalidArgumentException("La taille du cache doit être supérieure à 0");
+      }
+
+      $this->cacheSize = $size;
+
+      // Ajuste le cache si nécessaire
+      if (count($this->queryCache) > $size) {
+         $this->queryCache = array_slice($this->queryCache, -$size, null, true);
+      }
+   }
+
+   /**
+    * Valide un nom de table pour éviter les injections SQL.
+    *
+    * @param string $table
+    * @throws InvalidArgumentException
+    */
+   private function validateTableName(string $table): void
+   {
+      if (empty($table) || !preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+         throw new InvalidArgumentException("Nom de table invalide : {$table}");
+      }
+   }
+
+   /**
+    * Obtient des informations sur la base de données.
+    *
+    * @return array
+    */
+   public function getDatabaseInfo(): array
+   {
+      $connection = $this->getConnection();
+
+      return [
+         'driver' => $connection->getAttribute(PDO::ATTR_DRIVER_NAME),
+         'version' => $connection->getAttribute(PDO::ATTR_SERVER_VERSION),
+         'connection_status' => $connection->getAttribute(PDO::ATTR_CONNECTION_STATUS),
+         'client_version' => $connection->getAttribute(PDO::ATTR_CLIENT_VERSION),
+         'server_info' => $connection->getAttribute(PDO::ATTR_SERVER_INFO),
+      ];
+   }
+
+   /**
+    * Exécute une requête brute sans préparation (à utiliser avec précaution).
+    *
+    * @param string $query
+    * @return array
+    * @throws PDOException
+    */
+   public function raw(string $query): array
+   {
+      $this->logger->warning("Exécution d'une requête brute", ['query' => $query]);
+
+      $result = $this->getConnection()->query($query);
+      return $result->fetchAll();
+   }
+
+   /**
+    * Optimise les performances de la base de données.
+    */
+   public function optimize(): void
+   {
+      $driver = $this->getConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+      match ($driver) {
+         'mysql' => $this->execute("OPTIMIZE TABLE *"),
+         'sqlite' => $this->execute("VACUUM"),
+         'pgsql' => $this->execute("VACUUM ANALYZE"),
+         default => $this->logger->info("Optimisation non supportée pour le driver {$driver}"),
       };
 
-      $result = $this->query($sql, [$table]);
-      return !empty($result);
+      $this->logger->info("Optimisation de la base de données effectuée");
    }
 }

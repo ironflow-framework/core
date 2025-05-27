@@ -89,6 +89,7 @@ abstract class Migration
     */
    protected function commitTransaction(): void
    {
+      $this->connection->getConnection()->beginTransaction();
       $this->connection->getConnection()->commit();
    }
 

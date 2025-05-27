@@ -177,7 +177,7 @@ class MigrateCommand extends Command
    private function seed(PDO $connection, SymfonyStyle $io): void
    {
       try {
-         $seederManager = new \IronFlow\Database\Seeder\SeederManager($connection);
+         $seederManager = new \IronFlow\Database\Seeders\SeederManager($connection);
          $seederManager->run();
          $io->success('Seeders exécutés avec succès');
       } catch (\Exception $e) {

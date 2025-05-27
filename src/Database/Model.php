@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IronFlow\Database;
 
-use Carbon\Carbon;
 use DateTime;
 use Exception;
 use IronFlow\Database\Collection;
@@ -16,9 +15,7 @@ use IronFlow\Database\Iron\Relations\BelongsToMany;
 use IronFlow\Database\Iron\Relations\HasMany;
 use IronFlow\Database\Iron\Relations\HasOne;
 use IronFlow\Database\Iron\Relations\MorphTo;
-use PDO;
 use PDOException;
-use function PHPUnit\Framework\isInstanceOf;
 
 /**
  * Classe de base pour tous les modèles
@@ -38,7 +35,21 @@ abstract class Model
    protected array $attributes = [];
    protected array $original = [];
    protected bool $exists = false;
+   protected static array $globalScopes = [];
+   protected static bool $useCache = true;
+   protected static int $cacheTimeout = 3600; // 1 heure
    protected static ?Connection $connection = null;
+
+   protected static array $eventCallbacks = [
+      'creating' => [],
+      'created' => [],
+      'updating' => [],
+      'updated' => [],
+      'deleting' => [],
+      'deleted' => [],
+      'saving' => [],
+      'saved' => [],
+   ];
 
    /**
     * Définit la connexion à la base de données pour le modèle
@@ -59,7 +70,7 @@ abstract class Model
    public static function getConnection(): Connection
    {
       if (static::$connection === null) {
-         throw new Exception('La connexion à la base de données n\'a pas été définie.');
+         static::$connection = Connection::getInstance();
       }
       return static::$connection;
    }
@@ -238,16 +249,37 @@ abstract class Model
     */
    public function save(): bool
    {
-      if (isset($this->attributes[static::$primaryKey])) {
-         // Mettre à jour l'enregistrement existant
-         return static::update($this->attributes);
-      } else {
-         // Créer un nouvel enregistrement
-         $newInstance = static::create($this->attributes);
-         // Peupler l'instance actuelle avec les données nouvellement créées
-         $this->fill((array)$newInstance->attributes);
-         return true;
+      if (!$this->fireEvent('saving')) {
+         return false;
       }
+
+      $saved = false;
+
+      if (isset($this->attributes[static::$primaryKey])) {
+         if (!$this->fireEvent('updating')) {
+            return false;
+         }
+         $saved = static::update($this->attributes);
+         if ($saved) {
+            $this->fireEvent('updated');
+         }
+      } else {
+         if (!$this->fireEvent('creating')) {
+            return false;
+         }
+         $newInstance = static::create($this->attributes);
+         if ($newInstance) {
+            $this->fill((array)$newInstance->attributes);
+            $saved = true;
+            $this->fireEvent('created');
+         }
+      }
+
+      if ($saved) {
+         $this->fireEvent('saved');
+      }
+
+      return $saved;
    }
 
    public function remove(): bool
@@ -550,53 +582,208 @@ abstract class Model
    }
 
    /**
-    * Récupère le premier enregistrement
+    * Pagine les résultats avec des options avancées
     * 
-    * @return static|null
+    * @param int $page Numéro de page
+    * @param int $perPage Nombre d'éléments par page
+    * @param array $columns Colonnes à sélectionner
+    * @param string $pageName Nom du paramètre de page
+    * @param array $options Options supplémentaires
+    * @return array{data: Collection, total: int, current_page: int, per_page: int, last_page: int, from: int, to: int}
     */
-   public static function first(): ?static
-   {
-      $sql = "SELECT * FROM " . static::$table . " LIMIT 1";
-      $results = static::getConnection()->query($sql);
-      return $results ? new static($results[0]) : null;
+   public static function paginateAdvanced(
+      int $page = 1,
+      int $perPage = 10,
+      array $columns = ['*'],
+      string $pageName = 'page',
+      array $options = []
+   ): array {
+      $offset = ($page - 1) * $perPage;
+      $columns = implode(', ', $columns);
+      $sql = "SELECT {$columns} FROM " . static::$table;
+
+      if (isset($options['where'])) {
+         $sql .= " WHERE " . $options['where'];
+      }
+
+      if (isset($options['orderBy'])) {
+         $sql .= " ORDER BY " . $options['orderBy'];
+      }
+
+      $sql .= " LIMIT :limit OFFSET :offset";
+      $results = static::getConnection()->query($sql, [
+         'limit' => $perPage,
+         'offset' => $offset
+      ] + ($options['params'] ?? []));
+
+      $total = static::count();
+      $lastPage = (int) ceil($total / $perPage);
+
+      return [
+         'data' => new Collection(array_map(fn($result) => new static($result), $results)),
+         'total' => $total,
+         'current_page' => $page,
+         'per_page' => $perPage,
+         'last_page' => $lastPage,
+         'from' => $offset + 1,
+         'to' => min($offset + $perPage, $total),
+      ];
    }
 
    /**
-    * Vérifie si des enregistrements existent
+    * Met à jour plusieurs enregistrements en une seule requête
     * 
-    * @param array $conditions Conditions de recherche
-    * @return bool
+    * @param array $values Valeurs à mettre à jour
+    * @param array $conditions Conditions pour la mise à jour
+    * @return int Nombre d'enregistrements mis à jour
     */
-   public static function exists(array $conditions): bool
+   public static function bulkUpdate(array $values, array $conditions): int
    {
-      $where = [];
+      $sets = [];
       $params = [];
-      foreach ($conditions as $key => $value) {
-         $where[] = "$key = :$key";
+
+      foreach ($values as $key => $value) {
+         $sets[] = "$key = :$key";
          $params[$key] = $value;
       }
-      $sql = "SELECT COUNT(*) as count FROM " . static::$table . " WHERE " . implode(' AND ', $where);
-      $result = static::getConnection()->query($sql, $params);
-      return (int) $result[0]['count'] > 0;
+
+      $where = [];
+      foreach ($conditions as $key => $value) {
+         $where[] = "$key = :where_$key";
+         $params["where_$key"] = $value;
+      }
+
+      $sql = "UPDATE " . static::$table .
+         " SET " . implode(', ', $sets) .
+         " WHERE " . implode(' AND ', $where);
+
+      try {
+         return static::getConnection()->execute($sql, $params);
+      } catch (PDOException $e) {
+         throw new Exception("Erreur de base de données : " . $e->getMessage());
+      }
    }
 
    /**
-    * Filtre les enregistrements selon des conditions
+    * Ajoute un scope global au modèle
     * 
-    * @param array $conditions Conditions de filtrage
-    * @return Collection
+    * @param string $name Nom du scope
+    * @param callable $callback Fonction du scope
     */
-   public static function filter(array $conditions): Collection
+   public static function addGlobalScope(string $name, callable $callback): void
    {
-      $where = [];
-      $params = [];
-      foreach ($conditions as $key => $value) {
-         $where[] = "$key = :$key";
-         $params[$key] = $value;
+      static::$globalScopes[$name] = $callback;
+   }
+
+   /**
+    * Supprime un scope global du modèle
+    * 
+    * @param string $name Nom du scope
+    */
+   public static function removeGlobalScope(string $name): void
+   {
+      unset(static::$globalScopes[$name]);
+   }
+
+   /**
+    * Applique les scopes globaux à une requête
+    * 
+    * @param Builder $query Builder de requête
+    * @return Builder
+    */
+   protected static function applyGlobalScopes(Builder $query): Builder
+   {
+      foreach (static::$globalScopes as $scope) {
+         $scope($query);
       }
-      $sql = "SELECT * FROM " . static::$table . " WHERE " . implode(' AND ', $where);
-      $results = static::getConnection()->query($sql, $params);
-      return new Collection(array_map(fn($result) => new static($result), $results));
+      return $query;
+   }
+
+   /**
+    * Démarre une transaction
+    */
+   public static function beginTransaction(): void
+   {
+      static::getConnection()->beginTransaction();
+   }
+
+   /**
+    * Valide une transaction
+    */
+   public static function commit(): void
+   {
+      static::getConnection()->commit();
+   }
+
+   /**
+    * Annule une transaction
+    */
+   public static function rollback(): void
+   {
+      static::getConnection()->rollBack();
+   }
+
+   /**
+    * Exécute une fonction dans une transaction
+    * 
+    * @param callable $callback Fonction à exécuter
+    * @return mixed
+    * @throws Exception
+    */
+   public static function transaction(callable $callback)
+   {
+      static::beginTransaction();
+
+      try {
+         $result = $callback();
+         static::commit();
+         return $result;
+      } catch (Exception $e) {
+         static::rollback();
+         throw $e;
+      }
+   }
+
+   /**
+    * Active ou désactive le cache pour les requêtes
+    */
+   public static function useCache(bool $use = true): void
+   {
+      static::$useCache = $use;
+   }
+
+   /**
+    * Définit le timeout du cache
+    */
+   public static function setCacheTimeout(int $seconds): void
+   {
+      static::$cacheTimeout = $seconds;
+   }
+
+   /**
+    * Convertit le modèle en tableau
+    * 
+    * @return array
+    */
+   public function toArray(): array
+   {
+      $array = $this->attributes;
+
+      // Exclure les attributs cachés
+      foreach ($this->hidden as $hidden) {
+         unset($array[$hidden]);
+      }
+
+      return $array;
+   }
+
+   /**
+    * Initialise le modèle
+    */
+   protected static function boot(): void
+   {
+      // Cette méthode sera appelée lors de l'initialisation du modèle
+      // et peut être étendue par les classes enfants
    }
 
    /**
@@ -962,28 +1149,168 @@ abstract class Model
    }
 
    /**
-    * Convertit le modèle en tableau
+    * Récupère un résultat depuis le cache ou exécute la requête
     * 
-    * @return array
+    * @param string $key Clé de cache
+    * @param callable $callback Requête à exécuter si pas en cache
+    * @return mixed
     */
-   public function toArray(): array
+   protected static function remember(string $key, callable $callback)
    {
-      $array = $this->attributes;
-
-      // Exclure les attributs cachés
-      foreach ($this->hidden as $hidden) {
-         unset($array[$hidden]);
+      if (!static::$useCache) {
+         return $callback();
       }
 
-      return $array;
+      $cacheKey = static::class . ':' . $key;
+      $cache = static::getConnection()->getCache();
+
+      if ($cache[$cacheKey]) {
+         return $cache[$cacheKey];
+      }
+
+      $result = $callback();
+      $cache[$cacheKey]['data'] = $result;
+      $cache[$cacheKey]['timeout'] = static::$cacheTimeout;
+
+      return $result;
    }
 
    /**
-    * Initialise le modèle
+    * Exécute une requête brute
+    * 
+    * @param string $sql Requête SQL
+    * @param array $params Paramètres de la requête
+    * @return Collection
     */
-   protected static function boot(): void
+   public static function raw(string $sql, array $params = []): Collection
    {
-      // Cette méthode sera appelée lors de l'initialisation du modèle
-      // et peut être étendue par les classes enfants
+      $results = static::getConnection()->query($sql, $params);
+      return new Collection(array_map(fn($result) => new static($result), $results));
+   }
+
+   /**
+    * Crée un index sur une ou plusieurs colonnes
+    * 
+    * @param string|array $columns Colonnes à indexer
+    * @param string|null $name Nom de l'index
+    * @return bool
+    */
+   public static function createIndex($columns, ?string $name = null): bool
+   {
+      $columns = is_array($columns) ? $columns : [$columns];
+      $name = $name ?? static::$table . '_' . implode('_', $columns) . '_index';
+
+      $sql = "CREATE INDEX IF NOT EXISTS $name ON " . static::$table . " (" . implode(', ', $columns) . ")";
+
+      try {
+         return (bool)static::getConnection()->execute($sql);
+      } catch (PDOException $e) {
+         throw new Exception("Erreur lors de la création de l'index : " . $e->getMessage());
+      }
+   }
+
+   /**
+    * Effectue une agrégation sur une colonne
+    * 
+    * @param string $column Colonne à agréger
+    * @param string $function Fonction d'agrégation (COUNT, SUM, AVG, etc.)
+    * @param array $conditions Conditions WHERE
+    * @return mixed
+    */
+   public static function aggregate(string $column, string $function, array $conditions = [])
+   {
+      $sql = "SELECT $function($column) as result FROM " . static::$table;
+
+      if (!empty($conditions)) {
+         $where = [];
+         $params = [];
+         foreach ($conditions as $key => $value) {
+            $where[] = "$key = :$key";
+            $params[$key] = $value;
+         }
+         $sql .= " WHERE " . implode(' AND ', $where);
+         $result = static::getConnection()->query($sql, $params);
+      } else {
+         $result = static::getConnection()->query($sql);
+      }
+
+      return $result[0]['result'] ?? null;
+   }
+
+   /**
+    * Recherche fulltext dans les colonnes spécifiées
+    * 
+    * @param array $columns Colonnes à rechercher
+    * @param string $search Terme de recherche
+    * @return Collection
+    */
+   public static function search(array $columns, string $search): Collection
+   {
+      $columnList = implode(', ', $columns);
+      $sql = "SELECT *, MATCH ($columnList) AGAINST (:search IN BOOLEAN MODE) as relevance 
+              FROM " . static::$table . " 
+              WHERE MATCH ($columnList) AGAINST (:search IN BOOLEAN MODE)
+              ORDER BY relevance DESC";
+
+      $results = static::getConnection()->query($sql, ['search' => $search]);
+      return new Collection(array_map(fn($result) => new static($result), $results));
+   }
+
+   /**
+    * Clone un enregistrement
+    * 
+    * @param array $attributes Attributs à modifier dans la copie
+    * @return static|null
+    */
+   public function replicate(array $attributes = []): ?static
+   {
+      $clone = new static($this->attributes);
+      unset($clone->attributes[static::$primaryKey]);
+
+      foreach ($attributes as $key => $value) {
+         $clone->setAttribute($key, $value);
+      }
+
+      $clone->save();
+      return $clone;
+   }
+
+   /**
+    * Rafraîchit le modèle depuis la base de données
+    * 
+    * @return static|null
+    */
+   public function refresh(): ?static
+   {
+      if (!isset($this->attributes[static::$primaryKey])) {
+         return null;
+      }
+
+      $fresh = static::find($this->attributes[static::$primaryKey]);
+      if ($fresh) {
+         $this->attributes = $fresh->attributes;
+         $this->original = $fresh->original;
+      }
+
+      return $this;
+   }
+
+   /**
+    * Déclenche un événement du modèle (création, mise à jour, suppression, etc.)
+    *
+    * @param string $event Nom de l'événement (ex: 'creating', 'updating', ...)
+    * @return bool Retourne false si un callback retourne explicitement false, sinon true
+    */
+   protected function fireEvent(string $event): bool
+   {
+      if (!isset(static::$eventCallbacks[$event])) {
+         return true;
+      }
+      foreach (static::$eventCallbacks[$event] as $callback) {
+         if (is_callable($callback) && $callback($this) === false) {
+            return false;
+         }
+      }
+      return true;
    }
 }
