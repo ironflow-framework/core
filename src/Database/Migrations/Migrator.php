@@ -5,133 +5,218 @@ declare(strict_types=1);
 namespace IronFlow\Database\Migrations;
 
 use PDO;
-use Exception;
+use Throwable;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 use IronFlow\Database\Schema\Anvil;
 use IronFlow\Database\Schema\Schema;
+use IronFlow\Database\Exceptions\MigrationException;
 
 /**
- * Classe pour exécuter les migrations
+ * Gestionnaire de migrations de base de données
+ * 
+ * Responsable de l'exécution, du rollback et du suivi des migrations
  */
 class Migrator
 {
-   /**
-    * Instance de la connexion à la base de données
-    *
-    * @var PDO
-    */
    protected PDO $connection;
-
-   /**
-    * Répertoire contenant les migrations
-    *
-    * @var string
-    */
    protected string $migrationsPath;
-
-   /**
-    * Nom de la table contenant les migrations exécutées
-    *
-    * @var string
-    */
    protected string $migrationsTable = 'migrations';
+   protected Logger $logger;
+   protected array $loadedMigrations = [];
 
-   /**
-    * Constructeur
-    *
-    * @param PDO $connection Connexion à la base de données
-    * @param string $migrationsPath Chemin vers les migrations
-    */
    public function __construct(PDO $connection, string $migrationsPath)
    {
       $this->connection = $connection;
       $this->migrationsPath = rtrim($migrationsPath, '/\\');
-
+      $this->initializeLogger();
       $this->ensureMigrationsTableExists();
    }
 
    /**
     * Exécute toutes les migrations en attente
-    *
-    * @return array Migrations exécutées
     */
-   public function migrate(): array
+   public function migrate(): MigrationResult
    {
-      $migrations = $this->getPendingMigrations();
-      $migrationsRun = [];
+      $pendingMigrations = $this->getPendingMigrations();
 
-      foreach ($migrations as $migration) {
-         $this->runMigration($migration);
-         $migrationsRun[] = $migration;
+      if (empty($pendingMigrations)) {
+         $this->logger->info('No pending migrations found.');
+         return new MigrationResult([], 'No migrations to run');
       }
 
-      return $migrationsRun;
+      $result = new MigrationResult();
+
+      foreach ($pendingMigrations as $migrationName) {
+         try {
+            $this->executeMigration($migrationName, 'up');
+            $result->addSuccess($migrationName);
+            $this->logger->info("Migration completed: {$migrationName}");
+         } catch (Throwable $e) {
+            $errorMsg = "Migration failed: {$migrationName} - {$e->getMessage()}";
+            $this->logger->error($errorMsg, ['exception' => $e]);
+            $result->addError($migrationName, $e);
+
+            if ($this->shouldStopOnError()) {
+               break;
+            }
+         }
+      }
+
+      return $result;
    }
 
    /**
-    * Annule la dernière migration
-    *
-    * @param int $steps Nombre d'étapes à annuler
-    * @return array Migrations annulées
+    * Annule les migrations récentes
     */
-   public function rollback(int $steps = 1): array
+   public function rollback(int $steps = 1): MigrationResult
    {
-      $migrations = $this->getRecentMigrations($steps);
-      $migrationsRolledBack = [];
+      $migrationsToRollback = $this->getRecentMigrations($steps);
+      $result = new MigrationResult();
 
-      foreach ($migrations as $migration) {
-         $this->rollbackMigration($migration);
-         $migrationsRolledBack[] = $migration;
+      foreach ($migrationsToRollback as $migrationName) {
+         try {
+            $this->executeMigration($migrationName, 'down');
+            $this->removeMigrationLog($migrationName);
+            $result->addSuccess($migrationName);
+            $this->logger->info("Migration rolled back: {$migrationName}");
+         } catch (Throwable $e) {
+            $errorMsg = "Rollback failed: {$migrationName} - {$e->getMessage()}";
+            $this->logger->error($errorMsg, ['exception' => $e]);
+            $result->addError($migrationName, $e);
+            break; // Stop on rollback errors
+         }
       }
 
-      return $migrationsRolledBack;
+      return $result;
    }
 
    /**
-    * Annule toutes les migrations
-    *
-    * @return array Migrations annulées
+    * Remet à zéro toutes les migrations
     */
-   public function reset(): array
+   public function reset(): MigrationResult
    {
-      $migrations = $this->getCompletedMigrations();
-      $migrations = array_reverse($migrations); // Annuler dans l'ordre inverse
-      $migrationsRolledBack = [];
+      $completedMigrations = array_reverse($this->getCompletedMigrations());
+      $result = new MigrationResult();
 
-      foreach ($migrations as $migration) {
-         $this->rollbackMigration($migration);
-         $migrationsRolledBack[] = $migration;
+      foreach ($completedMigrations as $migrationName) {
+         try {
+            $this->executeMigration($migrationName, 'down');
+            $this->removeMigrationLog($migrationName);
+            $result->addSuccess($migrationName);
+         } catch (Throwable $e) {
+            $result->addError($migrationName, $e);
+            break;
+         }
       }
 
-      return $migrationsRolledBack;
+      return $result;
    }
 
    /**
-    * Annule toutes les migrations et les réexécute
-    *
-    * @return array Migrations exécutées
+    * Remet à zéro et réexécute toutes les migrations
     */
-   public function refresh(): array
+   public function refresh(): MigrationResult
    {
-      $this->reset();
+      $resetResult = $this->reset();
+      if ($resetResult->hasErrors()) {
+         return $resetResult;
+      }
+
       return $this->migrate();
    }
 
    /**
-    * Vérifie si toutes les migrations ont été exécutées
-    *
-    * @return bool
+    * Vérifie le statut des migrations
+    */
+   public function status(): MigrationStatus
+   {
+      $allMigrations = $this->getAllMigrations();
+      $completedMigrations = $this->getCompletedMigrations();
+      $pendingMigrations = array_diff($allMigrations, $completedMigrations);
+
+      return new MigrationStatus(
+         $allMigrations,
+         $completedMigrations,
+         $pendingMigrations
+      );
+   }
+
+   /**
+    * Vérifie si des migrations sont en attente
+    */
+   public function isDirty(): bool
+   {
+      return !empty($this->getPendingMigrations());
+   }
+
+   /**
+    * Vérifie si toutes les migrations sont à jour
     */
    public function isUpToDate(): bool
    {
-      return count($this->getPendingMigrations()) === 0;
+      return empty($this->getPendingMigrations());
+   }
+
+   /**
+    * Exécute une migration spécifique
+    */
+   protected function executeMigration(string $migrationName, string $direction): void
+   {
+      $migration = $this->loadMigration($migrationName);
+
+      $this->connection->beginTransaction();
+
+      try {
+         if ($direction === 'up') {
+            $migration->up();
+            $this->logMigration($migrationName);
+         } else {
+            $migration->down();
+         }
+
+         $this->connection->commit();
+      } catch (Throwable $e) {
+         $this->connection->rollBack();
+         throw new MigrationException(
+            "Migration {$direction} failed for {$migrationName}: " . $e->getMessage(),
+            0,
+            $e
+         );
+      }
+   }
+
+   /**
+    * Charge une migration depuis un fichier
+    */
+   protected function loadMigration(string $migrationName): Migration
+   {
+      if (isset($this->loadedMigrations[$migrationName])) {
+         return $this->loadedMigrations[$migrationName];
+      }
+
+      $filePath = $this->migrationsPath . '/' . $migrationName . '.php';
+
+      if (!file_exists($filePath)) {
+         throw new MigrationException("Migration file not found: {$filePath}");
+      }
+
+      $migrationInstance = require $filePath;
+
+      if (!$migrationInstance instanceof Migration) {
+         throw new MigrationException(
+            "Migration file {$migrationName} must return an instance of Migration"
+         );
+      }
+
+      $this->loadedMigrations[$migrationName] = $migrationInstance;
+      return $migrationInstance;
    }
 
    /**
     * Récupère toutes les migrations disponibles
-    *
-    * @return array
     */
-   public function getAllMigrations(): array
+   protected function getAllMigrations(): array
    {
       $files = glob($this->migrationsPath . '/*.php');
       $migrations = [];
@@ -145,29 +230,22 @@ class Migrator
    }
 
    /**
-    * Récupère les migrations qui ont été exécutées
-    *
-    * @return array
+    * Récupère les migrations terminées
     */
-   public function getCompletedMigrations(): array
+   protected function getCompletedMigrations(): array
    {
-      $stmt = $this->connection->prepare("SELECT migration FROM {$this->migrationsTable} ORDER BY batch, migration");
+      $stmt = $this->connection->prepare(
+         "SELECT migration FROM {$this->migrationsTable} ORDER BY batch ASC, migration ASC"
+      );
       $stmt->execute();
 
-      $migrations = [];
-      while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-         $migrations[] = $row['migration'];
-      }
-
-      return $migrations;
+      return $stmt->fetchAll(PDO::FETCH_COLUMN);
    }
 
    /**
     * Récupère les migrations en attente
-    *
-    * @return array
     */
-   public function getPendingMigrations(): array
+   protected function getPendingMigrations(): array
    {
       $allMigrations = $this->getAllMigrations();
       $completedMigrations = $this->getCompletedMigrations();
@@ -176,152 +254,69 @@ class Migrator
    }
 
    /**
-    * Récupère les migrations les plus récentes
-    *
-    * @param int $count Nombre de migrations à récupérer
-    * @return array
+    * Récupère les migrations récentes
     */
-   public function getRecentMigrations(int $count = 1): array
+   protected function getRecentMigrations(int $count): array
    {
       $stmt = $this->connection->prepare(
-         "SELECT migration FROM {$this->migrationsTable} ORDER BY batch DESC, migration DESC LIMIT :count"
+         "SELECT migration FROM {$this->migrationsTable} 
+             ORDER BY batch DESC, migration DESC 
+             LIMIT :count"
       );
       $stmt->bindValue(':count', $count, PDO::PARAM_INT);
       $stmt->execute();
 
-      $migrations = [];
-      while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-         $migrations[] = $row['migration'];
-      }
-
-      return $migrations;
+      return $stmt->fetchAll(PDO::FETCH_COLUMN);
    }
 
    /**
-    * Exécute une migration spécifique
-    *
-    * @param string $migration Nom de la migration
-    * @return bool
+    * Enregistre une migration comme terminée
     */
-   protected function runMigration(string $migration): bool
-   {
-      $file = $this->migrationsPath . '/' . $migration . '.php';
-
-      if (!file_exists($file)) {
-         throw new Exception("Le fichier de migration '$migration' n'existe pas.");
-      }
-
-      try {
-         // Charger la migration (avec return new class extends...)
-         $migrationInstance = require $file;
-
-         if (!$migrationInstance instanceof Migration) {
-            throw new Exception("Le fichier de migration '$migration' ne retourne pas une instance de Migration.");
-         }
-
-         // Exécuter la migration
-         $migrationInstance->runUp();
-
-         // Enregistrer la migration
-         $this->logMigration($migration);
-
-         return true;
-      } catch (Exception $e) {
-         throw new Exception("Erreur lors de l'exécution de la migration '$migration': " . $e->getMessage(), 0, $e);
-      }
-   }
-
-   /**
-    * Annule une migration spécifique
-    *
-    * @param string $migration Nom de la migration
-    * @return bool
-    */
-   protected function rollbackMigration(string $migration): bool
-   {
-      $file = $this->migrationsPath . '/' . $migration . '.php';
-
-      if (!file_exists($file)) {
-         throw new Exception("Le fichier de migration '$migration' n'existe pas.");
-      }
-
-      try {
-         // Charger la migration (avec return new class extends...)
-         $migrationInstance = require $file;
-
-         if (!$migrationInstance instanceof Migration) {
-            throw new Exception("Le fichier de migration '$migration' ne retourne pas une instance de Migration.");
-         }
-
-         // Annuler la migration
-         $migrationInstance->runDown();
-
-         // Supprimer l'entrée de la migration
-         $this->removeMigrationLog($migration);
-
-         return true;
-      } catch (Exception $e) {
-         throw new Exception("Erreur lors de l'annulation de la migration '$migration': " . $e->getMessage(), 0, $e);
-      }
-   }
-
-   /**
-    * Enregistre une migration comme exécutée
-    *
-    * @param string $migration Nom de la migration
-    * @return void
-    */
-   protected function logMigration(string $migration): void
+   protected function logMigration(string $migrationName): void
    {
       $batch = $this->getNextBatchNumber();
-
       $stmt = $this->connection->prepare(
-         "INSERT INTO {$this->migrationsTable} (migration, batch) VALUES (:migration, :batch)"
+         "INSERT INTO {$this->migrationsTable} (migration, batch, executed_at) 
+             VALUES (:migration, :batch, :executed_at)"
       );
-      $stmt->bindValue(':migration', $migration);
-      $stmt->bindValue(':batch', $batch);
-      $stmt->execute();
+
+      $stmt->execute([
+         ':migration' => $migrationName,
+         ':batch' => $batch,
+         ':executed_at' => date('Y-m-d H:i:s')
+      ]);
    }
 
    /**
-    * Supprime une migration de la table de migrations
-    *
-    * @param string $migration Nom de la migration
-    * @return void
+    * Supprime l'enregistrement d'une migration
     */
-   protected function removeMigrationLog(string $migration): void
+   protected function removeMigrationLog(string $migrationName): void
    {
       $stmt = $this->connection->prepare(
          "DELETE FROM {$this->migrationsTable} WHERE migration = :migration"
       );
-      $stmt->bindValue(':migration', $migration);
-      $stmt->execute();
+      $stmt->execute([':migration' => $migrationName]);
    }
 
    /**
     * Récupère le prochain numéro de batch
-    *
-    * @return int
     */
    protected function getNextBatchNumber(): int
    {
       $stmt = $this->connection->prepare(
-         "SELECT MAX(batch) as batch FROM {$this->migrationsTable}"
+         "SELECT COALESCE(MAX(batch), 0) + 1 as next_batch FROM {$this->migrationsTable}"
       );
       $stmt->execute();
       $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-      return ($result['batch'] ?? 0) + 1;
+      return (int) $result['next_batch'];
    }
 
    /**
-    * S'assure que la table de migrations existe
-    *
-    * @return void
+    * Crée la table de migrations si elle n'existe pas
     */
    protected function ensureMigrationsTableExists(): void
    {
-      $driver = $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
       Schema::setDefaultConnection($this->connection);
 
       if (!Schema::hasTable($this->migrationsTable)) {
@@ -329,8 +324,31 @@ class Migrator
             $table->id();
             $table->string('migration');
             $table->integer('batch');
+            $table->timestamp('executed_at');
             $table->timestamps();
+
+            $table->index('migration');
+            $table->index('batch');
          });
       }
+   }
+
+   /**
+    * Initialise le logger
+    */
+   protected function initializeLogger(): void
+   {
+      $this->logger = new Logger('migrations');
+      $this->logger->pushHandler(
+         new StreamHandler(storage_path('logs/migrations.log'), Logger::INFO)
+      );
+   }
+
+   /**
+    * Détermine si l'exécution doit s'arrêter en cas d'erreur
+    */
+   protected function shouldStopOnError(): bool
+   {
+      return true; // Configurable via config
    }
 }

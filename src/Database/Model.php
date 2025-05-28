@@ -297,7 +297,7 @@ abstract class Model
     */
    protected static function setTimestamps(array &$data): void
    {
-      $currentTimestamp = now()->getTimestamp();
+      $currentTimestamp = now()->getLocale();
 
       if (!isset($data['created_at'])) {
          $data['created_at'] = $currentTimestamp;

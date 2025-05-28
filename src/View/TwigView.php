@@ -64,6 +64,10 @@ class TwigView implements ViewInterface
          return ComponentManager::render($name, is_array($props) ? $props : [$props]);
       }, ['is_safe' => ['html']]));
 
+      $this->twig->addFunction(new \Twig\TwigFunction('dump', function (mixed $data) {
+         return dump($data);
+      }, ['is_safe' => ['html']]));
+
       $this->twig->addExtension(new ViteExtension());
       $this->twig->addExtension(new RouteExtension());
       $this->twig->addExtension(new AuthExtension());

@@ -57,8 +57,6 @@ abstract class BaseComponent
             $data
         );
 
-        dump($templateData); // Pour le débogage, à retirer en production
-
         return $this->view->render("templates/{$template}", $templateData);
     }
 

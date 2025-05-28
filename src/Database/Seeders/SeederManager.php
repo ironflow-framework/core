@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace IronFlow\Database\Seeders;
 
-use PDO;
-use Database\Seeders\DatabaseSeeder;
-use IronFlow\Database\Connection;
+use IronFlow\Database\Exceptions\SeederException;
 
 /**
  * Gestionnaire des seeders de base de données
@@ -19,177 +17,122 @@ use IronFlow\Database\Connection;
  * @author Aure Dulvresse
  * @version 1.0.0
  */
-class SeederManager
+class SeederManager extends Seeder
 {
-   /**
-    * Instance de la connexion à la base de données
-    * 
-    * @var PDO
-    */
-   protected PDO $connection;
+   protected array $seeders = [];
+   protected array $executed = [];
+   protected bool $useTransactions = true;
 
    /**
-    * Liste des seeders exécutés
-    * 
-    * @var array<string>
+    * Configure les seeders à exécuter
     */
-   protected array $executedSeeders = [];
-
-   /**
-    * Constructeur
-    * 
-    * @param PDO|Connection|null $connection Instance de la connexion
-    * @throws \InvalidArgumentException Si la connexion n'est pas valide
-    */
-   public function __construct($connection = null)
+   protected function configure(): void
    {
-      if ($connection instanceof Connection) {
-         $this->connection = $connection->getInstance()->getConnection();
-      } elseif ($connection instanceof PDO) {
-         $this->connection = $connection;
-      } else {
-         $this->connection = Connection::getInstance()->getConnection();
-      }
+      // À surcharger dans les classes enfants
    }
 
    /**
-    * Exécute tous les seeders
-    * 
-    * Cette méthode charge et exécute le seeder principal (DatabaseSeeder)
-    * qui est responsable d'appeler tous les autres seeders dans le bon ordre.
-    * 
-    * @return void
-    * @throws \RuntimeException Si le seeder principal n'existe pas
+    * Ajoute un seeder à la liste
     */
-   public function run(): void
+   public function add(string $seederClass): self
    {
-      $seederPath = $this->getSeedersPath() . '/DatabaseSeeder.php';
-
-      if (!file_exists($seederPath)) {
-         throw new \RuntimeException("Le seeder principal n'existe pas: {$seederPath}");
-      }
-
-      require_once $seederPath;
-
-      if (!class_exists("Database\\Seeders\\DatabaseSeeder")) {
-         throw new \RuntimeException("La classe DatabaseSeeder n'existe pas");
-      }
-
-      $seeder = new DatabaseSeeder($this->connection);
-      $seeder->run();
+      $this->seeders[] = $seederClass;
+      return $this;
    }
 
    /**
-    * Exécute un seeder spécifique
-    * 
-    * @param string $seeder Nom du seeder (sans le suffixe "Seeder")
-    * @param array<string, mixed> $options Options supplémentaires pour le seeder
-    * @return void
-    * @throws \RuntimeException Si le seeder n'existe pas
+    * Ajoute plusieurs seeders
     */
-   public function runSpecific(string $seeder, array $options = []): void
+   public function addMany(array $seeders): self
    {
-      $class = $this->getSeederClass($seeder);
+      $this->seeders = array_merge($this->seeders, $seeders);
+      return $this;
+   }
 
-      if (!class_exists($class)) {
-         throw new \RuntimeException("La classe de seeder '{$class}' n'existe pas");
-      }
+   /**
+    * Exécute tous les seeders configurés
+    */
+   public function run(?\Closure $progressCallback = null): void
+   {
+      $this->configure();
 
-      // Vérifie si le seeder a déjà été exécuté
-      if (in_array($class, $this->executedSeeders)) {
+      if (empty($this->seeders)) {
          return;
       }
 
-      $instance = new $class($this->connection);
-      $instance->run();
-      $this->executedSeeders[] = $class;
+      $orderedSeeders = $this->resolveDependencies();
+
+      foreach ($orderedSeeders as $seederClass) {
+         $this->runSeeder($seederClass, $progressCallback);
+      }
    }
 
    /**
-    * Récupère le nom complet de la classe d'un seeder
-    * 
-    * @param string $seeder Nom du seeder (sans le suffixe "Seeder")
-    * @return string
-    * @throws \RuntimeException Si le fichier de seeder n'existe pas
+    * Résout les dépendances entre les seeders
     */
-   protected function getSeederClass(string $seeder): string
+   protected function resolveDependencies(): array
    {
-      $file = $this->getSeedersPath() . '/' . $seeder . '.php';
+      $orderedSeeders = [];
+      $dependencies = [];
 
-      if (!file_exists($file)) {
-         throw new \RuntimeException("Le fichier de seeder n'existe pas: {$file}");
+      // Collect all seeder dependencies
+      foreach ($this->seeders as $seederClass) {
+         $seeder = new $seederClass();
+         $dependencies[$seederClass] = $seeder->getDependencies();
       }
 
-      require_once $file;
+      // Topological sorting
+      while (!empty($dependencies)) {
+         $independentSeeders = array_filter($dependencies, function ($dependencies) {
+            return empty($dependencies);
+         });
 
-      $class = str_replace(' ', '', ucwords(str_replace('_', ' ', $seeder))) . 'Seeder';
-      return "Database\\Seeder\\{$class}";
-   }
+         if (empty($independentSeeders)) {
+            throw new \LogicException('Circular dependency detected');
+         }
 
-   /**
-    * Récupère le chemin vers le répertoire des seeders
-    * 
-    * @return string
-    */
-   protected function getSeedersPath(): string
-   {
-      return database_path('seeders');
-   }
+         foreach ($independentSeeders as $seederClass => $dependencies) {
+            $orderedSeeders[] = $seederClass;
+            unset($dependencies[$seederClass]);
 
-   /**
-    * Liste tous les seeders disponibles
-    * 
-    * @return array<string>
-    */
-   public function listSeeders(): array
-   {
-      $path = $this->getSeedersPath();
-      $files = glob("{$path}/*.php");
-      $seeders = [];
-
-      foreach ($files as $file) {
-         $basename = basename($file, '.php');
-         // Exclure DatabaseSeeder car c'est le point d'entrée
-         if ($basename !== 'DatabaseSeeder') {
-            $seeders[] = $basename;
+            foreach ($dependencies as &$seederDependencies) {
+               $seederDependencies = array_diff($seederDependencies, [$seederClass]);
+            }
          }
       }
+      // Si vous avez besoin de trier les seeders par ordre spécifique,
+      $orderedSeeders = [];
 
-      sort($seeders);
-      return $seeders;
+      sort($orderedSeeders);
+    
+      return $orderedSeeders;
    }
 
-   /**
-    * Réinitialise la liste des seeders exécutés
-    * 
-    * @return void
-    */
-   public function resetExecutedSeeders(): void
-   {
-      $this->executedSeeders = [];
-   }
 
    /**
-    * Vérifie si un seeder a été exécuté
-    * 
-    * @param string $seeder Nom du seeder
-    * @return bool
+    * Exécute un seeder spécifique
     */
-   public function hasSeederBeenExecuted(string $seeder): bool
+   protected function runSeeder(string $seederClass, ?\Closure $progressCallback = null): void
    {
-      return in_array($this->getSeederClass($seeder), $this->executedSeeders);
-   }
+      if (in_array($seederClass, $this->executed)) {
+         return; // Déjà exécuté
+      }
 
-   /**
-    * Exécute plusieurs seeders dans l'ordre spécifié
-    * 
-    * @param array<string> $seeders Liste des seeders à exécuter
-    * @return void
-    */
-   public function runMultiple(array $seeders): void
-   {
-      foreach ($seeders as $seeder) {
-         $this->runSpecific($seeder);
+      if (!class_exists($seederClass)) {
+         throw new SeederException("Seeder class {$seederClass} does not exist");
+      }
+
+      $seeder = new $seederClass($this->connection);
+
+      try {
+         $seeder->execute($progressCallback);
+         $this->executed[] = $seederClass;
+      } catch (\Throwable $e) {
+         throw new SeederException(
+            "Failed to run seeder {$seederClass}: " . $e->getMessage(),
+            0,
+            $e
+         );
       }
    }
 }

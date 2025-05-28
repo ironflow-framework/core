@@ -44,7 +44,7 @@ class MakeModelCommand extends Command
 
         $modelContent = $this->generateModelContent($modelName, $table, $fillable, $withFactory, $withForm);
 
-        if (!Filesystem::exists(dirname($modelPath))) {
+        if (!Filesystem::isDirectory(dirname($modelPath))) {
             Filesystem::makeDirectory(dirname($modelPath), 0755, true);
         }
 
@@ -122,6 +122,10 @@ PHP;
         $migrationPath   = database_path("Migrations/{$timestamp}_{$name}.php");
         $migrationContent = $this->generateMigrationContent($table, $fillable);
 
+        if (!Filesystem::isDirectory(dirname($migrationPath))) {
+            Filesystem::makeDirectory(dirname($migrationPath));
+        }
+
         Filesystem::put($migrationPath, $migrationContent);
         $io->success("La migration {$timestamp}_{$name} a été créée avec succès !");
     }
@@ -139,8 +143,6 @@ PHP;
 
         return <<<PHP
 <?php
-
-namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
 use Ironflow\Database\Schema\Anvil;
@@ -168,6 +170,10 @@ PHP;
         $factoryPath     = database_path("Factories/{$name}Factory.php");
         $factoryContent  = $this->generateFactoryContent($name, $fillable);
 
+
+        if (!Filesystem::isDirectory(dirname($factoryPath))) {
+            Filesystem::makeDirectory(dirname($factoryPath));
+        }
         Filesystem::put($factoryPath, $factoryContent);
         $io->success("La factory {$name} a été créée avec succès !");
     }
@@ -182,8 +188,6 @@ PHP;
 
         return <<<PHP
 <?php
-
-namespace Database\Factories;
 
 use IronFlow\Database\Factories\Factory;
 use App\Models\\{$name};
@@ -212,6 +216,11 @@ PHP;
         $seederPath     = database_path("Seeders/{$name}Seeder.php");
         $seederContent  = $this->generateSeederContent($name);
 
+
+        if (!Filesystem::isDirectory(dirname($seederPath))) {
+            Filesystem::makeDirectory(dirname($seederPath));
+        }
+
         Filesystem::put($seederPath, $seederContent);
         $io->success("Le seeder {$name}Seeder a été créé avec succès !");
     }
@@ -220,8 +229,6 @@ PHP;
     {
         return <<<PHP
 <?php
-
-namespace Database\Seeders;
 
 use App\Models\\{$name};
 use Database\Factories\\{$name}Factory;
@@ -245,6 +252,11 @@ PHP;
         $formPath     = app_path("Forms/{$name}Form.php");
         $formContent  = $this->generateFormContent($name, $fillable);
 
+
+        if (!Filesystem::isDirectory(dirname($formPath))) {
+            Filesystem::makeDirectory(dirname($formPath));
+        }
+
         Filesystem::put($formPath, $formContent);
         $io->success("La classe {$name}Form a été créée avec succès !");
     }
@@ -258,6 +270,7 @@ PHP;
 
 namespace App\Components\Forms;
 
+use App\Models\\{$name};
 use IronFlow\Forms\Form;
 
 class {$name}Form extends Form
@@ -272,7 +285,6 @@ class {$name}Form extends Form
 
 {$fieldsContent}
 
-        return \$this;
     }
 }
 PHP;

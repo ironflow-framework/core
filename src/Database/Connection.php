@@ -389,7 +389,7 @@ final class Connection
       try {
          $stmt = $this->getConnection()->prepare($query);
          $stmt->execute($params);
-         $result = $stmt->fetchAll();
+         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
          $this->statistics['queries_executed']++;
          $executionTime = microtime(true) - $startTime;

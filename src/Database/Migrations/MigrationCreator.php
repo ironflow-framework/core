@@ -80,10 +80,8 @@ class MigrationCreator
     */
    protected function getCreateTableStub(string $table): string
    {
-      return <<<EOT
+      return <<<PHP
 <?php
-
-namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
 use Ironflow\Database\Schema\Anvil;
@@ -116,7 +114,7 @@ return new class extends Migration
         Schema::dropTableIfExists('{$table}');
     }
 };
-EOT;
+PHP;
    }
 
    /**
@@ -127,10 +125,8 @@ EOT;
     */
    protected function getUpdateTableStub(string $table): string
    {
-      return <<<EOT
+      return <<<PHP
 <?php
-
-namespace Database\Migrations;
 
 use IronFlow\Database\Migrations\Migration;
 use Ironflow\Database\Schema\Anvil;
@@ -162,6 +158,6 @@ return new class extends Migration
         });
     }
 };
-EOT;
+PHP;
    }
 }

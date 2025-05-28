@@ -2,10 +2,12 @@
 
 namespace IronFlow\Database\Contracts;
 
+/**
+ * Interface pour les factories
+ */
 interface FactoryInterface
 {
-   public function defineDefaults(): void;
-   public function create(array $attributes = [], ?string $state = null): object;
-   public function count(int $count): self;
-   public function make(array $attributes = [], ?string $state = null): object;
+    public function definition(): array;
+    public function make(array $attributes = []): object;
+    public function create(array $attributes = []): object;
 }
