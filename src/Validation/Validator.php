@@ -190,6 +190,8 @@ class Validator
 
    /**
     * Récupère les erreurs
+    *
+    * @return array
     */
    public function errors(): array
    {

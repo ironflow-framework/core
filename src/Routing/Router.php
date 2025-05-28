@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace IronFlow\Routing;
 
 use Closure;
-use IronFlow\Http\Request;
-use IronFlow\Http\Response;
-use IronFlow\Routing\Exceptions\RouteNotFoundException;
-use IronFlow\Core\Container\ContainerInterface;
-use App\Controllers\AuthController;
-use IronFlow\Core\Exceptions\HttpException;
+use IronFlow\Core\Contracts\ContainerInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use IronFlow\Http\Request;
+use IronFlow\Http\Response;
+use IronFlow\Http\Exceptions\HttpException;
+use IronFlow\Routing\Exceptions\RouteNotFoundException;
+
 
 /**
  * Gestionnaire de routage
@@ -319,27 +319,6 @@ class Router implements RouterInterface
       foreach ($methods as $method) {
          $this->addRoute(strtoupper($method), $uri, $action);
       }
-      return $this;
-   }
-
-   /**
-    * Ajoute les routes d'authentification par défaut
-    * 
-    * @param string $controller Le contrôleur à utiliser
-    * @return self
-    */
-   public function auth(string $controller = AuthController::class): self
-   {
-      $this->get('/login', [$controller, 'showLoginForm'])->name('login');
-      $this->post('/login', [$controller, 'login']);
-      $this->post('/logout', [$controller, 'logout'])->name('logout');
-      $this->get('/register', [$controller, 'showRegistrationForm'])->name('register');
-      $this->post('/register', [$controller, 'register']);
-      $this->get('/password/reset', [$controller, 'showResetForm'])->name('password.request');
-      $this->post('/password/email', [$controller, 'sendResetLinkEmail'])->name('password.email');
-      $this->get('/password/reset/{token}', [$controller, 'showResetForm'])->name('password.reset');
-      $this->post('/password/reset', [$controller, 'reset'])->name('password.update');
-
       return $this;
    }
 

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Logger;
 
+use IronFlow\Core\Contracts\LoggerInterface;
 use Monolog\Logger as MonologLogger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
 
-class Logger
+class Logger implements LoggerInterface
 {
    private static ?Logger $instance = null;
    private MonologLogger $logger;
@@ -52,6 +53,11 @@ class Logger
       return self::$instance;
    }
 
+   public function emergency(string $message, array $context = []): void
+   {
+      $this->logger->emergency($message, $context);
+   }
+
    public function debug(string $message, array $context = []): void
    {
       $this->logger->debug($message, $context);
@@ -60,6 +66,16 @@ class Logger
    public function info(string $message, array $context = []): void
    {
       $this->logger->info($message, $context);
+   }
+
+   public function notice(string $message, array $context = []): void
+   {
+      $this->logger->notice($message, $context);
+   }
+
+   public function alert(string $message, array $context = []): void
+   {
+      $this->logger->alert($message, $context);
    }
 
    public function warning(string $message, array $context = []): void

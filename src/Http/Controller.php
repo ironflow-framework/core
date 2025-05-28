@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace IronFlow\Http;
 
 use IronFlow\Core\Application\Application;
+use IronFlow\Database\Model;
+use IronFlow\Http\Exceptions\HttpException;
 use IronFlow\View\ViewInterface;
 use IronFlow\Http\Response;
 use IronFlow\Support\Facades\Auth;
@@ -13,12 +15,22 @@ use IronFlow\Validation\Validator;
 use IronFlow\Support\Facades\View;
 use IronFlow\Support\Facades\Redirect;
 
+/**
+ * Abstract Class pour les controllers
+ * 
+ * Cette classe represente la classe de base pour les controllers.
+ */
 abstract class Controller
 {
    protected TwigView $view;
    protected Response $response;
    protected array $middleware = [];
 
+   /**
+    * Contructeur de la classe Controller
+    *
+    * @param mixed $view
+    */
    public function __construct(?ViewInterface $view = null)
    {
       if ($view === null) {
@@ -33,6 +45,9 @@ abstract class Controller
 
    /**
     * Méthode appelée après la construction du contrôleur
+    * Cette methode peut-être surcharger dans les classes enfants si necessaire
+    *
+    * @return void
     */
    protected function initialize(): void
    {
@@ -41,6 +56,8 @@ abstract class Controller
 
    /**
     * Récupère les middlewares du contrôleur
+    *
+    * @return array
     */
    public function getMiddleware(): array
    {
@@ -48,7 +65,11 @@ abstract class Controller
    }
 
    /**
-    * Affiche une vue
+    * Rendre une vue
+    *
+    * @param string $name 
+    * @param array $data 
+    * @return \IronFlow\Http\Response
     */
    protected function view(string $name, array $data = []): Response
    {
@@ -58,6 +79,9 @@ abstract class Controller
 
    /**
     * Redirige vers une URL
+    *
+    * @param string $url 
+    * @return \IronFlow\Http\Response
     */
    protected function redirect(string $url): Response
    {
@@ -66,6 +90,10 @@ abstract class Controller
 
    /**
     * Redirige vers une route nommée
+    *
+    * @param string $name
+    * @param array $parameters
+    * @return \IronFlow\Http\Response  
     */
    protected function redirectToRoute(string $name, array $parameters = []): Response
    {
@@ -74,6 +102,8 @@ abstract class Controller
 
    /**
     * Redirige vers l'URL précédente
+    *
+    * @return \IronFlow\Http\Response
     */
    protected function redirectBack(): Response
    {
@@ -82,17 +112,34 @@ abstract class Controller
 
    /**
     * Redirige vers l'URL prévue ou une URL par défaut
+    *
+    * @param string $default 
+    * @return \IronFlow\Http\Response
     */
    protected function redirectIntended(string $default = '/'): Response
    {
       return Redirect::intended($default);
    }
 
+   /**
+    * Afficher les données json
+    *
+    * @param array $data
+    * @param int $status
+    * @return \IronFlow\Http\Response
+    */
    protected function json(array $data, int $status = 200): Response
    {
       return Response::json($data, $status);
    }
 
+   /**
+    * Rediriger vers une route
+    *
+    * @param string $name
+    * @param array $parameters
+    * @return \IronFlow\Http\Response
+    */
    public function route(string $name, array $parameters = []): Response
    {
       $router = Application::getInstance()->getRouter();
@@ -100,23 +147,52 @@ abstract class Controller
       return $this->redirect($url);
    }
 
-   protected function abort(int $status, string $message = "Page non trouvée"): never
+   /**
+    * Déclencher une erreur
+    *
+    * @param int $status
+    * @param string $message
+    * @throws \IronFlow\Http\Exceptions\HttpException
+    * @return never
+    */
+   protected function abort(int $status = 404, string $message = "Page non trouvée", array $context = []): never
    {
-      throw new \IronFlow\Http\Exceptions\HttpException($message, $status);
+      throw new HttpException($status, $message, $context);
    }
 
-   protected function authorize(string $ability, $model): void
+   /**
+    * Verifier l'accès au controller
+    *
+    * @param array $abilities
+    * @param Model $model
+    * @return bool
+    */
+   protected function authorize(array $abilities, Model $model): bool
     {
-        if (!Auth::can($ability, $model)) {
-            abort(403);
+      foreach ($abilities as $ability) {
+         if (!Auth::can($ability, $model)) {
+            return false;
         }
+      }
+
+      return true;
     }
 
+   /**
+    * Retourner une reponse Http
+    *
+    * @return \IronFlow\Http\Response
+    */
    protected function response(): Response
    {
       return $this->response;
    }
 
+   /**
+    * Rediriger vers la precedente URL
+    *
+    * @return \IronFlow\Http\Response
+    */
    protected function back(): Response
    {
       $referer = $_SERVER['HTTP_REFERER'] ?? '/';
@@ -133,9 +209,15 @@ abstract class Controller
    protected function validate(array $data, array $rules): array|bool
    {
       $validator = Validator::make($data, $rules);
-      return $validator->passes() ? true : $validator->getErrors();
+      return $validator->passes() ? true : $validator->errors();
    }
 
+   /**
+    * Ajouter les middlewares
+    *
+    * @param string|array $middleware
+    * @return Controller
+    */
    protected function middleware(string|array $middleware): self
    {
       $this->middleware = array_merge(

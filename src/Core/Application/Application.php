@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace IronFlow\Core\Application;
 
 use IronFlow\Cache\CacheManager;
-use IronFlow\Core\Container\ContainerInterface;
 use IronFlow\Core\Container\Container;
+use IronFlow\Core\Contracts\ApplicationInterface;
+use IronFlow\Core\Contracts\ContainerInterface;
 use IronFlow\Core\Exceptions\ErrorHandler;
 use IronFlow\Core\Service\ServiceProvider;
 use IronFlow\Database\Connection;
@@ -291,6 +292,34 @@ class Application implements ApplicationInterface
       $request = $this->container->make(Request::class);
       $response = $this->container->make(RouterInterface::class)->dispatch($request);
       $response->send();
+   }
+
+   public static function setupDevMode(): void
+   {
+      error_reporting(E_ALL);
+      ini_set('display_errors', '1');
+      ini_set('log_errors', '1');
+      ini_set('error_log', BASE_PATH . '/storage/logs/php_errors.log');
+      ini_set('display_startup_errors', '1');
+      ini_set('track_errors', '1');
+      ini_set('html_errors', '1');
+      ini_set('docref_root', '');
+      ini_set('docref_ext', '.html');
+
+      // Configuration du logging personnalisé
+      ini_set('error_prepend_string', '[' . date('Y-m-d H:i:s') . '] ');
+      ini_set('error_append_string', "\n");
+
+      // Test de logging
+      error_log("=== Démarrage de l'application ===");
+      error_log("PHP Version: " . PHP_VERSION);
+      error_log("Memory Limit: " . ini_get('memory_limit'));
+      error_log("Max Execution Time: " . ini_get('max_execution_time'));
+      error_log("Error Reporting: " . error_reporting());
+      error_log("Display Errors: " . ini_get('display_errors'));
+      error_log("Log Errors: " . ini_get('log_errors'));
+      error_log("Error Log: " . ini_get('error_log'));
+      error_log("================================\n");
    }
 
    /**

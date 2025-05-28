@@ -6,6 +6,7 @@ namespace IronFlow\Core\Container;
 
 use Closure;
 use InvalidArgumentException;
+use IronFlow\Core\Contracts\ContainerInterface;
 use IronFlow\Core\Exceptions\NotFoundException;
 use IronFlow\Routing\RouterInterface;
 use IronFlow\Routing\Router;
