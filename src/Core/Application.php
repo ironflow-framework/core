@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IronFlow\Core;
 
-use Exception;
 use IronFlow\Core\Container\Container;
 use IronFlow\Core\Http\Router;
 use IronFlow\Core\Http\Request;
@@ -19,22 +18,35 @@ use IronFlow\Core\Exception\Handler\ExceptionHandler;
  * Le noyau principal du framework qui orchestre l'initialisation,
  * le chargement des modules et le traitement des requêtes HTTP.
  */
-class Kernel
+class Application
 {
     private Container $container;
     private Router $router;
+    private string $base_path;
     private array $modules = [];
     private array $middleware = [];
     private ExceptionHandler $exceptionHandler;
     private bool $booted = false;
 
-    public function __construct(Container $container)
+    public function __construct(Container $container, string $base_path = '')
     {
         $this->container = $container;
         $this->router = new Router();
         $this->exceptionHandler = new ExceptionHandler();
-        
+        $this->base_path = $base_path;
+
         $this->registerCoreServices();
+    }
+
+    public static function getInstance(): self
+    {
+        static $instance = null;
+        if ($instance === null) {
+            $container = new Container();
+            $basePath = rtrim(__DIR__ . '/../../../../', '/') . '/';
+            $instance = new self($container, $basePath);
+        }
+        return $instance;
     }
 
     /**
@@ -169,5 +181,13 @@ class Kernel
     public function getRouter(): Router
     {
         return $this->router;
+    }
+
+    /**
+     * Retourne le chemin de base de l'application
+     */
+    public function getBasePath(): string
+    {
+        return rtrim($this->base_path, '/') . '/';
     }
 }

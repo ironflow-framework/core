@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace IronFlow\Core\CLI;
 
 use IronFlow\Core\Container\Container;
+
+use IronFlow\Core\CLI\Commands\FactoryCommand;
+use IronFlow\Core\CLI\Commands\KeyGenerateCommand;
 use IronFlow\Core\CLI\Commands\MakeControllerCommand;
 use IronFlow\Core\CLI\Commands\MakeMigrationCommand;
 use IronFlow\Core\CLI\Commands\MakeModelCommand;
@@ -39,6 +42,8 @@ class Kernel
     private function registerCoreCommands(): void
     {
         $this->commands = [
+            KeyGenerateCommand::class,
+            FactoryCommand::class,
             MakeModuleCommand::class,
             MakeControllerCommand::class,
             MakeModelCommand::class,

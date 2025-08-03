@@ -12,7 +12,7 @@ if (!function_exists("base_path")) {
      */
     function base_path(string $path = ''): string
     {
-        return rtrim(__DIR__ . '/../../../../', '/') . ($path ? '/' . ltrim($path, '/') : '');
+        return \IronFlow\Core\Application::getInstance()->getBasePath() . $path;
     }
 }
 
