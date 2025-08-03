@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * Template: ModuleProvider
+ * Fichier: Templates/ModuleProvider.php.template
+ */
+$moduleProviderTemplate = '<?php
+
+declare(strict_types=1);
+
+namespace {{MODULE_NAMESPACE}};
+
+use IronFlow\Core\Module\ModuleProvider;
+use IronFlow\Core\Container\Container;
+
+class {{MODULE_NAME}}ModuleProvider extends ModuleProvider
+{
+    /**
+     * Enregistre les services du module
+     */
+    public function register(Container $container): void
+    {
+        // Enregistrer les services spécifiques au module
+        // $container->singleton(SomeService::class);
+    }
+
+    /**
+     * Boot le module après l\'enregistrement
+     */
+    public function boot(Container $container): void
+    {
+        // Charger les routes du module
+        $this->loadRoutes(__DIR__ . \'/routes.php\');
+        
+        // Autres initialisations
+    }
+}';

@@ -4,243 +4,256 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Container;
 
-use Closure;
-use InvalidArgumentException;
-use IronFlow\Core\Contracts\ContainerInterface;
-use IronFlow\Core\Exceptions\NotFoundException;
-use IronFlow\Routing\RouterInterface;
-use IronFlow\Routing\Router;
+use IronFlow\Core\Exception\Container\ContainerException;
+use IronFlow\Core\Exception\Container\NotFoundException;
 use ReflectionClass;
-use ReflectionParameter;
-use stdClass;
+use Closure;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Container d'injection de dépendances
+ * 
+ * Un container DI puissant avec auto-wiring, singletons,
+ * et résolution automatique des dépendances.
+ */
 class Container implements ContainerInterface
 {
-   /**
-    * Liaisons enregistrées
-    */
-   private array $bindings = [];
 
-   /**
-    * Instances partagées
-    */
-   private array $instances = [];
+    private array $bindings = [];
+    private array $instances = [];
+    private array $aliases = [];
+    private array $parameters = [];
+    private bool $initialized = false;
 
-   /**
-    * Constructeur
-    */
-   public function __construct()
-   {
-      // Liaisons par défaut
-      $this->bind(\IronFlow\View\ViewInterface::class, function ($container) {
-         return new \IronFlow\View\TwigView(base_path('resources/views'));
-      });
-   }
+    public function set(string $id, mixed $value): void
+    {
+        $this->instance($id, $value);
+    }
 
-   /**
-    * Enregistre une liaison dans le conteneur
-    */
-   public function bind(string $abstract, Closure|string|stdClass|null $concrete = null, bool $shared = false): void
-   {
-      if (is_null($concrete)) {
-         $concrete = $abstract;
-      }
+    /**
+     * {@inheritdoc}
+     * Compatible avec symfony/dependency-injection
+     */
+    public function get(string $id, int $invalidBehavior = self::EXCEPTION_ON_INVALID_REFERENCE): object|null
+    {
+        if (!$this->has($id)) {
+            if ($invalidBehavior === self::EXCEPTION_ON_INVALID_REFERENCE) {
+                throw new NotFoundException("Service '{$id}' not found");
+            }
+            return null;
+        }
+        return $this->make($id);
+    }
+    /**
+     * Supprime un service ou une instance du container (optionnel, non dans l'interface Symfony)
+     */
+    public function remove(string $id): void
+    {
+        unset($this->bindings[$id], $this->instances[$id], $this->aliases[$id]);
+    }
 
-      if (!$concrete instanceof Closure) {
-         $concrete = $this->getClosure($abstract, $concrete);
-      }
+    public function initialized(string $id): bool
+    {
+        return $this->initialized && isset($this->instances[$id]);
+    }
 
-      $this->bindings[$abstract] = compact('concrete', 'shared');
-   }
+    public function getParameter(string $name): array|bool|string|int|float|null
+    {
+        if (!$this->hasParameter($name)) {
+            throw new NotFoundException("Parameter '{$name}' not found");
+        }
+        return $this->parameters[$name];
+    }
 
-   /**
-    * Enregistre une instance partagée dans le conteneur
-    */
-   public function singleton(string $abstract, Closure|string|null $concrete = null): void
-   {
-      $this->bind($abstract, $concrete, true);
-   }
+    public function hasParameter(string $name): bool
+    {
+        return isset($this->parameters[$name]);
+    }
 
-   /**
-    * Résout une instance du type demandé
-    */
-   public function make(string $abstract, array $parameters = []): mixed
-   {
-      if (isset($this->instances[$abstract])) {
-         return $this->instances[$abstract];
-      }
+    public function setParameter(string $name, array|bool|string|int|float|\UnitEnum|null $value): void
+    {
+        $this->parameters[$name] = $value;
+    }
 
-      $concrete = $this->getConcrete($abstract);
+    /**
+     * Lie une classe/interface à une implémentation
+     */
+    public function bind(string $abstract, Closure|string|null $concrete = null, bool $shared = false): void
+    {
+        $this->bindings[$abstract] = [
+            'concrete' => $concrete ?? $abstract,
+            'shared' => $shared
+        ];
+    }
 
-      if ($this->isBuildable($concrete, $abstract)) {
-         $object = $this->build($concrete, $parameters);
-      } else {
-         $object = $this->make($concrete, $parameters);
-      }
+    /**
+     * Lie une classe/interface comme singleton
+     */
+    public function singleton(string $abstract, Closure|string|null $concrete = null): void
+    {
+        $this->bind($abstract, $concrete, true);
+    }
 
-      if (isset($this->bindings[$abstract]['shared']) && $this->bindings[$abstract]['shared'] === true) {
-         $this->instances[$abstract] = $object;
-      }
+    /**
+     * Enregistre une instance existante
+     */
+    public function instance(string $abstract, object $instance): void
+    {
+        $this->instances[$abstract] = $instance;
+    }
 
-      return $object;
-   }
+    /**
+     * Crée un alias pour une classe
+     */
+    public function alias(string $abstract, string $alias): void
+    {
+        $this->aliases[$alias] = $abstract;
+    }
 
-   /**
-    * Vérifie si une liaison existe dans le conteneur
-    */
-   public function bound(string $abstract): bool
-   {
-      return isset($this->bindings[$abstract]) || isset($this->instances[$abstract]);
-   }
+    /**
+     * Vérifie si une classe est enregistrée
+     */
+    public function has(string $id): bool
+    {
+        return isset($this->bindings[$id]) ||
+            isset($this->instances[$id]) ||
+            isset($this->aliases[$id]) ||
+            class_exists($id);
+    }
 
-   /**
-    * Supprime une liaison du conteneur
-    */
-   public function unbind(string $abstract): void
-   {
-      unset($this->bindings[$abstract], $this->instances[$abstract]);
-   }
+    /**
+     * Résout et instancie une classe avec ses dépendances
+     */
+    public function make(string $abstract, array $parameters = []): object
+    {
+        // Résolution des alias
+        $abstract = $this->aliases[$abstract] ?? $abstract;
 
-   /**
-    * Vérifie si un service existe dans le container
-    *
-    * @param string $id Identifiant du service
-    * @return bool
-    */
-   public function has(string $id): bool
-   {
-      return isset($this->bindings[$id]) || isset($this->instances[$id]);
-   }
+        // Instance déjà créée
+        if (isset($this->instances[$abstract])) {
+            return $this->instances[$abstract];
+        }
 
-   /**
-    * Vide le conteneur
-    */
-   public function flush(): void
-   {
-      $this->bindings = [];
-      $this->instances = [];
-   }
+        // Binding personnalisé
+        if (isset($this->bindings[$abstract])) {
+            $binding = $this->bindings[$abstract];
+            $concrete = $binding['concrete'];
 
-   /**
-    * Obtient la closure pour la liaison
-    */
-   protected function getClosure(string $abstract, string $concrete): Closure
-   {
-      return function ($container) use ($abstract, $concrete) {
-         if ($abstract === $concrete) {
-            return $container->build($concrete);
-         }
-         return $container->make($concrete);
-      };
-   }
+            if ($concrete instanceof Closure) {
+                $instance = $concrete($this, $parameters);
+            } else {
+                $instance = $this->build($concrete, $parameters);
+            }
 
-   /**
-    * Obtient le concret pour l'abstrait
-    */
-   protected function getConcrete(string $abstract): string|Closure
-   {
-      if (!isset($this->bindings[$abstract])) {
-         return $abstract;
-      }
+            // Singleton : on stocke l'instance
+            if ($binding['shared']) {
+                $this->instances[$abstract] = $instance;
+            }
 
-      return $this->bindings[$abstract]['concrete'];
-   }
+            return $instance;
+        }
 
-   /**
-    * Récupère un service du container
-    *
-    * @param string $id Identifiant du service
-    * @return mixed Instance du service
-    * @throws NotFoundException Si le service n'existe pas
-    */
-   public function get(string $id): mixed
-   {
-      if (isset($this->instances[$id])) {
-         return $this->instances[$id];
-      }
+        // Auto-wiring : résolution automatique
+        return $this->build($abstract, $parameters);
+    }
 
-      if (!$this->has($id)) {
-         throw new NotFoundException("Service '{$id}' not found in container");
-      }
+    /**
+     * Construit une instance avec résolution automatique des dépendances
+     */
+    private function build(string $concrete, array $parameters = []): object
+    {
+        try {
+            $reflector = new ReflectionClass($concrete);
+        } catch (\ReflectionException $e) {
+            throw new NotFoundException("Class {$concrete} not found", 0, $e);
+        }
 
-      $binding = $this->bindings[$id];
-      $concrete = $binding['concrete']($this);
+        if (!$reflector->isInstantiable()) {
+            throw new ContainerException("Class {$concrete} is not instantiable");
+        }
 
-      if ($binding['shared']) {
-         $this->instances[$id] = $concrete;
-      }
+        $constructor = $reflector->getConstructor();
 
-      return $concrete;
-   }
+        // Pas de constructeur : instanciation simple
+        if ($constructor === null) {
+            return new $concrete();
+        }
 
-   /**
-    * Vérifie si le concret est constructible
-    */
-   protected function isBuildable(Closure|string $concrete, string $abstract): bool
-   {
-      return $concrete === $abstract || $concrete instanceof Closure;
-   }
+        // Résolution des paramètres du constructeur
+        $dependencies = $this->resolveDependencies($constructor->getParameters(), $parameters);
 
-   /**
-    * Construit une instance du type donné
-    */
-   protected function build(Closure|string $concrete, array $parameters = []): mixed
-   {
-      if ($concrete instanceof Closure) {
-         return $concrete($this, $parameters);
-      }
+        return $reflector->newInstanceArgs($dependencies);
+    }
 
-      $reflector = new ReflectionClass($concrete);
+    /**
+     * Résout les dépendances d'une méthode
+     */
+    private function resolveDependencies(array $parameters, array $primitives = []): array
+    {
+        $dependencies = [];
 
-      if (!$reflector->isInstantiable()) {
-         throw new InvalidArgumentException("Target [$concrete] is not instantiable.");
-      }
+        foreach ($parameters as $parameter) {
+            $name = $parameter->getName();
 
-      $constructor = $reflector->getConstructor();
+            // Paramètre fourni explicitement
+            if (array_key_exists($name, $primitives)) {
+                $dependencies[] = $primitives[$name];
+                continue;
+            }
 
-      if (is_null($constructor)) {
-         return new $concrete;
-      }
+            // Type hint disponible
+            $type = $parameter->getType();
+            if ($type && !$type->isBuiltin()) {
+                $dependencies[] = $this->make($type->getName());
+                continue;
+            }
 
-      $dependencies = $constructor->getParameters();
-      $instances = $this->resolveDependencies($dependencies);
+            // Valeur par défaut
+            if ($parameter->isDefaultValueAvailable()) {
+                $dependencies[] = $parameter->getDefaultValue();
+                continue;
+            }
 
-      return $reflector->newInstanceArgs($instances);
-   }
+            throw new ContainerException(
+                "Cannot resolve parameter '{$name}' for class"
+            );
+        }
 
-   /**
-    * Résout les dépendances pour les paramètres donnés
-    */
-   protected function resolveDependencies(array $dependencies): array
-   {
-      $results = [];
+        return $dependencies;
+    }
 
-      foreach ($dependencies as $dependency) {
-         $results[] = $this->resolveDependency($dependency);
-      }
+    /**
+     * Appelle une méthode avec injection de dépendances
+     */
+    public function call(callable|array|string $callback, array $parameters = []): mixed
+    {
+        if (is_string($callback) && str_contains($callback, '@')) {
+            [$class, $method] = explode('@', $callback);
+            $callback = [$this->make($class), $method];
+        }
 
-      return $results;
-   }
+        if (is_array($callback)) {
+            [$object, $method] = $callback;
+            if (is_string($object)) {
+                $object = $this->make($object);
+            }
 
-   /**
-    * Résout une dépendance individuelle
-    */
-   protected function resolveDependency(ReflectionParameter $parameter): mixed
-   {
-      $type = $parameter->getType();
+            $reflector = new \ReflectionMethod($object, $method);
+            $dependencies = $this->resolveDependencies($reflector->getParameters(), $parameters);
 
-      if ($type && !$type->isBuiltin()) {
-         $className = $type->getName();
-         if ($className === RouterInterface::class) {
-            return $this->make(Router::class);
-         }
-         return $this->make($className);
-      }
+            return $reflector->invokeArgs($object, $dependencies);
+        }
 
-      if ($parameter->isDefaultValueAvailable()) {
-         return $parameter->getDefaultValue();
-      }
+        return $callback(...array_values($parameters));
+    }
 
-      throw new InvalidArgumentException("Unresolvable dependency resolving [$parameter]");
-   }
+    /**
+     * Flush toutes les instances et bindings
+     */
+    public function flush(): void
+    {
+        $this->bindings = [];
+        $this->instances = [];
+        $this->aliases = [];
+    }
 }

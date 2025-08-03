@@ -1,448 +1,227 @@
-# IronFlow Framework
+# IronFlow Framework Core
 
-<div align="center">
+IronFlow est un framework PHP moderne, modulaire et API-first, conçu pour la création rapide d'applications web et microservices robustes.
 
-![IronFlow Logo](./Ironflow.png)
+## Sommaire
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.2+-blue.svg)](https://php.net)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/ironflow/framework/workflows/CI/badge.svg)](https://github.com/ironflow/framework/actions)
-[![Code Coverage](https://codecov.io/gh/ironflow/framework/branch/main/graph/badge.svg)](https://codecov.io/gh/ironflow/framework)
-[![StyleCI](https://github.styleci.io/repos/ironflow/framework/shield?branch=main)](https://github.styleci.io/repos/ironflow/framework)
+* [Installation](#installation)
+* [Architecture](#architecture)
+* [Démarrage rapide](#démarrage-rapide)
+* [Exemples d'utilisation](#exemples-dutilisation)
+* [ORM & Migrations](#orm--migrations)
+* [Tests](#tests)
+* [Extensibilité](#extensibilité)
+* [Sécurité](#sécurité)
+* [Contribuer](#contribuer)
 
-</div>
-
-## Table des matières
-
-- [Présentation](#présentation)
-- [Fonctionnalités](#fonctionnalités)
-- [Prérequis](#prérequis)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Utilisation](#utilisation)
-- [Migrations](#migrations)
-- [Développement](#développement)
-- [Tests](#tests)
-- [Contribuer](#contribuer)
-- [License](#license)
-
-## À propos
-
-IronFlow est un framework PHP moderne, performant et modulaire, conçu pour simplifier le développement d'applications web tout en offrant une base solide et extensible. Il combine puissance et simplicité pour accélérer votre développement.
-
-## Caractéristiques principales
-
-- Architecture MVC moderne et flexible
-- Système de routage intuitif et performant
-- ORM puissant avec relations fluides
-- Système de templates Twig
-- Gestion avancée des sessions et du cache
-- Système d'authentification robuste
-- Validation des données complète
-- Gestion des événements et des listeners
-- Support multi-langues
-- Système de migrations de base de données
-- Console CLI puissante
-- Support des WebSockets
-- Panneau d'administration intégré (CraftPanel)
-
-## Fonctionnalités Clés
-
-### Performance
-
-- Architecture légère et optimisée
-- Système de cache intégré
-- Chargement différé des composants
-- Optimisation automatique des requêtes
-
-### Sécurité
-
-- Protection CSRF intégrée
-- Validation des données robuste
-- Échappement automatique des sorties
-- Gestion sécurisée des sessions
-
-### Développement
-
-- ORM puissant avec relations fluides
-- Système de routage intuitif
-- Gestionnaire de dépendances intégré
-- Support natif des tests unitaires
-
-### Extensibilité
-
-- Architecture modulaire
-- Système de plugins
-- Hooks et événements personnalisables
-- Support multi-drivers
-
-## Prérequis Système
-
-- PHP 8.2 ou supérieur
-- Composer 2.0+
-- Extensions PHP requises :
-  - PDO
-  - JSON
-  - Mbstring
-  - OpenSSL
-  - Tokenizer
-  - XML
-- Une base de données MySQL, PostgreSQL ou SQLite
-- Un serveur web (Apache, Nginx, etc.)
-
-## 🚀 Installation Rapide
-
-### Via Composer
+## Installation
 
 ```bash
-# Création du projet
-composer create-project ironflow/skeleton mon-projet
-
-# Configuration
-cd mon-projet
-cp .env.example .env
-
-# Génération de la clé d'application
-php forge key:generate
-
-# Installation des dépendances
-composer install
-
-# Configuration des permissions
-chmod -R 777 storage bootstrap/cache
+composer require ironflow/core
 ```
 
-### Manuellement
-
-1. **Cloner le repository**:
-
-   ```bash
-   git clone https://github.com/ironflow-framework/skeleton.git
-   cd framework
-   ```
-
-2. **Installer les dépendances**:
-
-   ```bash
-   composer install
-   ```
-
-3. **Configurer l'environnement**:
-
-   ```bash
-   cp .env.example .env
-   php forge key:generate
-   ```
-
-4. **Lancer le serveur**:
-
-   ```bash
-   php forge serve
-   ```
-
-   Votre application est maintenant accessible à l'adresse [http://localhost:8000](http://localhost:8000)
-
-## 📁 Architecture du Projet
-
-```
-mon-projet/
-├── app/                    # Code de l'application
-│   ├── Controllers/       # Contrôleurs
-│   ├── Models/           # Modèles
-│   ├── Middleware/       # Middleware
-│   └── .../              # Autres dossiers
-├── config/                # Fichiers de configuration
-├── boostrap/              # Fichiers de booststrap
-├── database/              # Migrations et seeders
-├── public/                # Point d'entrée public
-├── resources/             # Ressources (vues, assets)
-├── routes/                # Définition des routes
-├── storage/               # Fichiers générés
-├── tests/                 # Tests unitaires et fonctionnels
-└── vendor/                # Dépendances
-```
-
-## ⚙️ Configuration
-
-### Base de données
-
-```ini
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=ironflow
-DB_USERNAME=root
-DB_PASSWORD=password
-```
-
-### Email
-
-```ini
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailtrap.io
-MAIL_PORT=587
-MAIL_USERNAME=username
-MAIL_PASSWORD=password
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=hello@example.com
-```
-
-### Cache
-
-```ini
-CACHE_DRIVER=file
-CACHE_PREFIX=ironflow_
-CACHE_TTL=3600
-```
-
-## 🛠️ Commandes Forge
-
-### Génération de Code
+## Architecture
 
 ```bash
-# Création de contrôleurs
-php forge make:controller UserController
-
-# Création de modèles
-php forge make:model User
-
-# Création de migrations
-php forge make:migration create_users_table
-
-# Création de seeders
-php forge make:seeder UserSeeder
+src/
+  Core/
+    Kernel.php           # Cœur du framework
+    CLI/                 # Console et commandes personnalisées
+    Container/           # Container d'injection de dépendances
+    Database/            # ORM, QueryBuilder, modèles
+    Exception/           # Gestion des exceptions et erreurs
+    Http/                # Requêtes, réponses, routeur, middlewares
+    Module/              # Système de modules/plugins
 ```
 
-### Base de données
-
-```bash
-# Exécution des migrations
-php forge migrate
-
-# Annulation des migrations
-php forge migrate:rollback
-
-# Exécution des seeders
-php forge db:seed
-
-# Réinitialisation de la base de données
-php forge migrate:fresh --seed
-```
-
-### Maintenance
-
-```bash
-# Nettoyage du cache
-php forge cache:clear
-
-# Optimisation
-php forge optimize
-
-# Vérification de l'état
-php forge status
-```
-
-## 🛠️ Exemple d'utilisation
-
-### Créer une route
+## Démarrage rapide
 
 ```php
-// routes/web.php
-Route::get('/accueil', [HomeController::class, 'index']);
-Route::post('/articles', [ArticleController::class, 'store']);
-Route::resource('users', 'UserController');
+use IronFlow\Core\Kernel;
+
+$kernel = new Kernel();
+$response = $kernel->handleRequest();
+$response->send();
 ```
 
-### Créer un contrôleur
+## Exemples d'utilisation
 
-```bash
-php forge make:controller HomeController
-```
+### Définir une route
 
 ```php
-// app/Controllers/HomeController.php
-namespace App\Controllers;
+$router->get('/hello', function() {
+    return 'Hello World!';
+});
+```
 
-use IronFlow\Http\Controller;
-use IronFlow\Http\Request;
-use IronFlow\Http\Response;
+### Utiliser un middleware
 
-class HomeController extends Controller
-{
-    public function index(Request $request)
-    {
-        return $this->view('home.index', [
-            'title' => 'Accueil'
-        ]);
+```php
+$kernel->addMiddleware(new \IronFlow\Core\Http\Middleware\CorsMiddleware());
+```
+
+### Créer un module
+
+```php
+class BlogModule extends ModuleProvider {
+    public function register() {
+        // ...
     }
 }
+$moduleManager->register(new BlogModule());
 ```
 
-### Créer un modèle
-
-```bash
-php forge make:model Article
-```
+### Rendu Twig (template)
 
 ```php
-// app/Models/Article.php
-namespace App\Models;
+use IronFlow\Core\View\TwigService;
+$twig = new TwigService(__DIR__ . '/views');
+echo $twig->render('home.html.twig', ['user' => 'Kinga']);
+```
 
-class Article extends Model
-{
-    protected $table = 'articles';
+### Validation métier avec Respect\Validation
 
-    protected $fillable = ['title', 'content', 'author_id'];
+```php
+use IronFlow\Core\Validation\Validator;
+use Respect\Validation\Validator as v;
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime'
-    ];
+$validator = new Validator();
+$validator->setRules([
+    'email' => v::email()->notEmpty(),
+    'age'   => v::intVal()->min(18)
+]);
+$data = ['email' => 'test@example.com', 'age' => 20];
+if (!$validator->validate($data)) {
+    print_r($validator->errors());
+}
+```
 
-    public function author()
+### Logging avec Monolog
+
+```php
+use IronFlow\Core\Logger\LoggerService;
+$logger = new LoggerService();
+$logger->info('Nouvelle connexion utilisateur', ['user' => 'Kinga']);
+$logger->error('Erreur critique', ['exception' => $e]);
+```
+
+### Injection automatique via le container
+
+```php
+$container->singleton(TwigService::class, fn() => new TwigService(__DIR__.'/../views'));
+$container->singleton(Validator::class, fn() => new Validator());
+$container->singleton(LoggerService::class, fn() => new LoggerService());
+
+class UserController {
+    public function __construct(
+        TwigService $twig,
+        Validator $validator,
+        LoggerService $logger
+    ) { /* ... */ }
+}
+```
+
+## ORM & Migrations
+
+IronFlow inclut un ORM léger et fluide, similaire à Laravel Blueprint, nommé `Anvil`, et un système de migration inspiré d'Eloquent.
+
+### Exemple de migration
+
+```php
+use IronFlow\Core\Database\Anvil;
+use IronFlow\Core\Database\Migration;
+use IronFlow\Core\Database\Schema;
+
+return new class extends Migration {
+    public function up(): void
     {
-        return $this->belongsTo(User::class, 'author_id');
+        Schema::create('users', function (Anvil $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->timestamps();
+        });
     }
-}
+
+    public function down(): void
+    {
+        Schema::drop('users');
+    }
+};
 ```
 
-## 🗃️ Migrations
+### Méthodes disponibles avec Anvil
 
-### Créer une migration
+* `id()`
+* `string($name, $length = 255)`
+* `integer($name)`
+* `boolean($name)`
+* `timestamp($name)`
+* `timestamps()`
+* `text($name)`
+* `enum($name, array $values)`
+* `foreign($column)->references($target)->on($table)`
+* `nullable()`
+* `default($value)`
+* `unique()`
+* `index()`
+
+## Tests
+
+Lancez les tests unitaires :
 
 ```bash
-php forge make:migration create_articles_table
+vendor\bin\phpunit
 ```
+
+## Extensibilité
+
+### Modules/Plugins
+
+* Ajoutez vos modules dans `src/Core/Module/` en créant une classe qui étend `ModuleProvider`.
+* Exemple d'ajout d'un module externe :
 
 ```php
-// database/migrations/2023_01_15_create_articles_table.php
-public function up()
-{
-    Schema::createTable('articles', function (Anvil $table) {
-        $table->id();
-        $table->string('title');
-        $table->text('content');
-        $table->foreignId('author_id')->constrained('users');
-        $table->timestamps();
-    });
-}
+use IronFlow\Core\Module\ModuleManager;
+use App\Modules\Blog\BlogModule;
 
-public function down()
-{
-    Schema::dropTableIfExists('articles');
-}
+$moduleManager = new ModuleManager($container);
+$moduleManager->register(new BlogModule());
+$moduleManager->bootModules();
 ```
 
-### Exécuter les migrations
+* Un module doit implémenter la méthode `register(Container $container)` et peut surcharger `boot()` pour l'initialisation.
 
-```bash
-php artisan migrate
+### Hooks & Events
+
+* Le cœur fournit un dispatcher d'événements (`EventDispatcher`).
+* Exemple d'écoute et de déclenchement d'un hook :
+
+```php
+use IronFlow\Core\Events\EventDispatcher;
+
+$events = new EventDispatcher();
+$events->listen('user.registered', function($user) {
+    // Action personnalisée
+});
+
+// Plus tard dans le code :
+$events->dispatch('user.registered', $user);
 ```
 
-## 📚Documentation
+* Les modules peuvent s'abonner à des événements du cœur ou en émettre pour permettre l'extension sans modifier le code principal.
 
-La documentation complète est disponible sur [https://ironflow.dev/docs](https://ironflow.dev/docs)
+## Sécurité
 
-### Sections principales
+* Middlewares pour CORS, CSRF, XSS, validation d'entrée
+* Gestion centralisée des erreurs et logs
 
-- [Guide de démarrage](https://ironflow.dev/docs/getting-started)
-- [Architecture](https://ironflow.dev/docs/architecture)
-- [Base de données](https://ironflow.dev/docs/database)
-- [Sécurité](https://ironflow.dev/docs/security)
-- [Tests](https://ironflow.dev/docs/testing)
+## Documentation API
 
-## 🤝 Contribution
+* Les classes et méthodes publiques sont documentées avec des DocBlocks PHP
+* Générez la documentation avec [phpDocumentor](https://www.phpdoc.org/)
 
-Nous accueillons chaleureusement les contributions ! Voici comment participer :
+## Contribuer
 
-1. Fork le projet
-2. Créez une branche (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
-
-### Standards de Code
-
-- Suivez les standards PSR-12
-- Ajoutez des tests unitaires
-- Mettez à jour la documentation
-- Respectez notre [Guide de Contribution](CONTRIBUTING.md)
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## 👥 Équipe
-
-- [Aure Dulvresse](https://github.com/auredulvresse) - Lead Developer
-- [Autre Membre](https://github.com/autre-username) - Core Developer
-
-## 📞 Support
-
-- Documentation : [https://ironflow.dev/docs](https://ironflow.dev/docs)
-- Issues : [GitHub Issues](https://github.com/ironflow/framework/issues)
-- Discussions : [GitHub Discussions](https://github.com/ironflow/framework/discussions)
-- Email : support@ironflow.dev
-
-## 🙏 Remerciements
-
-- [PHP](https://www.php.net/) - Le langage de programmation
-- [Composer](https://getcomposer.org/) - Gestionnaire de dépendances
-- [PDO](https://www.php.net/manual/fr/book.pdo.php) - Extension de base de données
-- [Symfony Components](https://symfony.com/components) - Composants réutilisables
-- [Laravel](https://laravel.com/) - Inspiration pour certaines fonctionnalités
-- [Ruby On Rail](https://rubyonrails.org/) - Inspiration pour certaines fonctionnalités
-- [Django](https://www.djangoproject.com/) - Inspiration pour certaines fonctionnalités
-
----
-
-<div align="center">
-Forgé avec passion et ❤️ by the IronFlow Team
-</div>
-
-# Correction de l'erreur "Undefined type 'IronFlow\Support\Storage'"
-
-Nous avons créé les classes suivantes pour résoudre le problème :
-
-1. `src/Support/Storage.php` - Une classe utilitaire pour gérer le stockage de fichiers
-2. `src/Support/Facades/Storage.php` - Une façade qui redirige les appels statiques vers la classe Storage
-3. Mise à jour de `src/helpers.php` avec la fonction `url()` et l'initialisation de la classe Storage
-
-## Actions supplémentaires nécessaires
-
-Pour résoudre complètement les erreurs restantes dans `src/Vibe/MediaManager.php`, il faut :
-
-1. Installer la bibliothèque Intervention/Image :
-
-   ```
-   composer require intervention/image
-   ```
-
-2. Créer ou mettre à jour le fichier de configuration pour les systèmes de fichiers dans `config/filesystems.php` :
-
-   ```php
-   <?php
-
-   return [
-       'default' => 'local',
-       'disks' => [
-           'local' => [
-               'root' => storage_path('app'),
-               'url' => '/storage/app',
-           ],
-           'public' => [
-               'root' => storage_path('app/public'),
-               'url' => '/storage/app/public',
-           ],
-       ],
-   ];
-   ```
-
-3. Vérifier que la classe `Media` dans `src/Vibe/Models/Media.php` implémente correctement les propriétés et méthodes utilisées dans MediaManager :
-   - `$media->save()`
-   - `$media->disk`
-   - `$media->path`
-   - `$media->id`
-   - `$media->isImage()`
-
-Ces modifications résoudront l'erreur initiale "Undefined type 'IronFlow\Support\Storage'" ainsi que les autres erreurs liées dans le fichier MediaManager.php.
+Les contributions sont les bienvenues ! Merci de lire le guide de contribution dans `CONTRIBUTING.md`.

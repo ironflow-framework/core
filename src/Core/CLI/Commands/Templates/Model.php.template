@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * Template: Model
+ * Fichier: Templates/Model.php.template
+ */
+$modelTemplate = '<?php
+
+declare(strict_types=1);
+
+namespace {{NAMESPACE}};
+
+use IronFlow\Core\Database\Model;
+
+class {{CLASS_NAME}} extends Model
+{
+    /**
+     * Nom de la table associée au modèle
+     */
+    protected static string $table = \'{{TABLE_NAME}}\';
+
+    /**
+     * Attributs qui peuvent être assignés en masse
+     */
+    protected array $fillable = [
+        // \'name\',
+        // \'email\',
+    ];
+
+    /**
+     * Attributs cachés lors de la sérialisation
+     */
+    protected array $hidden = [
+        // \'password\',
+    ];
+
+    // Relations
+    
+    // public function posts()
+    // {
+    //     return $this->hasMany(Post::class);
+    // }
+
+    // public function profile()
+    // {
+    //     return $this->hasOne(Profile::class);
+    // }
+
+    // public function roles()
+    // {
+    //     return $this->belongsToMany(Role::class);
+    // }
+}';
