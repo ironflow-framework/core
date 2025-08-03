@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class FactoryCommand extends Command
+class FactoryCommand extends BaseCommand
 {
     protected static $defaultName = 'factory';
 

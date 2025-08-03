@@ -6,6 +6,16 @@ declare(strict_types=1);
  * Fonctions helper globales
  */
 
+if (!function_exists("base_path")) {
+    /**
+     * Retourne le chemin de base de l'application
+     */
+    function base_path(string $path = ''): string
+    {
+        return rtrim(__DIR__ . '/../../../../', '/') . ($path ? '/' . ltrim($path, '/') : '');
+    }
+}
+
 if (!function_exists('trans')) {
     function trans(string $key, array $parameters = [], string $domain = 'messages', ?string $locale = null): string
     {
