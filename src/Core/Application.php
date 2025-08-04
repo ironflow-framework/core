@@ -28,9 +28,9 @@ class Application
     private ExceptionHandler $exceptionHandler;
     private bool $booted = false;
 
-    public function __construct(Container $container, string $base_path = '')
+    public function __construct(string $base_path = '')
     {
-        $this->container = $container;
+        $this->container = new Container();
         $this->router = new Router();
         $this->exceptionHandler = new ExceptionHandler();
         $this->base_path = $base_path;
@@ -42,10 +42,23 @@ class Application
     {
         static $instance = null;
         if ($instance === null) {
-            $container = new Container();
             $basePath = rtrim(__DIR__ . '/../../../../', '/') . '/';
-            $instance = new self($container, $basePath);
+            $instance = new self($basePath);
         }
+        return $instance;
+    }
+
+    public static function setup(string $base_path): self
+    {
+        $instance = new self($base_path);
+
+        $modulesFile = base_path('/bootstrap/modules.php');
+
+        if (file_exists($modulesFile)) {
+            $modules = require $modulesFile;
+            $instance->withModules($modules);
+        }
+
         return $instance;
     }
 
@@ -60,11 +73,32 @@ class Application
     }
 
     /**
+     * Enregistre les routes global
+     */
+    public function withRoutes(array $routes): self
+    {
+        foreach ($routes as $route) {
+            $this->getRouter()->loadRoutes($route);
+        }
+
+        return $this;
+    }
+
+    /**
      * Enregistre un module dans l'application
      */
     public function registerModule(ModuleProvider $module): self
     {
         $this->modules[] = $module;
+        return $this;
+    }
+
+    public function withModules(array $modules): self
+    {
+        foreach ($modules as $module) {
+            $this->registerModule($module);
+        }
+
         return $this;
     }
 
@@ -78,6 +112,18 @@ class Application
     }
 
     /**
+     * Enregistrer des middlewares global à l'application
+     */
+    public function withMiddlewares(array $middlewares): self
+    {
+        foreach ($middlewares as $middleware) {
+            $this->addMiddleware($middleware);
+        }
+
+        return $this;
+    }
+
+    /**
      * Boot l'application (charge les modules et configure les services)
      */
     public function boot(): void
@@ -86,11 +132,20 @@ class Application
             return;
         }
 
+        $providersFile = base_path('/bootstrap/providers.php');
+
+        if (file_exists($providersFile)) {
+            $providers = require $providersFile;
+            $this->container->loadProviders($providers);
+        }
+
         // Boot tous les modules enregistrés
         foreach ($this->modules as $module) {
             $module->register($this->container);
             $module->boot($this->container);
         }
+
+
 
         $this->booted = true;
     }
@@ -105,21 +160,20 @@ class Application
 
             // Résolution de la route
             $routeInfo = $this->router->dispatch($request->getMethod(), $request->getUri());
-            
+
             switch ($routeInfo[0]) {
                 case Router::NOT_FOUND:
                     throw new HttpException('Route not found', 404);
-                
+
                 case Router::METHOD_NOT_ALLOWED:
                     throw new HttpException('Method not allowed', 405);
-                
+
                 case Router::FOUND:
                     [$handler, $vars] = [$routeInfo[1], $routeInfo[2]];
                     $request->setRouteParams($vars);
-                    
+
                     return $this->executeMiddlewareChain($request, $handler);
             }
-
         } catch (\Throwable $e) {
             return $this->exceptionHandler->handle($e, $request);
         }
@@ -131,14 +185,14 @@ class Application
     private function executeMiddlewareChain(Request $request, callable $handler): Response
     {
         $pipeline = array_reverse($this->middleware);
-        
-        $next = function(Request $request) use ($handler): Response {
+
+        $next = function (Request $request) use ($handler): Response {
             return $this->resolveHandler($handler, $request);
         };
 
         // Construction de la pipeline de middleware
         foreach ($pipeline as $middleware) {
-            $next = function(Request $request) use ($middleware, $next): Response {
+            $next = function (Request $request) use ($middleware, $next): Response {
                 $middlewareInstance = $this->container->make($middleware);
                 return $middlewareInstance->handle($request, $next);
             };

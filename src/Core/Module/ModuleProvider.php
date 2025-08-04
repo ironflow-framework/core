@@ -6,6 +6,7 @@ namespace IronFlow\Core\Module;
 
 use IronFlow\Core\Container\Container;
 use IronFlow\Core\Http\Router;
+use IronFlow\Core\Providers\Concernes\ServiceProviderInterface;
 
 /**
  * Module Provider de base

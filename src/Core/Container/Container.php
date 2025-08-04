@@ -6,8 +6,12 @@ namespace IronFlow\Core\Container;
 
 use IronFlow\Core\Exception\Container\ContainerException;
 use IronFlow\Core\Exception\Container\NotFoundException;
+use IronFlow\Core\Services\Concernes\ServiceInterface;
 use ReflectionClass;
 use Closure;
+use IronFlow\Core\Container\Concernes\ProviderInterface;
+use IronFlow\Core\Providers\Concernes\ServiceProviderInterface;
+use IronFlow\Core\Services\Service;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -155,6 +159,25 @@ class Container implements ContainerInterface
 
         // Auto-wiring : résolution automatique
         return $this->build($abstract, $parameters);
+    }
+
+    /**
+     * Charge les providers dans le container
+     */
+    public function loadProviders(array $providers): void
+    {
+        foreach ($providers as $provider) {
+            if (is_string($provider)) {
+                $provider = new $provider();
+            }
+
+            if ($provider instanceof ServiceProviderInterface) {
+                $provider->register();
+            } else {
+                throw new ContainerException('Provider must implement ProviderInterface');
+            }
+            
+        }
     }
 
     /**
