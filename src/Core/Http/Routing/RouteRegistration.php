@@ -2,7 +2,7 @@
 
 declare(strict_types= 1);
 
-namespace Ironflow\Core\Src\Core\Http\Routing;
+namespace Ironflow\Core\Http\Routing;
 
 
 /**
