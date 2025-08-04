@@ -1,0 +1,29 @@
+<?php
+
+
+/**
+ * Template: Service
+ * Fichier: Templates/Service.php.template
+ */
+$serviceTemplate = '<?php
+
+declare(strict_types=1);
+
+namespace {{NAMESPACE}};
+
+class {{CLASS_NAME}}
+{
+    public function __construct()
+    {
+        // Injection de dépendances
+    }
+
+    /**
+     * Méthode principale du service
+     */
+    public function handle(): mixed
+    {
+        // TODO: Implémenter la logique métier
+        return null;
+    }
+}';

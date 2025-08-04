@@ -1,0 +1,69 @@
+<?php
+
+
+/**
+ * Template: Controller
+ * Fichier: Templates/Controller.php.template
+ */
+$controllerTemplate = '<?php
+
+declare(strict_types=1);
+
+namespace {{NAMESPACE}};
+
+use IronFlow\Core\Http\Request;
+use IronFlow\Core\Http\Response;
+
+class {{CLASS_NAME}}
+{
+    /**
+     * Affiche la liste des ressources
+     */
+    public function index(Request $request): Response
+    {
+        // TODO: Implémenter la logique
+        return new Response([\'message\' => \'Index method\']);
+    }
+
+    /**
+     * Affiche une ressource spécifique
+     */
+    public function show(Request $request): Response
+    {
+        $id = $request->getRouteParam(\'id\');
+        
+        // TODO: Implémenter la logique
+        return new Response([\'id\' => $id, \'message\' => \'Show method\']);
+    }
+
+    /**
+     * Crée une nouvelle ressource
+     */
+    public function store(Request $request): Response
+    {
+        // TODO: Implémenter la logique
+        return new Response([\'message\' => \'Resource created\'], 201);
+    }
+
+    /**
+     * Met à jour une ressource
+     */
+    public function update(Request $request): Response
+    {
+        $id = $request->getRouteParam(\'id\');
+        
+        // TODO: Implémenter la logique
+        return new Response([\'id\' => $id, \'message\' => \'Resource updated\']);
+    }
+
+    /**
+     * Supprime une ressource
+     */
+    public function destroy(Request $request): Response
+    {
+        $id = $request->getRouteParam(\'id\');
+        
+        // TODO: Implémenter la logique
+        return new Response([\'id\' => $id, \'message\' => \'Resource deleted\']);
+    }
+}';

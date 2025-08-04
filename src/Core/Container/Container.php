@@ -8,7 +8,7 @@ namespace IronFlow\Core\Container;
 
 use IronFlow\Core\Exception\Container\ContainerException;
 use IronFlow\Core\Exception\Container\NotFoundException;
-use IronFlow\Core\Container\Concerns\{ContainerAwareInterface, ContainerAwareTrait};
+use IronFlow\Core\Container\Concerns\ContainerAwareInterface;
 use ReflectionClass;
 use ReflectionParameter;
 use Closure;
@@ -237,7 +237,7 @@ class Container implements ContainerInterface, PsrContainerInterface
     /**
      * Construction d'une instance avec résolution des dépendances
      */
-    protected function build(mixed $concrete, array $parameters = []): mixed
+    protected function build(mixed $concrete, array $parameters = [])
     {
         if ($concrete instanceof Closure) {
             return $concrete($this, $parameters);

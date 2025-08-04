@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * Template: Config
+ * Fichier: Templates/config.php.template
+ */
+$configTemplate = '<?php
+
+declare(strict_types=1);
+
+return [
+    
+    /*
+    |--------------------------------------------------------------------------
+    | {{CONFIG_NAME}} Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration options for {{CONFIG_NAME}}
+    |
+    */
+
+    \'option1\' => env(\'{{CONFIG_NAME_UPPER}}_OPTION1\', \'default_value\'),
+    
+    \'option2\' => [
+        \'nested\' => env(\'{{CONFIG_NAME_UPPER}}_NESTED\', true),
+    ],
+
+];';
