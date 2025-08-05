@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * Template: Routes
+ * Fichier: Templates/routes.php.template
+ */
+$routesTemplate = '<?php
+
+declare(strict_types=1);
+
+use IronFlow\Core\Http\Router;
+
+/** @var Router $router */
+
+// Routes pour le module {{MODULE_NAME}}
+$router->group([\'prefix\' => \'{{MODULE_NAME_LOWER}}\'], function (Router $router) {
+    
+    $router->get(\'/\', \'{{MODULE_NAME}}Controller@index\')->name(\'{{MODULE_NAME_LOWER}}.index\');
+    $router->get(\'/{id}\', \'{{MODULE_NAME}}Controller@show\')->name(\'{{MODULE_NAME_LOWER}}.show\');
+    $router->post(\'/\', \'{{MODULE_NAME}}Controller@store\')->name(\'{{MODULE_NAME_LOWER}}.store\');
+    $router->put(\'/{id}\', \'{{MODULE_NAME}}Controller@update\')->name(\'{{MODULE_NAME_LOWER}}.update\');
+    $router->delete(\'/{id}\', \'{{MODULE_NAME}}Controller@destroy\')->name(\'{{MODULE_NAME_LOWER}}.destroy\');
+    
+});';
