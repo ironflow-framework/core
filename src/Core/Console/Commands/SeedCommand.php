@@ -22,7 +22,7 @@ class SeedCommand extends BaseCommand
              ->addOption('module', 'm', InputOption::VALUE_OPTIONAL, 'Module to seed');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $class = $input->getOption('class');
         $module = $input->getOption('module');

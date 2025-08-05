@@ -18,7 +18,7 @@ class FactoryCommand extends BaseCommand
         $this->addArgument('count', InputArgument::OPTIONAL, 'Number of records', 1);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $factoryName = $input->getArgument('factory');
         $count = (int)$input->getArgument('count');

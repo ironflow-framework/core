@@ -23,7 +23,7 @@ class MakeControllerCommand extends BaseCommand
              ->addOption('module', 'm', InputOption::VALUE_OPTIONAL, 'Module name');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $module = $input->getOption('module');

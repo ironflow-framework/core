@@ -11,6 +11,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class AssetPublishCommand extends BaseCommand
 {
+    /**
+     * Configures the command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -18,7 +23,7 @@ class AssetPublishCommand extends BaseCommand
             ->setDescription('Publie les assets des modules dans le dossier public');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $filesystem = new Filesystem();
         $modulesPath = base_path('app/');

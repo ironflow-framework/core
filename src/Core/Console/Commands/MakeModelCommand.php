@@ -1,4 +1,4 @@
-<?php 
+$output$output$$$<?php 
 
 declare(strict_types= 1);
 
@@ -24,7 +24,7 @@ class MakeModelCommand extends BaseCommand
              ->addOption('migration', null, InputOption::VALUE_NONE, 'Also create migration');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $module = $input->getOption('module');
@@ -46,7 +46,7 @@ class MakeModelCommand extends BaseCommand
             'TABLE_NAME' => $tableName
         ]);
 
-        $this->writeFile($path, $content, $output);
+        $this->writeFile($path, $content);
 
         if ($withMigration) {
             $migrationName = "create_{$tableName}_table";

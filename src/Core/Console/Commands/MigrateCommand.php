@@ -22,7 +22,7 @@ class MigrateCommand extends BaseCommand
              ->addOption('module', 'm', InputOption::VALUE_OPTIONAL, 'Run migrations for specific module only');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $module = $input->getOption('module');
         

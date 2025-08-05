@@ -24,7 +24,7 @@ class MakeSeederCommand extends BaseCommand
              ->addOption('module', 'm', InputOption::VALUE_OPTIONAL, 'Module name');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $module = $input->getOption('module');
@@ -42,7 +42,7 @@ class MakeSeederCommand extends BaseCommand
             'NAMESPACE' => $namespace
         ]);
 
-        $this->writeFile($path, $content, $output);
+        $this->writeFile($path, $content);
 
         $output->writeln("<comment>Seeder {$name} created successfully!</comment>");
         return Command::SUCCESS;

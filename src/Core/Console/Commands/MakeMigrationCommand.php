@@ -23,7 +23,7 @@ class MakeMigrationCommand extends BaseCommand
              ->addOption('module', 'm', InputOption::VALUE_OPTIONAL, 'Module name');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $module = $input->getOption('module');
@@ -45,7 +45,7 @@ class MakeMigrationCommand extends BaseCommand
             'TABLE_NAME' => 'table_name' // À personnaliser selon le pattern du nom
         ]);
 
-        $this->writeFile($path, $content, $output);
+        $this->writeFile($path, $content);
 
         $output->writeln("<comment>Migration {$className} created successfully!</comment>");
         return Command::SUCCESS;

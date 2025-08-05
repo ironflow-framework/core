@@ -21,7 +21,7 @@ class MakeModuleCommand extends BaseCommand
              ->addArgument('name', InputArgument::REQUIRED, 'Module name');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $modulePath = "modules/{$name}";
@@ -41,14 +41,14 @@ class MakeModuleCommand extends BaseCommand
             'MODULE_NAMESPACE' => "App\\Modules\\{$name}"
         ]);
 
-        $this->writeFile("{$modulePath}/{$name}ModuleProvider.php", $providerContent, $output);
+        $this->writeFile("{$modulePath}/{$name}ModuleProvider.php", $providerContent);
 
         // Générer le fichier de routes
         $routesContent = $this->generateFromTemplate('routes', [
             'MODULE_NAME' => $name
         ]);
 
-        $this->writeFile("{$modulePath}/routes.php", $routesContent, $output);
+        $this->writeFile("{$modulePath}/routes.php", $routesContent);
 
         $output->writeln("<comment>Module {$name} created successfully!</comment>");
         $output->writeln("<info>Don't forget to register it in bootstrap/app.php</info>");
