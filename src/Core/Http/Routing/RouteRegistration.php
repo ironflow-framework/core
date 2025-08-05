@@ -4,7 +4,6 @@ declare(strict_types= 1);
 
 namespace Ironflow\Core\Http\Routing;
 
-
 /**
  * Classe représentant l'enregistrement d'une route
  */
