@@ -135,5 +135,3 @@ class Filesystem
         return rmdir($path);
     }
 }
-
-
