@@ -4,13 +4,19 @@ declare(strict_types= 1);
 
 namespace IronFlow\Core\Config;
 
-class Config implements ConfigInterface
+use IronFlow\Core\Config\Concerns\ConfigInterface;
+
+class ConfigManager implements ConfigInterface
 {
     protected $config = [];
 
-    public function __construct(array $config = [])
+    public function __construct(string $basePath = '')
     {
-        $this->config = $config;
+        $configDir = glob($basePath . '/config/*.php');
+
+        foreach ($configDir as $file) {
+            $this->config = array_merge($this->config, require $file);
+        }
     }
 
     public function get($key, $default = null)

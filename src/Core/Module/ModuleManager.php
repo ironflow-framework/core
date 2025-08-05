@@ -17,6 +17,7 @@ final class ModuleManager
     private array $booted = [];
     private array $dependencies = [];
 
+
     public function __construct(
         private Container $container,
         private EventDispatcher $events
@@ -32,7 +33,7 @@ final class ModuleManager
         }
 
         if (!$module instanceof ModuleProvider) {
-            throw new ModuleException('Module must extend ModuleProvider');
+            throw new ModuleException('Module must extend ModuleProvider', );
         }
 
         $moduleClass = get_class($module);

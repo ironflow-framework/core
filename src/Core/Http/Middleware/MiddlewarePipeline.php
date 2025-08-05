@@ -23,6 +23,23 @@ final class MiddlewarePipeline
 
     public function then(callable $destination): MiddlewareStack
     {
+        if (empty($this->middleware)) {
+            return new MiddlewareStack($this->container, [], $destination);
+        }
+
+        // Convert middleware class names to instances
+        foreach ($this->middleware as $key => $middleware) {
+            if (is_string($middleware)) {
+                $this->middleware[$key] = $this->container->make($middleware);
+            }
+        }
+
+        // Return a new MiddlewareStack with the configured middleware and destination
+        return new MiddlewareStack($this->container, $this->middleware, $destination);
+    }    
+
+    public function to(callable $destination): MiddlewareStack
+    {
         return new MiddlewareStack($this->container, $this->middleware, $destination);
     }
 }

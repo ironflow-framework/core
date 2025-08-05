@@ -3,72 +3,59 @@
 declare(strict_types=1);
 
 /**
- * Fonctions helper globales
+ * Fonctions helper globales pour l'application IronFlow.
+ * Fournit des raccourcis vers les chemins, la configuration, la base de données, etc.
  */
 
-if (!function_exists("base_path")) {
-    /**
-     * Retourne le chemin de base de l'application
-     */
+// Chemin de base de l'application
+if (!function_exists('base_path')) {
     function base_path(string $path = ''): string
     {
-        return \IronFlow\Core\Application::getInstance()->getBasePath() . $path;
+        $root = dirname(__DIR__, 6);
+        return $path ? $root . '/' . ltrim($path, '/') : $root;
     }
 }
 
-if (!function_exists("database_path")) {
-    /**
-     * Retourne le chemin de dossier database global ou celui d'un module
-     */
-    function database_path(string $path = ""): string
+// Chemin vers le dossier database (global ou module)
+if (!function_exists('database_path')) {
+    function database_path(string $path = ''): string
     {
-        $baseRootDb = \IronFlow\Core\Application::getInstance()->getBasePath() . '/database';
-        $modulesPath = \IronFlow\Core\Application::getInstance()->getBasePath() . '/Modules';
+        $defaultPath = base_path('database');
+        $modulesPath = base_path('Modules');
 
-        if ($path === '') {
-            return $baseRootDb;
-        }
+        if ($path === '') return $defaultPath;
 
-        // Nettoyage du chemin
-        $cleanedPath = trim($path, '/');
-        $segments = explode('/', $cleanedPath);
-        $first = array_shift($segments);
+        $segments = explode('/', trim($path, '/'));
+        $first = ucfirst(array_shift($segments));
 
         if (is_module($first)) {
             $moduleDbPath = "$modulesPath/$first/database";
-
             if (is_dir($moduleDbPath)) {
-                unset($segments[0]);
-                $subPath = implode('/', $segments);
-                return rtrim($moduleDbPath . '/' . $subPath, '/');
+                return rtrim("$moduleDbPath/" . implode('/', $segments), '/');
             }
         }
 
-        return rtrim($baseRootDb . '/' . $cleanedPath, '/');
+        return rtrim("$defaultPath/" . implode('/', array_merge([$first], $segments)), '/');
     }
 }
 
-
+// Vérifie si un module existe
 if (!function_exists('is_module')) {
-    /**
-     * Vérifie si le dossier est un module
-     */
-    function is_module(string $name = ''): bool
+    function is_module(string $name): bool
     {
-        return is_dir(base_path('/modules/' . ucfirst($name)));
+        return is_dir(base_path('Modules/' . ucfirst($name)));
     }
 }
 
+// Chemin vers le dossier de stockage
 if (!function_exists('storage_path')) {
-    /**
-     * 
-     */
     function storage_path(string $path = ''): string
     {
-        return \IronFlow\Core\Application::getInstance()->getBasePath() . '/storage';
+        return base_path('storage' . ($path ? '/' . ltrim($path, '/') : ''));
     }
 }
 
+// Traduction (i18n)
 if (!function_exists('trans')) {
     function trans(string $key, array $parameters = [], string $domain = 'messages', ?string $locale = null): string
     {
@@ -76,7 +63,6 @@ if (!function_exists('trans')) {
         return $translator ? $translator->trans($key, $parameters, $domain, $locale) : $key;
     }
 }
-
 
 if (!function_exists('trans_choice')) {
     function trans_choice(string $key, int $count, array $parameters = [], string $domain = 'messages', ?string $locale = null): string
@@ -100,98 +86,77 @@ if (!function_exists('_n')) {
     }
 }
 
-declare(strict_types=1);
-
+// Collection d'objets
 if (!function_exists('collect')) {
-    /**
-     * Crée une nouvelle collection
-     */
     function collect(array $items = []): IronFlow\Core\Database\Collection
     {
         return new IronFlow\Core\Database\Collection($items);
     }
 }
 
+// Accès à l'instance de la base de données
 if (!function_exists('db')) {
-    /**
-     * Raccourci vers l'instance Database
-     */
-    function db(): \IronFlow\Core\Database\Database
+    function db(): IronFlow\Core\Database\Database
     {
-        return \IronFlow\Core\Database\Database::getInstance();
+        return IronFlow\Core\Database\Database::getInstance();
     }
 }
 
+// Chargement de configuration
 if (!function_exists('config')) {
-    /**
-     * Récupère une valeur de configuration
-     */
-    function config(string $key, $default = null)
+    function config(string $file, string $key, $default = null)
     {
-        static $config = null;
+        static $configCache = [];
 
-        if ($config === null) {
-            $configFile = __DIR__ . '/../../../../config/app.php';
-            $config = file_exists($configFile) ? require $configFile : [];
+        if (!isset($configCache[$file])) {
+            $filePath = base_path("config/$file.php");
+            $configCache[$file] = file_exists($filePath) ? require $filePath : [];
         }
 
-        $keys = explode('.', $key);
-        $value = $config;
-
-        foreach ($keys as $k) {
-            if (!is_array($value) || !array_key_exists($k, $value)) {
+        $value = $configCache[$file];
+        foreach (explode('.', $key) as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
                 return $default;
             }
-            $value = $value[$k];
+            $value = $value[$segment];
         }
 
         return $value;
     }
 }
 
+// Récupération des variables d'environnement avec vlucas/phpdotenv
 if (!function_exists('env')) {
-    /**
-     * Récupère une variable d'environnement
-     */
     function env(string $key, $default = null)
     {
+        if (class_exists(\Dotenv\Dotenv::class) && empty($_ENV)) {
+            $dotenv = \Dotenv\Dotenv::createImmutable(base_path());
+            $dotenv->load();
+        }
+
+        echo "Variables :" . $_ENV . "\n";
+
         $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
 
-        if ($value === false) {
-            return $default;
-        }
+        if ($value === false) return $default;
 
-        // Conversion des valeurs booléennes
-        switch (strtolower($value)) {
-            case 'true':
-            case '(true)':
-                return true;
-            case 'false':
-            case '(false)':
-                return false;
-            case 'null':
-            case '(null)':
-                return null;
-            case 'empty':
-            case '(empty)':
-                return '';
-        }
+        $value = trim($value);
+        $map = [
+            'true' => true, '(true)' => true,
+            'false' => false, '(false)' => false,
+            'null' => null, '(null)' => null,
+            'empty' => '', '(empty)' => ''
+        ];
 
-        // Valeurs entre guillemets
-        if (preg_match('/^"(.*)"$/', $value, $matches)) {
-            return $matches[1];
-        }
-
-        return $value;
+        $lower = strtolower($value);
+        return array_key_exists($lower, $map) ? $map[$lower] : trim($value, '"');
     }
 }
 
+// Raccourci vers le gestionnaire de cache
 if (!function_exists('cache')) {
-    /**
-     * Raccourci vers le cache
-     */
-    function cache(): \IronFlow\Core\Cache\CacheInterface
+    function cache(): IronFlow\Core\Cache\CacheInterface
     {
-        return \IronFlow\Core\Cache\MemoryCache::getInstance();
+        return IronFlow\Core\Cache\MemoryCache::getInstance();
     }
 }
