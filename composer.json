@@ -56,6 +56,9 @@
             "IronFlow\\Core\\Tests\\": "tests/"
         }
     },
+    "files": [
+        "src/Core/helpers.php"
+    ],
     "minimum-stability": "stable",
     "prefer-stable": true,
     "config": {
