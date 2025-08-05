@@ -1,4 +1,4 @@
-$output$output$$$<?php 
+<?php 
 
 declare(strict_types= 1);
 
@@ -76,6 +76,7 @@ class MakeModelCommand extends BaseCommand
             'TABLE_NAME' => str_replace(['create_', '_table'], '', $name)
         ]);
 
-        $this->writeFile($path, $content, $output);
+        $this->writeFile($path, $content);
+        $output->writeln("<comment>Migration {$className} created successfully!</comment>");
     }
 }
