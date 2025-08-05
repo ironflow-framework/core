@@ -20,9 +20,10 @@ class KeyGenerateCommand extends BaseCommand
     protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $key = bin2hex(random_bytes(32));
-        $envPath = base_path('.env');
+        $envPath = dirname(__DIR__ , 7) . '/.env';
 
         if (!file_exists($envPath)) {
+            $output->writeln($envPath);
             $output->writeln('<error>Fichier .env introuvable.</error>');
             return Command::FAILURE;
         }

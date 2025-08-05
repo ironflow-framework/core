@@ -26,7 +26,7 @@ composer require ironflow/core
 src/
   Core/
     Kernel.php           # Cœur du framework
-    CLI/                 # Console et commandes personnalisées
+    Console/             # Console et commandes personnalisées
     Container/           # Container d'injection de dépendances
     Database/            # ORM, QueryBuilder, modèles
     Exception/           # Gestion des exceptions et erreurs
@@ -37,10 +37,10 @@ src/
 ## Démarrage rapide
 
 ```php
-use IronFlow\Core\Kernel;
+use IronFlow\Core\Application;
 
-$kernel = new Kernel();
-$response = $kernel->handleRequest();
+$app = new Application();
+$response = $app->handleRequest();
 $response->send();
 ```
 
