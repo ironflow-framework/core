@@ -3,151 +3,465 @@
 declare(strict_types=1);
 
 /**
- * Fonctions helper globales pour l'application IronFlow.
- * Fournit des raccourcis vers les chemins, la configuration, la base de données, etc.
+ * Fonctions helper pour la gestion de l'environnement IronFlow
+ * 
+ * Ce fichier contient les fonctions utilitaires pour la gestion
+ * des variables d'environnement et autres helpers globaux.
  */
 
-// Chemin de base de l'application
-if (!function_exists('base_path')) {
-    function base_path(string $path = ''): string
+if (!function_exists("load_booststrap")) {
+    /**
+     * Charge le bootstrap de l'application IronFlow
+     *
+     * @return void
+     */
+    function load_booststrap(): void
     {
-        $root = dirname(__DIR__, 6);
-        return $path ? $root . '/' . ltrim($path, '/') : $root;
+        require_once __DIR__ . '/bootstrap.php';
     }
 }
 
-// Chemin vers le dossier database (global ou module)
-if (!function_exists('database_path')) {
-    function database_path(string $path = ''): string
+if (!function_exists('env')) {
+    /**
+     * Récupère une variable d'environnement avec valeur par défaut
+     *
+     * @param string $key Clé de la variable d'environnement
+     * @param mixed $default Valeur par défaut si la variable n'existe pas
+     * @return mixed
+     */
+    function env(string $key, mixed $default = null): mixed
     {
-        $defaultPath = base_path('database');
-        $modulesPath = base_path('Modules');
-
-        if ($path === '') return $defaultPath;
-
-        $segments = explode('/', trim($path, '/'));
-        $first = ucfirst(array_shift($segments));
-
-        if (is_module($first)) {
-            $moduleDbPath = "$modulesPath/$first/database";
-            if (is_dir($moduleDbPath)) {
-                return rtrim("$moduleDbPath/" . implode('/', $segments), '/');
-            }
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        
+        if ($value === false) {
+            return $default;
         }
-
-        return rtrim("$defaultPath/" . implode('/', array_merge([$first], $segments)), '/');
-    }
-}
-
-// Vérifie si un module existe
-if (!function_exists('is_module')) {
-    function is_module(string $name): bool
-    {
-        return is_dir(base_path('Modules/' . ucfirst($name)));
-    }
-}
-
-// Chemin vers le dossier de stockage
-if (!function_exists('storage_path')) {
-    function storage_path(string $path = ''): string
-    {
-        return base_path('storage' . ($path ? '/' . ltrim($path, '/') : ''));
-    }
-}
-
-// Traduction (i18n)
-if (!function_exists('trans')) {
-    function trans(string $key, array $parameters = [], string $domain = 'messages', ?string $locale = null): string
-    {
-        $translator = IronFlow\Core\Translation\TranslationHelper::getInstance();
-        return $translator ? $translator->trans($key, $parameters, $domain, $locale) : $key;
-    }
-}
-
-if (!function_exists('trans_choice')) {
-    function trans_choice(string $key, int $count, array $parameters = [], string $domain = 'messages', ?string $locale = null): string
-    {
-        $translator = IronFlow\Core\Translation\TranslationHelper::getInstance();
-        return $translator ? $translator->transChoice($key, $count, $parameters, $domain, $locale) : $key;
-    }
-}
-
-if (!function_exists('__')) {
-    function __(string $key, array $parameters = []): string
-    {
-        return trans($key, $parameters);
-    }
-}
-
-if (!function_exists('_n')) {
-    function _n(string $key, int $count, array $parameters = []): string
-    {
-        return trans_choice($key, $count, $parameters);
-    }
-}
-
-// Collection d'objets
-if (!function_exists('collect')) {
-    function collect(array $items = []): IronFlow\Core\Database\Collection
-    {
-        return new IronFlow\Core\Database\Collection($items);
-    }
-}
-
-// Accès à l'instance de la base de données
-if (!function_exists('db')) {
-    function db(): IronFlow\Core\Database\Database
-    {
-        return IronFlow\Core\Database\Database::getInstance();
-    }
-}
-
-// Chargement de configuration
-if (!function_exists('config')) {
-    function config(string $file, string $key, $default = null)
-    {
-        static $configCache = [];
-
-        if (!isset($configCache[$file])) {
-            $filePath = base_path("config/$file.php");
-            $configCache[$file] = file_exists($filePath) ? require $filePath : [];
+        
+        // Conversion des valeurs booléennes et nulles
+        switch (strtolower($value)) {
+            case 'true':
+            case '(true)':
+                return true;
+            case 'false':
+            case '(false)':
+                return false;
+            case 'empty':
+            case '(empty)':
+                return '';
+            case 'null':
+            case '(null)':
+                return null;
         }
-
-        $value = $configCache[$file];
-        foreach (explode('.', $key) as $segment) {
-            if (!is_array($value) || !array_key_exists($segment, $value)) {
-                return $default;
-            }
-            $value = $value[$segment];
+        
+        // Gestion des valeurs entre guillemets
+        if (strlen($value) > 1 && $value[0] === '"' && $value[-1] === '"') {
+            return substr($value, 1, -1);
         }
-
+        
         return $value;
     }
 }
 
-// Récupération des variables d'environnement avec vlucas/phpdotenv
-if (!function_exists('env')) {
-    function env(string $key, $default = null)
+if (!function_exists('config')) {
+    /**
+     * Récupère une valeur de configuration
+     *
+     * @param string $key Clé de configuration (ex: 'app.name')
+     * @param mixed $default Valeur par défaut
+     * @return mixed
+     */
+    function config(string $key, mixed $default = null): mixed
     {
-        if (class_exists(\Dotenv\Dotenv::class) && empty($_ENV)) {
-            $dotenv = \Dotenv\Dotenv::createImmutable(base_path());
-            $dotenv->load();
+        static $configCache = [];
+        
+        // Séparer le fichier de configuration et la clé
+        $parts = explode('.', $key, 2);
+        $file = $parts[0];
+        $configKey = $parts[1] ?? null;
+        
+        // Charger la configuration si pas encore en cache
+        if (!isset($configCache[$file])) {
+            $configPath = base_path("config/{$file}.php");
+            
+            if (file_exists($configPath)) {
+                $configCache[$file] = require $configPath;
+            } else {
+                $configCache[$file] = [];
+            }
         }
+        
+        $config = $configCache[$file];
+        
+        // Si pas de clé spécifique, retourner toute la configuration
+        if ($configKey === null) {
+            return $config;
+        }
+        
+        // Navigation dans la configuration avec notation dot
+        $keys = explode('.', $configKey);
+        $value = $config;
+        
+        foreach ($keys as $segment) {
+            if (is_array($value) && array_key_exists($segment, $value)) {
+                $value = $value[$segment];
+            } else {
+                return $default;
+            }
+        }
+        
+        return $value;
+    }
+}
 
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+if (!function_exists('base_path')) {
+    /**
+     * Retourne le chemin de base de l'application
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function base_path(string $path = ''): string
+    {
+        static $basePath = null;
+        
+        if ($basePath === null) {
+            // Détecter le chemin de base en remontant depuis vendor
+            $currentDir = __DIR__;
+            
+            // Chercher le répertoire contenant composer.json
+            while ($currentDir !== dirname($currentDir)) {
+                if (file_exists($currentDir . '/composer.json')) {
+                    $basePath = $currentDir;
+                    break;
+                }
+                $currentDir = dirname($currentDir);
+            }
+            
+            // Fallback
+            if ($basePath === null) {
+                $basePath = getcwd();
+            }
+        }
+        
+        return $basePath . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : '');
+    }
+}
 
-        if ($value === false) return $default;
+if (!function_exists('app_path')) {
+    /**
+     * Retourne le chemin du répertoire app
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function app_path(string $path = ''): string
+    {
+        return base_path('app' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
 
-        $value = trim($value);
-        $map = [
-            'true' => true, '(true)' => true,
-            'false' => false, '(false)' => false,
-            'null' => null, '(null)' => null,
-            'empty' => '', '(empty)' => ''
-        ];
+if (!function_exists('config_path')) {
+    /**
+     * Retourne le chemin du répertoire config
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function config_path(string $path = ''): string
+    {
+        return base_path('config' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
 
-        $lower = strtolower($value);
-        return array_key_exists($lower, $map) ? $map[$lower] : trim($value, '"');
+if (!function_exists('storage_path')) {
+    /**
+     * Retourne le chemin du répertoire storage
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function storage_path(string $path = ''): string
+    {
+        return base_path('storage' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+
+if (!function_exists('public_path')) {
+    /**
+     * Retourne le chemin du répertoire public
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function public_path(string $path = ''): string
+    {
+        return base_path('public' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+
+if (!function_exists('database_path')) {
+    /**
+     * Retourne le chemin du répertoire database
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function database_path(string $path = ''): string
+    {
+        return base_path('database' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+
+if (!function_exists('resource_path')) {
+    /**
+     * Retourne le chemin du répertoire resources
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function resource_path(string $path = ''): string
+    {
+        return base_path('resources' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+
+if (!function_exists('view_path')) {
+    /**
+     * Retourne le chemin du répertoire views
+     *
+     * @param string $path Chemin relatif à ajouter
+     * @return string
+     */
+    function view_path(string $path = ''): string
+    {
+        return resource_path('views' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+
+if (!function_exists('asset')) {
+    /**
+     * Génère une URL pour un asset
+     *
+     * @param string $path Chemin de l'asset
+     * @return string
+     */
+    function asset(string $path): string
+    {
+        $baseUrl = rtrim(env('APP_URL', 'http://localhost'), '/');
+        return $baseUrl . '/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('url')) {
+    /**
+     * Génère une URL pour l'application
+     *
+     * @param string $path Chemin relatif
+     * @return string
+     */
+    function url(string $path = ''): string
+    {
+        $baseUrl = rtrim(env('APP_URL', 'http://localhost'), '/');
+        return $baseUrl . ($path ? '/' . ltrim($path, '/') : '');
+    }
+}
+
+if (!function_exists('abort')) {
+    /**
+     * Lance une exception HTTP
+     *
+     * @param int $code Code d'erreur HTTP
+     * @param string $message Message d'erreur
+     * @throws \RuntimeException
+     */
+    function abort(int $code, string $message = ''): never
+    {
+        http_response_code($code);
+        
+        if (empty($message)) {
+            $messages = [
+                400 => 'Bad Request',
+                401 => 'Unauthorized',
+                403 => 'Forbidden',
+                404 => 'Not Found',
+                405 => 'Method Not Allowed',
+                422 => 'Unprocessable Entity',
+                500 => 'Internal Server Error',
+                503 => 'Service Unavailable',
+            ];
+            $message = $messages[$code] ?? 'HTTP Error';
+        }
+        
+        throw new \RuntimeException($message, $code);
+    }
+}
+
+if (!function_exists('dd')) {
+    /**
+     * Dump and die - Affiche les variables et arrête l'exécution
+     *
+     * @param mixed ...$vars Variables à afficher
+     */
+    function dd(mixed ...$vars): never
+    {
+        foreach ($vars as $var) {
+            var_dump($var);
+        }
+        exit(1);
+    }
+}
+
+if (!function_exists('dump')) {
+    /**
+     * Affiche une variable de manière formatée
+     *
+     * @param mixed $var Variable à afficher
+     */
+    function dump(mixed $var): void
+    {
+        var_dump($var);
+    }
+}
+
+if (!function_exists('collect')) {
+    /**
+     * Crée une collection à partir d'un tableau
+     *
+     * @param array $items Éléments de la collection
+     * @return array
+     */
+    function collect(array $items = []): array
+    {
+        // Implémentation basique - peut être améliorée avec une vraie classe Collection
+        return $items;
+    }
+}
+
+if (!function_exists('old')) {
+    /**
+     * Récupère une ancienne valeur de formulaire
+     *
+     * @param string $key Clé de la valeur
+     * @param mixed $default Valeur par défaut
+     * @return mixed
+     */
+    function old(string $key, mixed $default = null): mixed
+    {
+        return $_SESSION['_old_input'][$key] ?? $default;
+    }
+}
+
+if (!function_exists('session')) {
+    /**
+     * Récupère ou définit une valeur de session
+     *
+     * @param string|array|null $key Clé de la session ou array pour définir plusieurs valeurs
+     * @param mixed $default Valeur par défaut ou valeur à définir
+     * @return mixed
+     */
+    function session(string|array|null $key = null, mixed $default = null): mixed
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if ($key === null) {
+            return $_SESSION;
+        }
+        
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $_SESSION[$k] = $v;
+            }
+            return true;
+        }
+        
+        if (func_num_args() === 1) {
+            return $_SESSION[$key] ?? $default;
+        }
+        
+        $_SESSION[$key] = $default;
+        return true;
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    /**
+     * Génère un token CSRF
+     *
+     * @return string
+     */
+    function csrf_token(): string
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['_token'])) {
+            $_SESSION['_token'] = bin2hex(random_bytes(32));
+        }
+        
+        return $_SESSION['_token'];
+    }
+}
+
+if (!function_exists('now')) {
+    /**
+     * Retourne la date/heure actuelle
+     *
+     * @param string|null $timezone Timezone optionnel
+     * @return \DateTime
+     */
+    function now(?string $timezone = null): \DateTime
+    {
+        return new \DateTime('now', $timezone ? new \DateTimeZone($timezone) : null);
+    }
+}
+
+if (!function_exists('str_random')) {
+    /**
+     * Génère une chaîne aléatoire
+     *
+     * @param int $length Longueur de la chaîne
+     * @return string
+     */
+    function str_random(int $length = 16): string
+    {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[rand(0, $charactersLength - 1)];
+        }
+        
+        return $randomString;
+    }
+}
+
+if (!function_exists('str_slug')) {
+    /**
+     * Convertit une chaîne en slug
+     *
+     * @param string $title Titre à convertir
+     * @param string $separator Séparateur
+     * @return string
+     */
+    function str_slug(string $title, string $separator = '-'): string
+    {
+        // Convertir en minuscules
+        $title = strtolower($title);
+        
+        // Remplacer les caractères accentués
+        $title = iconv('UTF-8', 'ASCII//TRANSLIT', $title);
+        
+        // Remplacer les caractères non alphanumériques par le séparateur
+        $title = preg_replace('/[^a-z0-9]+/', $separator, $title);
+        
+        // Supprimer les séparateurs en début et fin
+        $title = trim($title, $separator);
+        
+        return $title;
     }
 }
 

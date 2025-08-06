@@ -17,15 +17,6 @@ class Response extends \Symfony\Component\HttpFoundation\Response
     }
 
     /**
-     * Définit le contenu de la réponse
-     */
-    public function setContent(mixed $content): self
-    {
-        $this->content = $content;
-        return $this;
-    }
-
-    /**
      * Obtient le code de statut HTTP
      */
     public function getStatusCode(): int

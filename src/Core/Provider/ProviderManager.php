@@ -36,7 +36,7 @@ final class ProviderManager
         $this->providers[$providerClass] = $provider;
         
         $this->events->dispatch('provider.registering', $provider);
-        $provider->register($this->container);
+        $provider->register();
         $this->events->dispatch('provider.registered', $provider);
     }
 
@@ -45,7 +45,7 @@ final class ProviderManager
         foreach ($this->providers as $providerClass => $provider) {
             if (!isset($this->booted[$providerClass])) {
                 $this->events->dispatch('provider.booting', $provider);
-                $provider->boot($this->container);
+                $provider->boot();
                 $this->booted[$providerClass] = true;
                 $this->events->dispatch('provider.booted', $provider);
             }

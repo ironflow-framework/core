@@ -13,19 +13,11 @@ class Request extends \Symfony\Component\HttpFoundation\Request
     public $data;
 
     /**
-     * Crée une requête à partir des globales PHP
-     */
-    public static function createFromGlobals(): self
-    {
-        return new self($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE);
-    }
-
-    /**
      * Obtient la méthode HTTP
      */
     public function getMethod(): string
     {
-        return strtoupper($this->server['REQUEST_METHOD'] ?? 'GET');
+        return strtoupper($this->server->get('REQUEST_METHOD', 'GET'));
     }
 
     /**
@@ -33,7 +25,7 @@ class Request extends \Symfony\Component\HttpFoundation\Request
      */
     public function getUri(): string
     {
-        $uri = $this->server['REQUEST_URI'] ?? '/';
+        $uri = $this->server->get('REQUEST_URI', '/');
 
         // Enlever la query string
         if (($pos = strpos($uri, '?')) !== false) {
@@ -190,9 +182,9 @@ class Request extends \Symfony\Component\HttpFoundation\Request
      */
     public function isSecure(): bool
     {
-        return ($this->server['HTTPS'] ?? '') === 'on' ||
-            ($this->server['SERVER_PORT'] ?? '') === '443' ||
-            ($this->header('X-Forwarded-Proto') ?? '') === 'https';
+        return ($this->server->get('HTTPS', '') === 'on') ||
+            ($this->server->get('SERVER_PORT', '') === '443') ||
+            ($this->header('X-Forwarded-Proto', '') === 'https');
     }
 
     /**
@@ -201,7 +193,7 @@ class Request extends \Symfony\Component\HttpFoundation\Request
     public function ip(): string
     {
         $ipKeys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
-        
+
         foreach ($ipKeys as $key) {
             if ($this->server->has($key)) {
                 $ips = explode(',', $this->server->get($key));

@@ -1,8 +1,8 @@
 <?php
 
-declare(strict_types= 1);
+declare(strict_types=1);
 
-namespace Ironflow\Core\Http\Routing;
+namespace IronFlow\Core\Http\Routing;
 
 /**
  * Classe représentant l'enregistrement d'une route
@@ -11,7 +11,8 @@ class RouteRegistration
 {
     private array $methods;
     private string $uri;
-    private callable|string|array $handler;
+    /** @var callable|string|array */
+    private $handler;
     private array $middleware;
     private ?string $name = null;
 
@@ -43,9 +44,24 @@ class RouteRegistration
     }
 
     // Getters
-    public function getMethods(): array { return $this->methods; }
-    public function getUri(): string { return $this->uri; }
-    public function getHandler(): callable|string|array { return $this->handler; }
-    public function getMiddleware(): array { return $this->middleware; }
-    public function getName(): ?string { return $this->name; }
+    public function getMethods(): array
+    {
+        return $this->methods;
+    }
+    public function getUri(): string
+    {
+        return $this->uri;
+    }
+    public function getHandler(): callable|string|array
+    {
+        return $this->handler;
+    }
+    public function getMiddleware(): array
+    {
+        return $this->middleware;
+    }
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
 }

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace IronFlow\Core\Kernel;
 
+use EnvironmentLoader;
 use IronFlow\Core\Config\ConfigManager;
 use IronFlow\Core\Container\Container;
-use IronFlow\Core\Http\{Router, Request, Response};
+use IronFlow\Core\Http\{Request, Response};
+use IronFlow\Core\Http\Routing\Router;
 use IronFlow\Core\Module\ModuleManager;
 use IronFlow\Core\Provider\ProviderManager;
 use IronFlow\Core\Exception\{HttpException, ApplicationException};
@@ -29,7 +31,9 @@ final class Application
     private ConfigManager $config;
     private EventDispatcher $events;
     private ExceptionHandler $exceptionHandler;
-    
+
+    private EnvironmentLoader $environment;
+
     private string $basePath;
     private array $globalMiddleware = [];
     private bool $booted = false;
@@ -39,7 +43,8 @@ final class Application
     {
         $this->basePath = rtrim($basePath ?: $this->detectBasePath(), '/');
         $this->container = new Container();
-        
+        $this->environment = EnvironmentLoader::getInstance()->load($this->basePath . '/.env', ['.env', '.env.local']);
+
         $this->initializeCoreServices();
         $this->bindApplicationInstance();
     }
@@ -94,7 +99,7 @@ final class Application
     public function withRoutes(array|string $routes): self
     {
         $routeFiles = is_array($routes) ? $routes : [$routes];
-        
+
         foreach ($routeFiles as $routeFile) {
             $this->loadRouteFile($routeFile);
         }
@@ -161,7 +166,7 @@ final class Application
 
         // Boot des service providers
         $this->providerManager->bootProviders();
-        
+
         // Boot des modules
         $this->moduleManager->bootModules();
 
@@ -181,21 +186,25 @@ final class Application
         }
 
         $this->running = true;
-        
+
         try {
             $this->events->dispatch('request.received', $request);
-            
+
             $response = $this->dispatchRequest($request);
-            
+
             $this->events->dispatch('response.prepared', [$request, $response]);
-            
+
             return $response;
-            
         } catch (\Throwable $e) {
             return $this->handleException($e, $request);
         } finally {
             $this->running = false;
         }
+    }
+
+    public function terminate(Request $request, Response $response): void
+    {
+        $this->events->dispatch('Route chargé', $request, $response);
     }
 
     /**
@@ -219,7 +228,12 @@ final class Application
     private function handleFoundRoute(Request $request, mixed $handler, array $params): Response
     {
         $request->setRouteParams($params);
-        
+
+        // Si $handler est un tableau avec une clé 'handler', on l'extrait (cas FastRoute)
+        if (is_array($handler) && isset($handler['handler'])) {
+            $handler = $handler['handler'];
+        }
+
         return $this->executeMiddlewareStack($request, $handler);
     }
 
@@ -229,7 +243,7 @@ final class Application
     private function executeMiddlewareStack(Request $request, mixed $handler): Response
     {
         $pipeline = new MiddlewarePipeline($this->container);
-        
+
         return $pipeline
             ->through($this->globalMiddleware)
             ->then(fn(Request $req) => $this->resolveHandler($handler, $req))
@@ -241,8 +255,14 @@ final class Application
      */
     private function resolveHandler(mixed $handler, Request $request): Response
     {
-        $result = $this->container->call($handler, ['request' => $request]);
-        
+        // Si le handler est une closure ou un callable simple, on l'appelle directement
+        if (is_object($handler) && ($handler instanceof \Closure || is_callable($handler))) {
+            $result = $handler($request);
+        } else {
+            // Sinon, on passe par le container (pour les contrôleurs de type [Class, 'method'] ou "Class@method")
+            $result = $this->container->call($handler, ['request' => $request]);
+        }
+
         return $result instanceof Response ? $result : new Response($result);
     }
 
@@ -252,16 +272,16 @@ final class Application
     private function handleException(\Throwable $exception, Request $request): Response
     {
         $this->events->dispatch('exception.occurred', [$exception, $request]);
-        
+
         return $this->exceptionHandler->handle($exception, $request);
     }
 
     // Méthodes utilitaires
-    
+
     private function loadRouteFile(string $routeFile): void
     {
         $path = $this->basePath . '/' . ltrim($routeFile, '/');
-        
+
         if (!file_exists($path)) {
             throw new ApplicationException("Route file not found: {$path}");
         }
@@ -270,10 +290,37 @@ final class Application
         require $path;
     }
 
+    /**
+     * Charge automatiquement tous les fichiers de routes dans /routes et /modules/*
+     */
+    public function autoDiscoverRoutes(): self
+    {
+        $routeFiles = [];
+        // 1. /routes/*.php
+        $routesDir = $this->basePath . '/routes';
+        if (is_dir($routesDir)) {
+            foreach (glob($routesDir . '/*.php') as $file) {
+                $routeFiles[] = $file;
+            }
+        }
+        // 2. /modules/*/routes/*.php
+        $modulesDir = $this->basePath . '/modules';
+        if (is_dir($modulesDir)) {
+            foreach (glob($modulesDir . '/*/routes/*.php') as $file) {
+                $routeFiles[] = $file;
+            }
+        }
+        foreach ($routeFiles as $file) {
+            $this->loadRouteFile(str_replace($this->basePath . '/', '', $file));
+        }
+        return $this;
+    }
+
+
     private function loadBootstrapFile(string $filename, callable $callback): void
     {
         $path = $this->basePath . '/bootstrap/' . $filename;
-        
+
         if (file_exists($path)) {
             $data = require $path;
             if (!empty($data)) {
@@ -289,11 +336,32 @@ final class Application
 
     // Getters
 
-    public function getContainer(): Container { return $this->container; }
-    public function getRouter(): Router { return $this->router; }
-    public function getConfig(): ConfigManager { return $this->config; }
-    public function getEvents(): EventDispatcher { return $this->events; }
-    public function getBasePath(): string { return $this->basePath; }
-    public function isBooted(): bool { return $this->booted; }
-    public function isRunning(): bool { return $this->running; }
+    public function getContainer(): Container
+    {
+        return $this->container;
+    }
+    public function getRouter(): Router
+    {
+        return $this->router;
+    }
+    public function getConfig(): ConfigManager
+    {
+        return $this->config;
+    }
+    public function getEvents(): EventDispatcher
+    {
+        return $this->events;
+    }
+    public function getBasePath(): string
+    {
+        return $this->basePath;
+    }
+    public function isBooted(): bool
+    {
+        return $this->booted;
+    }
+    public function isRunning(): bool
+    {
+        return $this->running;
+    }
 }

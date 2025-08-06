@@ -23,8 +23,11 @@ class BoundMethod
         $callback = static::normalizeMethod($callback);
 
         if (is_array($callback)) {
+            if (count($callback) !== 2 || empty($callback[0]) || empty($callback[1])) {
+                throw new \InvalidArgumentException('Method callback must be in the form [class, method] or "Class@method"/"Class::method" string, and neither part can be empty.');
+            }
             [$class, $method] = $callback;
-            
+
             if (is_string($class)) {
                 $class = $container->make($class);
             }
@@ -40,14 +43,35 @@ class BoundMethod
 
     protected static function normalizeMethod(callable|array|string $callback): callable|array
     {
+        // Si c'est déjà un callable (closure, fonction, etc.), on le retourne tel quel
+        if (is_object($callback) && ($callback instanceof \Closure || is_callable($callback))) {
+            return $callback;
+        }
+
+        // Si c'est un tableau [class, method], on le retourne tel quel
+        if (is_array($callback) && count($callback) === 2 && !empty($callback[0]) && !empty($callback[1])) {
+            return $callback;
+        }
+
+        // Si c'est une string "Class@method"
         if (is_string($callback) && str_contains($callback, '@')) {
-            return explode('@', $callback, 2);
+            $parts = explode('@', $callback, 2);
+            if (count($parts) !== 2) {
+                throw new \InvalidArgumentException('Invalid callback string: "' . $callback . '". Expected format: "Class@method".');
+            }
+            return $parts;
         }
 
+        // Si c'est une string "Class::method"
         if (is_string($callback) && str_contains($callback, '::')) {
-            return explode('::', $callback, 2);
+            $parts = explode('::', $callback, 2);
+            if (count($parts) !== 2) {
+                throw new \InvalidArgumentException('Invalid callback string: "' . $callback . '". Expected format: "Class::method".');
+            }
+            return $parts;
         }
 
+        // Sinon, on retourne tel quel (pour les callables valides)
         return $callback;
     }
 
@@ -64,7 +88,7 @@ class BoundMethod
             }
 
             $type = $parameter->getType();
-            
+
             if ($type && !$type->isBuiltin()) {
                 $dependencies[] = $container->make($type->getName());
                 continue;

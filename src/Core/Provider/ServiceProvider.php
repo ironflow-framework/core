@@ -2,9 +2,9 @@
 
 declare(strict_types= 1);
 
-namespace IronFlow\Core\Providers;
+namespace IronFlow\Core\Provider;
 
-use IronFlow\Core\Providers\Concernes\ServiceProviderInterface;
+use IronFlow\Core\Provider\Concerns\ServiceProviderInterface;
 
 abstract class ServiceProvider implements ServiceProviderInterface
 {

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types= 1);
+declare(strict_types=1);
 
 namespace IronFlow\Core\Kernel;
 
@@ -48,5 +48,11 @@ final class ApplicationBuilder
     public function build(): Application
     {
         return $this->app->boot();
+    }
+
+    public function autoDiscoverRoutes(): self
+    {
+        $this->app->autoDiscoverRoutes();
+        return $this;
     }
 }
