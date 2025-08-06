@@ -1,0 +1,16 @@
+# routes_empty.php.template
+<?php
+
+/**
+ * IronFlow Framework : {MODULE_NAME} Module Routes
+ * Fichier: {MODULE_NAME_LOWER}/routes/routes.php
+ */
+
+declare(strict_types=1);
+
+use IronFlow\Core\Http\Router;
+
+/** @var Router $router */
+
+// Routes pour le module {MODULE_NAME}
+// Ajoutez vos routes ici selon vos besoins

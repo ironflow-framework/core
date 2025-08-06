@@ -129,8 +129,13 @@ class ServeCommand extends BaseCommand
                 // Afficher la sortie du serveur en temps réel
                 if ($type === Process::ERR) {
                     $this->io->write("<error>{$buffer}</error>");
+                    $this->logger->error('Server error output', ['message' => $buffer]);
+                } elseif ($type === Process::OUT) {
+                    $this->io->write($buffer);
+                    $this->logger->info('Server output', ['message' => $buffer]);
                 } else {
                     $this->io->write($buffer);
+                    $this->logger->info('Server output', ['message' => $buffer]);
                 }
             });
 
@@ -214,7 +219,7 @@ class ServeCommand extends BaseCommand
      */
     private function getDocumentRoot(): string
     {
-        $candidates = ['public', 'web', 'www'];
+        $candidates = ['public', 'web', 'www', 'public_html'];
         
         foreach ($candidates as $candidate) {
             $path = $this->getPath($candidate);

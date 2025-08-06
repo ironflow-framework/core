@@ -1,17 +1,12 @@
 <?php
 
-
-/**
- * Template: Service
- * Fichier: Templates/Service.php.template
- */
-$serviceTemplate = '<?php
-
 declare(strict_types=1);
 
 namespace {{NAMESPACE}};
 
-class {{CLASS_NAME}}
+use IronFlow\Core\Service\BaseService;
+
+class {{CLASS_NAME}} extends BaseService
 {
     public function __construct()
     {

@@ -1,0 +1,27 @@
+
+# routes_custom.php.template
+<?php
+
+/**
+ * IronFlow Framework : {MODULE_NAME} Module Custom Routes
+ * Fichier: {MODULE_NAME_LOWER}/routes/routes.php
+ */
+
+declare(strict_types=1);
+
+use IronFlow\Core\Http\Router;
+use App\Modules\{MODULE_NAME}\Controllers\{MODULE_NAME}Controller;
+
+/** @var Router $router */
+
+// Routes personnalisées pour le module {MODULE_NAME}
+$router->group(['prefix' => '{MODULE_NAME_LOWER}'], function (Router $router) {
+    
+    // Ajoutez vos routes personnalisées ici
+    $router->get('/', [{MODULE_NAME}Controller::class, 'index'])->name('{MODULE_NAME_LOWER}.index');
+    
+    // Exemple de routes personnalisées :
+    // $router->get('/dashboard', [{MODULE_NAME}Controller::class, 'dashboard'])->name('{MODULE_NAME_LOWER}.dashboard');
+    // $router->post('/process', [{MODULE_NAME}Controller::class, 'process'])->name('{MODULE_NAME_LOWER}.process');
+    
+});

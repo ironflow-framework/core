@@ -1,11 +1,4 @@
-<?php 
-
-
-/**
- * Template: Test
- * Fichier: Templates/Test.php.template
- */
-$testTemplate = '<?php
+<?php
 
 declare(strict_types=1);
 

@@ -1,0 +1,29 @@
+
+# routes_resource.php.template
+<?php
+
+/**
+ * IronFlow Framework : {MODULE_NAME} Module
+ * Fichier: {MODULE_NAME_LOWER}/routes/routes.php
+ */
+
+declare(strict_types=1);
+
+use IronFlow\Core\Http\Router;
+use App\Modules\{MODULE_NAME}\Controllers\{MODULE_NAME}Controller;
+
+/** @var Router $router */
+
+// Routes pour le module {MODULE_NAME}
+$router->group(['prefix' => '{MODULE_NAME_LOWER}'], function (Router $router) {
+    
+    // Resource routes
+    $router->get('/', [{MODULE_NAME}Controller::class, 'index'])->name('{MODULE_NAME_LOWER}.index');
+    $router->get('/create', [{MODULE_NAME}Controller::class, 'create'])->name('{MODULE_NAME_LOWER}.create');
+    $router->post('/', [{MODULE_NAME}Controller::class, 'store'])->name('{MODULE_NAME_LOWER}.store');
+    $router->get('/{id}', [{MODULE_NAME}Controller::class, 'show'])->name('{MODULE_NAME_LOWER}.show');
+    $router->get('/{id}/edit', [{MODULE_NAME}Controller::class, 'edit'])->name('{MODULE_NAME_LOWER}.edit');
+    $router->put('/{id}', [{MODULE_NAME}Controller::class, 'update'])->name('{MODULE_NAME_LOWER}.update');
+    $router->delete('/{id}', [{MODULE_NAME}Controller::class, 'destroy'])->name('{MODULE_NAME_LOWER}.destroy');
+    
+});

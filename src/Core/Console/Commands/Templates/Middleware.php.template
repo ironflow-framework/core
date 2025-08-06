@@ -1,10 +1,4 @@
-<?php 
-
-/**
- * Template: Middleware
- * Fichier: Templates/Middleware.php.template
- */
-$middlewareTemplate = '<?php
+<?php
 
 declare(strict_types=1);
 

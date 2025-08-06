@@ -1,12 +1,5 @@
 <?php
 
-
-/**
- * Template: Factory
- * Fichier: Templates/Factory.php.template
- */
-$factoryTemplate = '<?php
-
 declare(strict_types=1);
 
 namespace {{NAMESPACE}};

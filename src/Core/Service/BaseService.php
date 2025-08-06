@@ -12,7 +12,7 @@ use IronFlow\Core\Container\Container;
  * Fournit l'accès au container et l'injection automatique
  * des autres services et models.
  */
-abstract class Service
+abstract class BaseService
 {
     protected Container $container;
     

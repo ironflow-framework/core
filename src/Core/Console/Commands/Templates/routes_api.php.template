@@ -1,0 +1,31 @@
+
+# routes_api.php.template
+<?php
+
+/**
+ * IronFlow Framework : {MODULE_NAME} Module API Routes
+ * Fichier: {MODULE_NAME_LOWER}/routes/routes.php
+ */
+
+declare(strict_types=1);
+
+use IronFlow\Core\Http\Router;
+use App\Modules\{MODULE_NAME}\Controllers\{MODULE_NAME}Controller;
+
+/** @var Router $router */
+
+// API Routes pour le module {MODULE_NAME}
+$router->group(['prefix' => 'api/{MODULE_NAME_LOWER}'], function (Router $router) {
+    
+    // RESTful API routes
+    $router->get('/', [{MODULE_NAME}Controller::class, 'index'])->name('api.{MODULE_NAME_LOWER}.index');
+    $router->post('/', [{MODULE_NAME}Controller::class, 'store'])->name('api.{MODULE_NAME_LOWER}.store');
+    $router->get('/{id}', [{MODULE_NAME}Controller::class, 'show'])->name('api.{MODULE_NAME_LOWER}.show');
+    $router->put('/{id}', [{MODULE_NAME}Controller::class, 'update'])->name('api.{MODULE_NAME_LOWER}.update');
+    $router->delete('/{id}', [{MODULE_NAME}Controller::class, 'destroy'])->name('api.{MODULE_NAME_LOWER}.destroy');
+    
+    // Bulk operations
+    $router->post('/bulk', [{MODULE_NAME}Controller::class, 'bulkStore'])->name('api.{MODULE_NAME_LOWER}.bulk.store');
+    $router->delete('/bulk', [{MODULE_NAME}Controller::class, 'bulkDestroy'])->name('api.{MODULE_NAME_LOWER}.bulk.destroy');
+    
+});
